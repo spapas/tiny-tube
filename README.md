@@ -4,17 +4,20 @@ Filesystem only, no DB/LDAP/Docker. Viewers open, upload with 1 password.
 
 ## Run Windows (dev here)
 ```
-set VIDEO_DIR=videos
-set PORT=8080
-set UPLOAD_USER=admin
-set UPLOAD_PASS=changeme
+copy .env.example .env
 go run .
 ```
-Open http://localhost:8080 , /upload for upload.
+Open http://127.0.0.1:8081 , /upload for upload.
+
+Dev auto-reload (rebuild+restart on every .go save, cmd.exe):
+```
+dev.bat
+```
+(PORT env also works: 127.0.0.1:$PORT when ADDR is unset.)
 
 ## Run AlmaLinux (prod pilot, same binary)
 ```
-VIDEO_DIR=/srv/tiny-tube/videos PORT=8080 UPLOAD_USER=admin UPLOAD_PASS=xxx ./tiny-tube
+VIDEO_DIR=/srv/tiny-tube/videos ADDR=127.0.0.1:8081 UPLOAD_USER=admin UPLOAD_PASS=xxx ./tiny-tube
 # systemd unit points here. Optional Nginx: see nginx.sample.conf
 ```
 

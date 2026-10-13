@@ -11,14 +11,15 @@ import (
 )
 
 type Meta struct {
-	ID        string `json:"id"`
-	Title     string `json:"title"`
-	Desc      string `json:"desc"`
-	Category  string `json:"category"`
-	Created   string `json:"created"`
-	Original  string `json:"original"`
-	HLS       string `json:"hls"`
-	Status    string `json:"status"`
+	ID       string `json:"id"`
+	Title    string `json:"title"`
+	Desc     string `json:"desc"`
+	Category string `json:"category"`
+	Created  string `json:"created"`
+	Original string `json:"original"`
+	HLS      string `json:"hls"`
+	Poster   string `json:"poster"`
+	Status   string `json:"status"`
 }
 
 var validID = regexp.MustCompile(`^[A-Za-z0-9_-]{1,64}$`)

@@ -25,6 +25,10 @@ data/
 *.log
 logs/
 
+# Local video uploads + transcodes (never commit, can be GBs)
+videos/
+!videos/.gitkeep
+
 # IDE / editors
 .idea/
 .vscode/
