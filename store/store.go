@@ -30,6 +30,7 @@ type Store interface {
 	List(q string) ([]Meta, error)
 	Get(id string) (Meta, error)
 	Put(m Meta) error
+	Delete(id string) error
 	Dir(id string) string
 }
 
@@ -38,6 +39,14 @@ type FS struct{ Root string }
 func NewFS(root string) *FS { return &FS{Root: root} }
 
 func (s *FS) Dir(id string) string { return filepath.Join(s.Root, id) }
+
+// Delete removes the whole video dir (meta.json + blobs).
+func (s *FS) Delete(id string) error {
+	if !ValidID(id) {
+		return os.ErrInvalid
+	}
+	return os.RemoveAll(s.Dir(id))
+}
 
 func (s *FS) Put(m Meta) error {
 	if !ValidID(m.ID) {

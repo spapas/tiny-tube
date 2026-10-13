@@ -1,6 +1,6 @@
-# Tiny Tube v1 (vibe, Go only + HLS)
+# Tiny Tube v1 (vibe, Go + HLS + SQLite)
 
-Filesystem only, no DB/LDAP/Docker. Viewers open, upload with 1 password.
+SQLite metadata (pure Go, no cgo), video blobs on disk. No LDAP/Docker. Viewers open, upload with 1 password.
 
 ## Run Windows (dev here)
 ```

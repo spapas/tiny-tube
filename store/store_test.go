@@ -133,3 +133,23 @@ func TestListSkipsBadEntries(t *testing.T) {
 		t.Errorf("List should skip bad entries, got %+v", out)
 	}
 }
+
+func TestDelete(t *testing.T) {
+	s := NewFS(t.TempDir())
+	_ = s.Put(Meta{ID: "del1", Title: "bye"})
+	if err := s.Delete("del1"); err != nil {
+		t.Fatalf("Delete: %v", err)
+	}
+	if _, err := s.Get("del1"); err == nil {
+		t.Error("Get after Delete should fail")
+	}
+	if _, err := os.Stat(s.Dir("del1")); !os.IsNotExist(err) {
+		t.Error("video dir should be gone after Delete")
+	}
+	if err := s.Delete("../evil"); err == nil {
+		t.Error("Delete with invalid ID should fail")
+	}
+	if err := s.Delete("never-existed"); err != nil {
+		t.Errorf("Delete of missing id should not fail: %v", err)
+	}
+}

@@ -60,3 +60,4 @@ docs/manual/images/captures.json
 # Rebuildable narrated training videos, subtitles and review exports
 docs/training/generated/
 scripts/training/__pycache__/
+tmpcheck*

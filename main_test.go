@@ -79,10 +79,21 @@ func TestHandleWatchOK(t *testing.T) {
 		t.Fatalf("watch = %d, want 200", w.Code)
 	}
 	body := w.Body.String()
-	for _, s := range []string{"speedbar", "playbackRate", "DOMContentLoaded", `data-s="0.5"`, `data-s="2"`, "Watch me"} {
+	for _, s := range []string{"speedbar", "playbackRate", "DOMContentLoaded", "autoplay", `data-s="0.5"`, `data-s="2"`, "Watch me"} {
 		if !strings.Contains(body, s) {
 			t.Errorf("watch page missing %q", s)
 		}
+	}
+	if strings.Contains(body, `class="hint"`) {
+		t.Error("ready video with HLS should not show the transcode hint")
+	}
+	// processing video without HLS keeps the hint
+	_ = fs.Put(store.Meta{ID: "w2", Title: "Wait", Original: "original.mp4", Status: "processing"})
+	r2 := httptest.NewRequest("GET", "/watch?id=w2", nil)
+	w2 := httptest.NewRecorder()
+	handleWatch(w2, r2)
+	if !strings.Contains(w2.Body.String(), `class="hint"`) {
+		t.Error("processing video should still show the transcode hint")
 	}
 }
 

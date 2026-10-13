@@ -104,15 +104,19 @@ header.top{position:sticky;top:0;z-index:10;background:rgba(13,17,23,.86);backdr
 footer{color:var(--mut);font-size:12px;text-align:center;padding:20px}
 </style>
 </head><body><header class="top"><div class="wrap bar"><a class="logo" href="/"><span class="mark">▶</span>Tiny Tube</a></div></header><div class="wrap narrow"><a class="back" href="/">← πίσω</a><div class="player">
-<video id="v" controls playsinline></video>
+<video id="v" controls autoplay muted playsinline></video>
 <script>
 const id="{{.ID}}", hls="{{.HLS}}", orig="{{.Original}}";
 const v=document.getElementById("v");
+// Autoplay: browsers only allow it muted. Start muted, then try sound;
+// if blocked, the first click anywhere unmutes.
+function autoplay(){ const p=v.play(); if(p){ p.then(()=>{ v.muted=false; const q=v.play(); if(q) q.catch(()=>{}); }).catch(()=>{}); } }
+document.addEventListener("click",()=>{ v.muted=false; },{once:true});
 if(hls){ const url="/videos/"+id+"/"+hls;
-  if(v.canPlayType("application/vnd.apple.mpegurl")){ v.src=url; }
-  else if(window.Hls && Hls.isSupported()){ const h=new Hls(); h.loadSource(url); h.attachMedia(v); }
-  else { v.src="/videos/"+id+"/"+orig; }
-} else { v.src="/videos/"+id+"/"+orig; }
+  if(v.canPlayType("application/vnd.apple.mpegurl")){ v.src=url; autoplay(); }
+  else if(window.Hls && Hls.isSupported()){ const h=new Hls(); h.loadSource(url); h.attachMedia(v); h.on(Hls.Events.MANIFEST_PARSED,autoplay); }
+  else { v.src="/videos/"+id+"/"+orig; autoplay(); }
+} else { v.src="/videos/"+id+"/"+orig; autoplay(); }
 window.addEventListener("DOMContentLoaded",()=>{
   const vv=document.getElementById("v");
   document.querySelectorAll(".speedbar button").forEach(b=>b.addEventListener("click",()=>{
@@ -121,7 +125,7 @@ window.addEventListener("DOMContentLoaded",()=>{
   }));
 });
 </script>
-</div><div class="speedbar"><span>Ταχύτητα:</span><button data-s="0.5">0.5x</button><button data-s="0.75">0.75x</button><button data-s="1" class="on">1x</button><button data-s="1.25">1.25x</button><button data-s="1.5">1.5x</button><button data-s="1.75">1.75x</button><button data-s="2">2x</button></div><div class="info"><h2>{{.Title}}</h2><div class="tags">{{if .Category}}<span class="tag">{{.Category}}</span>{{end}}<span class="tag"><span class="dot {{if eq .Status "ready"}}ok{{else}}wait{{end}}"></span>{{.Status}}</span></div>{{if .Desc}}<p class="desc">{{.Desc}}</p>{{end}}{{if eq .Status "processing"}}<div class="notice">Μετατροπή σε εξέλιξη — το HLS δεν είναι έτοιμο ακόμα. Δοκίμασε σε λίγο.</div>{{end}}<p class="hint"><small>Αν πας στο τέλος και κολλάει: λείπει faststart/HLS ακόμα (status={{.Status}}). Περίμενε το transcode.</small></p></div>
+</div><div class="speedbar"><span>Ταχύτητα:</span><button data-s="0.5">0.5x</button><button data-s="0.75">0.75x</button><button data-s="1" class="on">1x</button><button data-s="1.25">1.25x</button><button data-s="1.5">1.5x</button><button data-s="1.75">1.75x</button><button data-s="2">2x</button></div><div class="info"><h2>{{.Title}}</h2><div class="tags">{{if .Category}}<span class="tag">{{.Category}}</span>{{end}}<span class="tag"><span class="dot {{if eq .Status "ready"}}ok{{else}}wait{{end}}"></span>{{.Status}}</span></div>{{if .Desc}}<p class="desc">{{.Desc}}</p>{{end}}{{if eq .Status "processing"}}<div class="notice">Μετατροπή σε εξέλιξη — το HLS δεν είναι έτοιμο ακόμα. Δοκίμασε σε λίγο.</div>{{end}}{{if and (eq .Status "ready") .HLS}}{{else}}<p class="hint"><small>Αν πας στο τέλος και κολλάει: λείπει faststart/HLS ακόμα (status={{.Status}}). Περίμενε το transcode.</small></p>{{end}}</div>
 </div><footer>Tiny Tube · Go + HLS</footer></body></html>`))
 
 var uploadTmpl = template.Must(template.New("upload").Parse(`<!doctype html><html lang="el"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Upload - Tiny Tube</title>
@@ -162,7 +166,27 @@ func main() {
 		addr = "127.0.0.1:" + getenv("PORT", "8081")
 	}
 	_ = os.MkdirAll(videoDir, 0o755)
-	fs = store.NewFS(videoDir)
+	// Metadata backend: sqlite (default) or legacy fs (meta.json per video).
+	// Video blobs always stay on disk under VIDEO_DIR/{id}/ either way.
+	switch getenv("STORE", "sqlite") {
+	case "fs":
+		fs = store.NewFS(videoDir)
+	case "sqlite", "":
+		dbPath := getenv("DB_PATH", filepath.Join(videoDir, "tiny-tube.db"))
+		sq, err := store.NewSQLite(videoDir, dbPath)
+		if err != nil {
+			log.Fatalf("sqlite %s: %v", dbPath, err)
+		}
+		if n, err := store.ImportFS(sq, videoDir); err != nil {
+			log.Printf("import meta.json: %v", err)
+		} else if n > 0 {
+			log.Printf("imported %d video(s) from meta.json", n)
+		}
+		log.Printf("sqlite: %s", dbPath)
+		fs = sq
+	default:
+		log.Fatalf("unknown STORE=%q (want sqlite|fs)", getenv("STORE", ""))
+	}
 
 	log.Printf("ffmpeg available: %v", ffmpegAvailable())
 
