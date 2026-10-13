@@ -33,9 +33,12 @@ func transcodeToHLS(videoDir, id, original string) {
 		log.Printf("ffmpeg failed for %s: %v", id, err)
 		return
 	}
-	// mark ready
+	// mark ready (unless the video was deleted mid-transcode)
 	m, err := fs.Get(id)
 	if err != nil {
+		return
+	}
+	if _, err := os.Stat(src); err != nil {
 		return
 	}
 	m.HLS = "index.m3u8"

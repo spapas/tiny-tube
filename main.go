@@ -96,6 +96,13 @@ header.top{position:sticky;top:0;z-index:10;background:rgba(13,17,23,.86);backdr
 .desc{color:#c6d0dc;line-height:1.55}
 .notice{margin-top:12px;padding:10px 14px;border-radius:10px;background:rgba(255,176,32,.1);border:1px solid rgba(255,176,32,.4);font-size:14px}
 .hint{color:var(--mut)}
+.admin{margin-top:14px;display:flex;gap:8px;align-items:center}
+.admin form{margin:0}
+.abtn{display:inline-block;font-size:13px;font-weight:700;padding:7px 14px;border-radius:9px;border:1px solid var(--line);background:#0f1620;color:var(--txt);cursor:pointer;font-family:inherit}
+a.abtn{color:var(--txt)}
+.abtn:hover{border-color:var(--acc)}
+.abtn.danger{color:#ff8a8a;border-color:#5a2b2b}
+.abtn.danger:hover{border-color:#ff8a8a}
 .speedbar{display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin:12px 0 0}
 .speedbar span{color:var(--mut);font-size:13px;margin-right:2px}
 .speedbar button{background:#0f1620;border:1px solid var(--line);color:var(--txt);border-radius:8px;padding:6px 10px;font-size:13px;cursor:pointer}
@@ -125,7 +132,7 @@ window.addEventListener("DOMContentLoaded",()=>{
   }));
 });
 </script>
-</div><div class="speedbar"><span>Ταχύτητα:</span><button data-s="0.5">0.5x</button><button data-s="0.75">0.75x</button><button data-s="1" class="on">1x</button><button data-s="1.25">1.25x</button><button data-s="1.5">1.5x</button><button data-s="1.75">1.75x</button><button data-s="2">2x</button></div><div class="info"><h2>{{.Title}}</h2><div class="tags">{{if .Category}}<span class="tag">{{.Category}}</span>{{end}}<span class="tag"><span class="dot {{if eq .Status "ready"}}ok{{else}}wait{{end}}"></span>{{.Status}}</span></div>{{if .Desc}}<p class="desc">{{.Desc}}</p>{{end}}{{if eq .Status "processing"}}<div class="notice">Μετατροπή σε εξέλιξη — το HLS δεν είναι έτοιμο ακόμα. Δοκίμασε σε λίγο.</div>{{end}}{{if and (eq .Status "ready") .HLS}}{{else}}<p class="hint"><small>Αν πας στο τέλος και κολλάει: λείπει faststart/HLS ακόμα (status={{.Status}}). Περίμενε το transcode.</small></p>{{end}}</div>
+</div><div class="speedbar"><span>Ταχύτητα:</span><button data-s="0.5">0.5x</button><button data-s="0.75">0.75x</button><button data-s="1" class="on">1x</button><button data-s="1.25">1.25x</button><button data-s="1.5">1.5x</button><button data-s="1.75">1.75x</button><button data-s="2">2x</button></div><div class="info"><h2>{{.Title}}</h2><div class="tags">{{if .Category}}<span class="tag">{{.Category}}</span>{{end}}<span class="tag"><span class="dot {{if eq .Status "ready"}}ok{{else}}wait{{end}}"></span>{{.Status}}</span></div>{{if .Desc}}<p class="desc">{{.Desc}}</p>{{end}}{{if eq .Status "processing"}}<div class="notice">Μετατροπή σε εξέλιξη — το HLS δεν είναι έτοιμο ακόμα. Δοκίμασε σε λίγο.</div>{{end}}{{if and (eq .Status "ready") .HLS}}{{else}}<p class="hint"><small>Αν πας στο τέλος και κολλάει: λείπει faststart/HLS ακόμα (status={{.Status}}). Περίμενε το transcode.</small></p>{{end}}<div class="admin"><a class="abtn" href="/edit?id={{.ID}}">Επεξεργασία</a><form method="POST" action="/api/delete" onsubmit="return confirm('Σίγουρα διαγραφή;')"><input type="hidden" name="id" value="{{.ID}}"><button class="abtn danger" type="submit">Διαγραφή</button></form></div></div>
 </div><footer>Tiny Tube · Go + HLS</footer></body></html>`))
 
 var uploadTmpl = template.Must(template.New("upload").Parse(`<!doctype html><html lang="el"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Upload - Tiny Tube</title>
@@ -156,6 +163,30 @@ header.top{position:sticky;top:0;z-index:10;background:rgba(13,17,23,.86);backdr
 <label>Τίτλος<input name="title" required></label><label>Περιγραφή<input name="desc"></label><label>Κατηγορία<input name="category" placeholder="πχ ΔΙΕΥΘΥΝΣΗ"></label>
 <label>Αρχείο<input type="file" name="file" accept="video/mp4,video/*" required></label><p><button class="btn">Ανέβασμα</button></p></form>
 </div></div></body></html>`))
+
+var editTmpl = template.Must(template.New("edit").Parse(`<!doctype html><html lang="el"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Επεξεργασία - Tiny Tube</title>
+<style>
+:root{--bg:#0d1117;--card:#161d27;--line:#26303f;--txt:#e8edf3;--mut:#9aa6b5;--acc:#4fc3f7;--acc2:#7c5cff}
+*{box-sizing:border-box}
+body{font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;margin:0;color:var(--txt);min-height:100vh;background:radial-gradient(1100px 380px at 50% -90px,#1c2c49 0%,var(--bg) 62%) fixed,var(--bg)}
+a{color:var(--acc);text-decoration:none}
+.wrap{max-width:1080px;margin:auto;padding:0 16px}
+.wrap.narrow{max-width:640px}
+header.top{position:sticky;top:0;z-index:10;background:rgba(13,17,23,.86);backdrop-filter:blur(10px);border-bottom:1px solid var(--line)}
+.bar{display:flex;align-items:center;gap:10px;padding:12px 0}
+.logo{display:flex;align-items:center;gap:10px;font-weight:800;font-size:20px;color:var(--txt)}
+.mark{width:32px;height:32px;border-radius:9px;background:linear-gradient(135deg,var(--acc2),var(--acc));display:inline-grid;place-items:center;color:#fff;font-size:15px}
+.back{display:inline-block;margin:18px 0 12px;color:var(--mut);font-size:14px}
+.back:hover{color:var(--acc)}
+.panel{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:26px;margin:0 0 40px}
+.panel h2{margin:0;font-size:22px}
+.panel label{display:block;font-size:14px;font-weight:600;margin-top:16px}
+.panel input{display:block;width:100%;padding:12px 14px;margin-top:6px;border-radius:10px;border:1px solid var(--line);background:#0f1620;color:var(--txt);font-size:15px;outline:none}
+.panel input:focus{border-color:var(--acc)}
+.panel .btn{width:100%;margin-top:22px;padding:13px;display:inline-block;background:linear-gradient(135deg,var(--acc2),var(--acc));color:#fff;font-weight:700;border-radius:12px;border:0;cursor:pointer;font-size:16px}
+.panel .btn:hover{filter:brightness(1.12)}
+</style>
+</head><body><header class="top"><div class="wrap bar"><a class="logo" href="/"><span class="mark">▶</span>Tiny Tube</a></div></header><div class="wrap narrow"><a class="back" href="/watch?id={{.ID}}">← πίσω στο βίντεο</a><div class="panel"><h2>Επεξεργασία</h2><form method="POST" action="/api/edit"><input type="hidden" name="id" value="{{.ID}}"><label>Τίτλος<input name="title" value="{{.Title}}" required></label><label>Περιγραφή<input name="desc" value="{{.Desc}}"></label><label>Κατηγορία<input name="category" value="{{.Category}}"></label><p><button class="btn">Αποθήκευση</button></p></form></div></div></body></html>`))
 
 func main() {
 	loadDotEnv(".env") // optional local config; explicit env vars win
@@ -194,12 +225,15 @@ func main() {
 	mux.HandleFunc("GET /healthz", func(w http.ResponseWriter, r *http.Request) { w.Write([]byte("ok")) })
 	mux.HandleFunc("GET /", handleList)
 	mux.HandleFunc("GET /watch", handleWatch)
-	// upload page + api gated by BasicAuth (viewers open, upload closed)
+	// upload/edit/delete pages + apis gated by BasicAuth (viewers open, management closed)
 	mux.Handle("GET /upload", uploadAuth(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "text/html; charset=utf-8")
 		uploadTmpl.Execute(w, nil)
 	})))
 	mux.Handle("POST /api/upload", uploadAuth(http.HandlerFunc(handleUpload)))
+	mux.Handle("GET /edit", uploadAuth(http.HandlerFunc(handleEditPage)))
+	mux.Handle("POST /api/edit", uploadAuth(http.HandlerFunc(handleEdit)))
+	mux.Handle("POST /api/delete", uploadAuth(http.HandlerFunc(handleDelete)))
 
 	// static videos: Go-only mode. Behind Nginx, Nginx serves /videos/ directly.
 	fsHandler := http.StripPrefix("/videos/", http.FileServer(http.Dir(videoDir)))
@@ -273,4 +307,61 @@ func handleUpload(w http.ResponseWriter, r *http.Request) {
 		go transcodeToHLS(videoDir, id, orig)
 	}
 	http.Redirect(w, r, "/watch?id="+id, http.StatusSeeOther)
+}
+
+func handleEditPage(w http.ResponseWriter, r *http.Request) {
+	m, err := fs.Get(r.URL.Query().Get("id"))
+	if err != nil {
+		http.NotFound(w, r)
+		return
+	}
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	editTmpl.Execute(w, m)
+}
+
+func handleEdit(w http.ResponseWriter, r *http.Request) {
+	if err := r.ParseForm(); err != nil {
+		http.Error(w, "parse: "+err.Error(), 400)
+		return
+	}
+	id := r.FormValue("id")
+	title := strings.TrimSpace(r.FormValue("title"))
+	if title == "" {
+		http.Error(w, "title required", 400)
+		return
+	}
+	m, err := fs.Get(id)
+	if err != nil {
+		http.NotFound(w, r)
+		return
+	}
+	m.Title = title
+	m.Desc = r.FormValue("desc")
+	m.Category = r.FormValue("category")
+	if err := fs.Put(m); err != nil {
+		http.Error(w, err.Error(), 500)
+		return
+	}
+	http.Redirect(w, r, "/watch?id="+id, http.StatusSeeOther)
+}
+
+func handleDelete(w http.ResponseWriter, r *http.Request) {
+	if err := r.ParseForm(); err != nil {
+		http.Error(w, "parse: "+err.Error(), 400)
+		return
+	}
+	id := r.FormValue("id")
+	if id == "" {
+		http.Error(w, "id required", 400)
+		return
+	}
+	if _, err := fs.Get(id); err != nil {
+		http.NotFound(w, r)
+		return
+	}
+	if err := fs.Delete(id); err != nil {
+		http.Error(w, err.Error(), 500)
+		return
+	}
+	http.Redirect(w, r, "/", http.StatusSeeOther)
 }

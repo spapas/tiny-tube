@@ -5,6 +5,7 @@ import (
 	"mime/multipart"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"os"
 	"path/filepath"
 	"strings"
@@ -94,6 +95,94 @@ func TestHandleWatchOK(t *testing.T) {
 	handleWatch(w2, r2)
 	if !strings.Contains(w2.Body.String(), `class="hint"`) {
 		t.Error("processing video should still show the transcode hint")
+	}
+}
+
+func postForm(t *testing.T, target string, v url.Values) (*httptest.ResponseRecorder, *http.Request) {
+	t.Helper()
+	r := httptest.NewRequest("POST", target, strings.NewReader(v.Encode()))
+	r.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	return httptest.NewRecorder(), r
+}
+
+func TestHandleEdit(t *testing.T) {
+	setupTestFS(t)
+	_ = fs.Put(store.Meta{ID: "e1", Title: "Old", Desc: "d", Category: "C", Created: "2024-01-01T00:00:00Z", Original: "original.mp4", HLS: "index.m3u8", Poster: "poster.jpg", Status: "ready"})
+
+	// edit page renders with current values
+	r := httptest.NewRequest("GET", "/edit?id=e1", nil)
+	w := httptest.NewRecorder()
+	handleEditPage(w, r)
+	if w.Code != http.StatusOK || !strings.Contains(w.Body.String(), `value="Old"`) {
+		t.Errorf("edit page = %d, want 200 with prefilled title", w.Code)
+	}
+	r404 := httptest.NewRequest("GET", "/edit?id=nope", nil)
+	w404 := httptest.NewRecorder()
+	handleEditPage(w404, r404)
+	if w404.Code != http.StatusNotFound {
+		t.Errorf("edit page missing = %d, want 404", w404.Code)
+	}
+
+	// update title/desc/category, rest preserved
+	w2, r2 := postForm(t, "/api/edit", url.Values{"id": {"e1"}, "title": {"New"}, "desc": {"nd"}, "category": {"NC"}})
+	handleEdit(w2, r2)
+	if w2.Code != http.StatusSeeOther {
+		t.Fatalf("edit = %d, want 303", w2.Code)
+	}
+	got, _ := fs.Get("e1")
+	if got.Title != "New" || got.Desc != "nd" || got.Category != "NC" {
+		t.Errorf("edit did not apply: %+v", got)
+	}
+	if got.Original != "original.mp4" || got.HLS != "index.m3u8" || got.Poster != "poster.jpg" || got.Status != "ready" || got.Created != "2024-01-01T00:00:00Z" {
+		t.Errorf("edit must preserve other fields: %+v", got)
+	}
+
+	// empty title rejected, unknown id 404
+	w3, r3 := postForm(t, "/api/edit", url.Values{"id": {"e1"}, "title": {"  "}})
+	handleEdit(w3, r3)
+	if w3.Code != http.StatusBadRequest {
+		t.Errorf("empty title = %d, want 400", w3.Code)
+	}
+	w4, r4 := postForm(t, "/api/edit", url.Values{"id": {"nope"}, "title": {"x"}})
+	handleEdit(w4, r4)
+	if w4.Code != http.StatusNotFound {
+		t.Errorf("unknown id = %d, want 404", w4.Code)
+	}
+}
+
+func TestHandleDelete(t *testing.T) {
+	dir := setupTestFS(t)
+	_ = os.MkdirAll(filepath.Join(dir, "d1"), 0o755)
+	_ = fs.Put(store.Meta{ID: "d1", Title: "Gone", Original: "original.mp4", Status: "ready"})
+	w, r := postForm(t, "/api/delete", url.Values{"id": {"d1"}})
+	handleDelete(w, r)
+	if w.Code != http.StatusSeeOther || w.Header().Get("Location") != "/" {
+		t.Errorf("delete = %d loc %q, want 303 /", w.Code, w.Header().Get("Location"))
+	}
+	if _, err := fs.Get("d1"); err == nil {
+		t.Error("deleted video should be gone")
+	}
+	w2, r2 := postForm(t, "/api/delete", url.Values{})
+	handleDelete(w2, r2)
+	if w2.Code != http.StatusBadRequest {
+		t.Errorf("missing id = %d, want 400", w2.Code)
+	}
+	w3, r3 := postForm(t, "/api/delete", url.Values{"id": {"nope"}})
+	handleDelete(w3, r3)
+	if w3.Code != http.StatusNotFound {
+		t.Errorf("unknown id = %d, want 404", w3.Code)
+	}
+}
+
+func TestHandleWatchAdminButtons(t *testing.T) {
+	setupTestFS(t)
+	_ = fs.Put(store.Meta{ID: "a1", Title: "Adm", Status: "ready"})
+	r := httptest.NewRequest("GET", "/watch?id=a1", nil)
+	w := httptest.NewRecorder()
+	handleWatch(w, r)
+	body := w.Body.String()
+	if !strings.Contains(body, `href="/edit?id=a1"`) || !strings.Contains(body, `action="/api/delete"`) {
+		t.Error("watch page should link edit + delete actions")
 	}
 }
 

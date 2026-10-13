@@ -17,7 +17,7 @@ go run .
 - Stdlib only except `modernc.org/sqlite` (pure Go, no cgo — keeps single-binary builds). Do not add other deps without asking.
 - Requires `ffmpeg` in PATH (or `FFMPEG_BIN` env). Check `ffmpegAvailable()` in `ffmpeg.go`.
 - Config: copy `.env.example` to `.env` (gitignored, auto-loaded at startup by `dotenv.go`); explicit env vars win over `.env`.
-- Health: `GET /healthz` -> `ok`. List `/`, watch `/watch?id=`, upload page `/upload`.
+- Health: `GET /healthz` -> `ok`. List `/`, watch `/watch?id=`, upload page `/upload`, edit page `/edit?id=` (BasicAuth: upload/edit/delete).
 
 ## Env
 
@@ -26,7 +26,7 @@ go run .
 | `VIDEO_DIR` | `videos` | Same dir must be shared with Nginx `alias` in prod |
 | `ADDR` | `127.0.0.1:8081` | Full bind addr. Overrides `PORT` |
 | `PORT` | `8081` | Compat: used as `127.0.0.1:$PORT` when `ADDR` is unset |
-| `UPLOAD_USER` / `UPLOAD_PASS` | `admin` / `changeme` | BasicAuth for `GET /upload` + `POST /api/upload` only |
+| `UPLOAD_USER` / `UPLOAD_PASS` | `admin` / `changeme` | BasicAuth for upload/edit/delete (`GET /upload`, `POST /api/upload`, `GET /edit`, `POST /api/edit`, `POST /api/delete`) |
 | `STORE` | `sqlite` | Metadata backend: `sqlite` or `fs` (legacy meta.json) |
 | `DB_PATH` | `<VIDEO_DIR>/tiny-tube.db` | SQLite file (WAL mode) |
 | `FFMPEG_BIN` | | Windows custom ffmpeg path fallback |
@@ -45,7 +45,7 @@ videos/{unix-id}/original.{mp4,mov,mkv,webm} + index.m3u8 + seg000.ts ... + post
 
 ## Code map
 
-- `main.go`: routes (`net/http` ServeMux with `GET /`, `GET /watch`, `GET /videos/`, authed upload), inline `html/template` (`listTmpl`, `watchTmpl`, `uploadTmpl`, lang=`el`), `http.FileServer` + `StripPrefix` for Go-only mode, HLS mime fix in `init()` (`.m3u8`, `.ts` needed on Windows).
+- `main.go`: routes (`net/http` ServeMux with `GET /`, `GET /watch`, `GET /videos/`, authed upload/edit/delete), inline `html/template` (`listTmpl`, `watchTmpl`, `uploadTmpl`, `editTmpl`, lang=`el`), `http.FileServer` + `StripPrefix` for Go-only mode, HLS mime fix in `init()` (`.m3u8`, `.ts` needed on Windows).
 - `auth.go`: `uploadAuth()` - viewers open, upload closed. `subtle.ConstantTimeCompare`, `WWW-Authenticate: Basic realm="upload"`. Keep this behavior.
 - `ffmpeg.go`: single 720p rendition: `libx264 veryfast crf23 scale=-2:720 + aac 128k, hls_time 6, vod`. Logs to `log.Writer`. Never block upload on it.
 - `nginx.sample.conf`: optional. Nginx serves `/videos/` directly (Range/206, cache), Go serves `/`+`/api`. Keep Go-only mode always working.

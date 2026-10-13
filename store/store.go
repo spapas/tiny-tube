@@ -45,7 +45,20 @@ func (s *FS) Delete(id string) error {
 	if !ValidID(id) {
 		return os.ErrInvalid
 	}
-	return os.RemoveAll(s.Dir(id))
+	return removeAllRetry(s.Dir(id))
+}
+
+// removeAllRetry removes a video dir, retrying while ffmpeg may still hold
+// open file handles on Windows (transcode runs async after upload).
+func removeAllRetry(dir string) error {
+	var err error
+	for range 30 {
+		if err = os.RemoveAll(dir); err == nil {
+			return nil
+		}
+		time.Sleep(200 * time.Millisecond)
+	}
+	return err
 }
 
 func (s *FS) Put(m Meta) error {

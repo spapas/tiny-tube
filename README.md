@@ -7,7 +7,7 @@ SQLite metadata (pure Go, no cgo), video blobs on disk. No LDAP/Docker. Viewers 
 copy .env.example .env
 go run .
 ```
-Open http://127.0.0.1:8081 , /upload for upload.
+Open http://127.0.0.1:8081 , /upload for upload. Watch pages have Edit/Delete (same password).
 
 Dev auto-reload (rebuild+restart on every .go save, cmd.exe):
 ```

@@ -59,15 +59,17 @@ func (s *SQLite) Close() error { return s.db.Close() }
 
 func (s *SQLite) Dir(id string) string { return filepath.Join(s.Root, id) }
 
-// Delete removes the metadata row and the on-disk video dir (blobs included).
+// Delete removes the on-disk video dir first (retrying past ffmpeg locks),
+// then the metadata row — so a failed delete never leaves a ghost row.
 func (s *SQLite) Delete(id string) error {
 	if !ValidID(id) {
 		return os.ErrInvalid
 	}
-	if _, err := s.db.Exec(`DELETE FROM videos WHERE id=?`, id); err != nil {
+	if err := removeAllRetry(s.Dir(id)); err != nil {
 		return err
 	}
-	return os.RemoveAll(s.Dir(id))
+	_, err := s.db.Exec(`DELETE FROM videos WHERE id=?`, id)
+	return err
 }
 
 func (s *SQLite) Put(m Meta) error {
