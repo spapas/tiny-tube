@@ -5,6 +5,12 @@ The merged implementation supports SQLite metadata (pure Go, no CGO) by default
 and legacy filesystem JSON via `STORE=fs`. The initial findings have been addressed
 in code, with regression tests.
 
+The subsequent [security recheck](SECURITY.md) found and fixed additional issues:
+CSRF on mutations, database aliases, unrestricted auth attempts, missing browser
+headers, slow-request/conversion deadlines and an outdated Go build toolchain.
+It passes 121 tests/subtests on Go 1.27.2. The newer JSON API is included; the
+historical merge verification below remains a record of that earlier snapshot.
+
 ## Merge integration
 
 The professional responsive light/dark interface, upload validation, random IDs,
@@ -112,7 +118,8 @@ claim. The README documents the current behavior and compatibility changes.
 - FFmpeg cancellation targets the resolved executable. Prefer the real executable
   over a shell/launcher wrapper that may spawn independent child processes.
 - All media and metadata are public. There are no viewer accounts, private videos,
-  storage quotas, automated backups, or rate limits.
+  storage quotas or automated backups. Protected-route requests are rate limited;
+  public traffic and overall storage capacity still require deployment controls.
 - The Nginx example requires actual certificate files and deployment-specific paths.
   Nginx validation, Linux runtime execution, and load testing have not been performed
   here. Capacity remains unmeasured. Browser checks used the local preview server.

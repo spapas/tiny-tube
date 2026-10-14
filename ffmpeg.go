@@ -8,6 +8,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"time"
 
@@ -27,7 +28,52 @@ func resolveFFmpeg(override string) (string, error) {
 		}
 		return "", fmt.Errorf("FFMPEG_BIN: %w", err)
 	}
+	if runtime.GOOS == "windows" {
+		bin, err = unwrapFFmpegShim(bin)
+		if err != nil {
+			return "", err
+		}
+	}
 	return filepath.Abs(bin)
+}
+
+// Scoop's launcher is a separate process. Resolve its metadata to the real
+// executable so CommandContext cancellation targets FFmpeg rather than its launcher.
+func unwrapFFmpegShim(bin string) (string, error) {
+	for attempt := 0; attempt < 4; attempt++ {
+		marker := strings.TrimSuffix(bin, filepath.Ext(bin)) + ".shim"
+		data, err := os.ReadFile(marker)
+		if os.IsNotExist(err) {
+			return bin, nil
+		}
+		if err != nil {
+			return "", fmt.Errorf("read FFmpeg launcher: %w", err)
+		}
+		target := ""
+		for _, line := range strings.Split(string(data), "\n") {
+			key, value, ok := strings.Cut(line, "=")
+			if !ok {
+				continue
+			}
+			value = strings.Trim(strings.TrimSpace(value), "\"")
+			switch strings.ToLower(strings.TrimSpace(key)) {
+			case "path":
+				target = value
+			case "args":
+				if value != "" {
+					return "", fmt.Errorf("FFmpeg launcher arguments are unsupported; set FFMPEG_BIN to the real executable")
+				}
+			}
+		}
+		if !filepath.IsAbs(target) {
+			return "", fmt.Errorf("FFmpeg launcher has no absolute executable path")
+		}
+		bin, err = exec.LookPath(target)
+		if err != nil {
+			return "", fmt.Errorf("FFmpeg launcher target: %w", err)
+		}
+	}
+	return "", fmt.Errorf("FFmpeg launcher chain is too long or cyclic")
 }
 
 func (a *application) recoverJobs() error {

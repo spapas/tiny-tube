@@ -1,6 +1,8 @@
 package main
 
 import (
+	"fmt"
+	"go/version"
 	"net"
 	"net/http"
 	"strconv"
@@ -9,6 +11,14 @@ import (
 )
 
 const hlsScriptURL = "https://cdn.jsdelivr.net/npm/hls.js@1.6.19/dist/hls.min.js"
+
+func requirePatchedGo(buildVersion string) error {
+	if version.IsValid(buildVersion) && (version.Compare(buildVersion, "go1.27.2") >= 0 ||
+		(version.Lang(buildVersion) == "go1.26" && version.Compare(buildVersion, "go1.26.9") >= 0)) {
+		return nil
+	}
+	return fmt.Errorf("rebuild with Go 1.26.9 or Go 1.27.2+ security patches; current build: %s", buildVersion)
+}
 
 func secureHTTP(next http.Handler) http.Handler {
 	csrf := http.NewCrossOriginProtection()

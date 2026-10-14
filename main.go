@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"runtime"
 	"syscall"
 	"time"
 )
@@ -19,6 +20,9 @@ func init() {
 }
 
 func main() {
+	if err := requirePatchedGo(runtime.Version()); err != nil {
+		log.Fatal(err)
+	}
 	loadDotEnv(".env")
 	cfg, err := loadConfig()
 	if err != nil {

@@ -67,6 +67,15 @@ func newApplication(cfg config) (*application, error) {
 	switch cfg.Store {
 	case "fs":
 		a.fs = store.NewFS(root)
+		// Retain privacy for a SQLite database left behind after switching to FS.
+		dbPath := cfg.DBPath
+		if dbPath == "" {
+			dbPath = filepath.Join(root, "tiny-tube.db")
+		}
+		a.cfg.DBPath, err = filepath.Abs(dbPath)
+		if err != nil {
+			return nil, err
+		}
 	case "sqlite", "":
 		dbPath := cfg.DBPath
 		if dbPath == "" {

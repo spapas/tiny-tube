@@ -12,7 +12,8 @@ and bounded conversion workers are covered by regression tests. See the
 
 ## Requirements
 
-- Go 1.26 or newer to build or run from source.
+- A patched Go release: 1.26.9 or 1.27.2 and newer. The module selects Go 1.27.2
+  automatically; startup rejects builds from older/unverified toolchains.
 - A writable video directory, with space for both originals and generated HLS files.
 - Optional FFmpeg on `PATH`, with the `libx264` and AAC encoders, for HLS conversion.
   Without FFmpeg, the server serves the original file; playback depends on the
@@ -91,12 +92,31 @@ write there and find FFmpeg on its `PATH`.
 | `UPLOAD_PASS` | required | Startup rejects an unset/blank password or `changeme`. |
 | `MAX_UPLOAD_BYTES` | `2147483648` | Maximum **whole multipart request**, including form fields and overhead: 2 GiB. Larger requests return HTTP 413. |
 | `TRANSCODE_WORKERS` | `1` | Maximum concurrent FFmpeg processes, between 1 and 16. Pending jobs remain on disk. |
+| `AUTH_REQUESTS_PER_MINUTE` | `60` | Protected-route requests per source IP per minute, checked before authentication; 1–3600. Excess requests return 429 with `Retry-After`. |
+| `UPLOAD_TIMEOUT_SECONDS` | `1800` | Total authenticated multipart read deadline; 1–86400 seconds. Stalled uploads return 408 and are cleaned up. |
+| `TRANSCODE_TIMEOUT_SECONDS` | `1800` | Total HLS/poster conversion deadline; 1–86400 seconds. Expired jobs become `failed`, preserving originals. |
 | `FFMPEG_BIN` | unset | Explicit executable path/name, preferred over `PATH`. An invalid explicit value fails startup. Otherwise FFmpeg is discovered on `PATH`. |
 
 Empty optional values fall back to the defaults. For direct LAN access, set `HOST`
 explicitly (or set `ADDR=0.0.0.0:8081`) and configure the firewall. Basic Auth needs HTTPS when used over a
 network; the Go server itself serves HTTP. Video files and metadata are public,
 including the originals. There is no viewer login or private-video support.
+
+Browser mutations must originate from this site. Cross-origin upload/edit/delete
+requests return 403, including JSON clients; command-line clients without browser
+origin headers continue to work. Changing `Accept`/`format=json` does not bypass
+authentication, request limits or origin protection. CSP blocks inline scripts
+and embedding the interface in frames; MIME sniffing is disabled.
+
+The auth limit uses the actual socket source address and ignores forwarding
+headers. Behind Nginx, clients share its IP bucket: tune the Go aggregate limit
+and apply per-client limits at the trusted edge. Public viewing/API reads remain
+available during an auth cooldown. Limiter memory is bounded.
+
+Headers have a 10-second timeout and a 64 KiB limit. Ordinary request reads are
+limited to 30 seconds; authenticated uploads use their separate configured
+deadline. Response writes are limited to `max(30 minutes, UPLOAD_TIMEOUT_SECONDS
++ 60 seconds)`, so unusually slow original downloads may need a larger setting.
 
 ## Upload and playback
 
@@ -172,8 +192,9 @@ curl "http://127.0.0.1:8081/api/video?id=<id>"
 ```
 
 ```python
+import os
 import requests
-auth = ("admin", "secret")
+auth = (os.environ.get("UPLOAD_USER", "admin"), os.environ["UPLOAD_PASS"])
 base = "http://127.0.0.1:8081"
 with open("demo.mp4", "rb") as f:
     r = requests.post(f"{base}/api/upload", auth=auth,
@@ -218,9 +239,10 @@ directory**; shared storage across multiple instances is not supported.
 
 ## Optional Nginx deployment
 
-Go can serve everything itself. [nginx.sample.conf](nginx.sample.conf) illustrates
-serving `/videos/` directly from the same directory while proxying the other routes
-to Go. It is a starting point, not a complete deployment configuration:
+Go can serve everything itself. [nginx.sample.conf](nginx.sample.conf) proxies all
+routes, including `/videos/`, through Go so its private-file and link checks apply.
+Range/206 and HLS/poster content types are preserved. It is a starting point,
+not a complete deployment configuration:
 
 - Replace the sample hostname and storage path, and configure TLS certificates;
   the configured files must exist before Nginx can start.
@@ -231,7 +253,7 @@ to Go. It is a starting point, not a complete deployment configuration:
 - Go already checks upload credentials. Additional Nginx upload authentication is
   optional and must use matching credentials if enabled.
 - Keep SQLite files and their journals private. The example blocks database
-  extensions and staging paths; place a custom `DB_PATH` outside `VIDEO_DIR`.
+  extensions and staging paths; Go also checks file identities to reject DB aliases.
   Its upstream uses the default port 8081; adjust it if changing `ADDR`/`PORT`.
 
 Capacity has not been measured. Validate the edited configuration with `nginx -t`
@@ -266,3 +288,8 @@ recovery or backup mechanism.
 HTML templates, styles, and scripts live under `web/` and are embedded in the Go
 executable. No frontend package installation or separate asset deployment is
 needed. Rebuild/restart the server after editing these files.
+
+The post-merge security check and its deployment limitations are recorded in
+[docs/SECURITY.md](docs/SECURITY.md). Keep video/database storage writable only by
+the service account, run FFmpeg with minimal OS privileges, use HTTPS for network
+access, and rebuild existing binaries with the selected patched toolchain.

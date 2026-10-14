@@ -296,7 +296,7 @@ func TestHTTPPlaybackAuthAndErrors(t *testing.T) {
 }
 
 func TestConfigRejectsUnsafeOrInvalidSettings(t *testing.T) {
-	for _, key := range []string{"UPLOAD_PASS", "UPLOAD_USER", "PORT", "HOST", "ADDR", "STORE", "DB_PATH", "MAX_UPLOAD_BYTES", "TRANSCODE_WORKERS", "FFMPEG_BIN"} {
+	for _, key := range []string{"UPLOAD_PASS", "UPLOAD_USER", "PORT", "HOST", "ADDR", "STORE", "DB_PATH", "MAX_UPLOAD_BYTES", "TRANSCODE_WORKERS", "FFMPEG_BIN", "AUTH_REQUESTS_PER_MINUTE", "UPLOAD_TIMEOUT_SECONDS", "TRANSCODE_TIMEOUT_SECONDS"} {
 		t.Setenv(key, "")
 	}
 	for _, pass := range []string{"", " ", "changeme"} {
@@ -310,7 +310,7 @@ func TestConfigRejectsUnsafeOrInvalidSettings(t *testing.T) {
 	if err != nil || cfg.Host != "127.0.0.1" || cfg.MaxUploadBytes != 2<<30 || cfg.TranscodeWorkers != 1 {
 		t.Fatalf("defaults: %+v %v", cfg, err)
 	}
-	for _, tc := range []struct{ key, value string }{{"PORT", "0"}, {"MAX_UPLOAD_BYTES", "-1"}, {"TRANSCODE_WORKERS", "0"}, {"UPLOAD_USER", "a:b"}} {
+	for _, tc := range []struct{ key, value string }{{"PORT", "0"}, {"MAX_UPLOAD_BYTES", "-1"}, {"TRANSCODE_WORKERS", "0"}, {"UPLOAD_USER", "a:b"}, {"AUTH_REQUESTS_PER_MINUTE", "0"}, {"UPLOAD_TIMEOUT_SECONDS", "-1"}, {"TRANSCODE_TIMEOUT_SECONDS", "86401"}} {
 		t.Setenv(tc.key, tc.value)
 		if _, err := loadConfig(); err == nil {
 			t.Errorf("accepted %s=%s", tc.key, tc.value)

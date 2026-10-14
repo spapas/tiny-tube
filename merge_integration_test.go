@@ -206,7 +206,7 @@ func TestSQLiteStartupImportsLegacyWithoutOverwritingEdits(t *testing.T) {
 }
 
 func TestConfigAddressPrecedence(t *testing.T) {
-	for _, key := range []string{"UPLOAD_USER", "HOST", "PORT", "ADDR", "STORE", "MAX_UPLOAD_BYTES", "TRANSCODE_WORKERS"} {
+	for _, key := range []string{"UPLOAD_USER", "HOST", "PORT", "ADDR", "STORE", "MAX_UPLOAD_BYTES", "TRANSCODE_WORKERS", "AUTH_REQUESTS_PER_MINUTE", "UPLOAD_TIMEOUT_SECONDS", "TRANSCODE_TIMEOUT_SECONDS"} {
 		t.Setenv(key, "")
 	}
 	t.Setenv("UPLOAD_PASS", "test-password")

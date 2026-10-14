@@ -24,6 +24,8 @@ update the documentation when an issue is resolved.
 - `upload.go`: request limits, media header checks, unique directories, and cleanup.
 - `manage.go`: authenticated metadata edits and deletion, including active-job cancellation.
 - `auth.go`: upload Basic Auth and environment defaults.
+- `security.go`: CSRF/CSP, bounded auth throttling, server deadlines and Go patch checks.
+- `media.go`: traversal-resistant media serving and private DB file identity checks.
 - `ffmpeg.go`: FFmpeg discovery, persisted queue, bounded workers, HLS/poster publication.
 - `store/store.go`: metadata model, ID validation, JSON persistence, and search.
 - `store/sqlite.go`: SQLite persistence, schema migration, and idempotent JSON import.
@@ -51,6 +53,11 @@ update the documentation when an issue is resolved.
 - Treat titles, descriptions, categories, filenames, and request IDs as untrusted
   input. Keep `html/template` escaping and validate IDs before storage access.
 - Preserve HTTP Range support and correct HLS MIME types when changing serving.
+- Keep cross-origin mutations blocked for HTML and JSON clients. Preserve JSON
+  errors without bypassing authentication or CSRF. Rate limits must run before
+  credential validation and ignore untrusted forwarding headers.
+- Keep CSP free of unsafe inline/eval exceptions. Theme startup is an embedded
+  external script; test uploads/player behavior when changing CSP.
 - Handle filesystem and metadata errors. Avoid marking failed writes or failed
   conversion as successful. Metadata reads can overlap background updates.
 - For upload changes, distinguish multipart memory limits from request size limits,
@@ -68,6 +75,12 @@ update the documentation when an issue is resolved.
   must cover both Go static serving and the optional Nginx route.
   Database files, journals and staging files must not be served as media. Place
   custom `DB_PATH` outside `VIDEO_DIR` when using the optional Nginx example.
+- Proxy media through Go in the Nginx sample so private file/link checks are not
+  bypassed. `os.Root` prevents symlink/junction escapes; compare file identities
+  to reject database hard links regardless of the URL's extension.
+- Build with patched Go (1.26.9 or 1.27.2+); `go.mod` selects 1.27.2. Preserve
+  startup rejection of unpatched builds. Use the real FFmpeg executable; known
+  Scoop launchers are resolved to their target for reliable cancellation.
 - Run one server process per video directory. Metadata and job claiming are
   synchronized within an application instance; there is no cross-process lock.
 - Do not commit passwords, real user uploads, executables, or generated diagnostics.
@@ -101,3 +114,7 @@ FFmpeg-absent behavior. Report unavailable checks honestly.
 
 Keep changes scoped to the user's request, and distinguish fixes actually made
 from issues only documented in the review.
+
+For security work, also read `docs/SECURITY.md`, verify module checksums and run
+`go run golang.org/x/vuln/cmd/govulncheck@v1.9.0 ./...` with database access.
+Do not describe an unavailable vulnerability scan as a clean result.

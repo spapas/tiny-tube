@@ -97,8 +97,9 @@ func (s *SQLite) Close() error { return s.db.Close() }
 
 func (s *SQLite) Dir(id string) string { return filepath.Join(s.Root, id) }
 
-// Delete removes the on-disk video dir first (retrying past ffmpeg locks),
-// then the metadata row — so a failed delete never leaves a ghost row.
+// Delete removes media before the row and reports failures from either step.
+// Filesystem and database writes are not one transaction: a storage failure can
+// leave an incomplete deletion that requires operator attention.
 func (s *SQLite) Delete(id string) error {
 	if !ValidID(id) {
 		return os.ErrInvalid
