@@ -50,6 +50,7 @@ Stored malicious HTML and SQL strings are tested as data with both stores.
 - `go test ./... -count=1 -json`: **121 passing tests/subtests, zero skipped or
   failed**, Windows/amd64, Go 1.27.2. Both stores, browser redirects and JSON API
   behavior are covered. Real FFmpeg upload/HLS/JPEG and original Range/206 pass.
+  After the session-login change (2026-10-15): **145 passing, zero failed/skipped**.
 - `go mod verify`: all cached module checksums verify. This checks integrity,
   not whether a dependency contains a vulnerability.
 - `go vet ./...`, `go build ./...`, and a Linux/amd64 cross-build pass with Go
