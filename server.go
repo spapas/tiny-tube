@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"html/template"
@@ -133,6 +134,8 @@ func (a *application) routes() http.Handler {
 	mux.Handle("GET /edit", uploadAuth(a.cfg.UploadUser, a.cfg.UploadPass, http.HandlerFunc(a.handleEditPage)))
 	mux.Handle("POST /api/edit", uploadAuth(a.cfg.UploadUser, a.cfg.UploadPass, http.HandlerFunc(a.handleEdit)))
 	mux.Handle("POST /api/delete", uploadAuth(a.cfg.UploadUser, a.cfg.UploadPass, http.HandlerFunc(a.handleDelete)))
+	mux.HandleFunc("GET /api/videos", a.handleAPIVideos)
+	mux.HandleFunc("GET /api/video", a.handleAPIVideo)
 	media := http.StripPrefix("/videos/", http.FileServer(http.Dir(a.videoDir)))
 	mux.HandleFunc("GET /videos/", func(w http.ResponseWriter, r *http.Request) {
 		// The default DB is under VIDEO_DIR. Only files inside video ID directories
@@ -184,6 +187,80 @@ func render(w http.ResponseWriter, tmpl *template.Template, data any) {
 func (a *application) serverError(w http.ResponseWriter, operation string, err error) {
 	log.Printf("%s: %v", operation, err)
 	http.Error(w, "internal server error", http.StatusInternalServerError)
+}
+
+// wantsJSON reports whether the client prefers a JSON REST response over the
+// browser HTML/redirect behavior. Explicit ?format=json wins; otherwise any
+// Accept header mentioning application/json opts in. Browsers sending
+// text/html keep the existing redirects.
+func wantsJSON(r *http.Request) bool {
+	if r.URL.Query().Get("format") == "json" {
+		return true
+	}
+	return strings.Contains(r.Header.Get("Accept"), "application/json")
+}
+
+func writeJSON(w http.ResponseWriter, code int, v any) {
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	w.WriteHeader(code)
+	if err := json.NewEncoder(w).Encode(v); err != nil {
+		log.Printf("write JSON: %v", err)
+	}
+}
+
+// writeAPIError mirrors http.Error but returns {"error": msg} for JSON clients.
+func writeAPIError(w http.ResponseWriter, r *http.Request, code int, msg string) {
+	if wantsJSON(r) {
+		writeJSON(w, code, map[string]string{"error": msg})
+		return
+	}
+	http.Error(w, msg, code)
+}
+
+func (a *application) apiServerError(w http.ResponseWriter, r *http.Request, operation string, err error) {
+	log.Printf("%s: %v", operation, err)
+	writeAPIError(w, r, http.StatusInternalServerError, "internal server error")
+}
+
+// GET /api/videos?q=&category= — public JSON mirror of the library page,
+// so API clients (including LLMs) can list videos and poll conversion status.
+func (a *application) handleAPIVideos(w http.ResponseWriter, r *http.Request) {
+	q := r.URL.Query().Get("q")
+	category := r.URL.Query().Get("category")
+	all, err := a.fs.List("")
+	if err != nil {
+		a.apiServerError(w, r, "list videos", err)
+		return
+	}
+	items := make([]store.Meta, 0, len(all))
+	query := strings.ToLower(strings.TrimSpace(q))
+	for _, m := range all {
+		if category != "" && m.Category != category {
+			continue
+		}
+		if query != "" && !strings.Contains(strings.ToLower(m.Title+" "+m.Desc+" "+m.Category), query) {
+			continue
+		}
+		items = append(items, m)
+	}
+	writeJSON(w, http.StatusOK, map[string]any{
+		"total": len(all), "count": len(items),
+		"q": q, "category": category, "items": items,
+	})
+}
+
+// GET /api/video?id= — public JSON metadata for one video.
+func (a *application) handleAPIVideo(w http.ResponseWriter, r *http.Request) {
+	m, err := a.fs.Get(r.URL.Query().Get("id"))
+	if err != nil {
+		if errors.Is(err, os.ErrNotExist) || errors.Is(err, os.ErrInvalid) {
+			writeJSON(w, http.StatusNotFound, map[string]string{"error": "not found"})
+		} else {
+			a.apiServerError(w, r, "read video", err)
+		}
+		return
+	}
+	writeJSON(w, http.StatusOK, m)
 }
 
 func (a *application) handleList(w http.ResponseWriter, r *http.Request) {

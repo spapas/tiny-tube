@@ -17,9 +17,13 @@ func (a *application) readVideo(w http.ResponseWriter, r *http.Request, id strin
 		return m, true
 	}
 	if errors.Is(err, os.ErrNotExist) || errors.Is(err, os.ErrInvalid) {
-		http.NotFound(w, r)
+		if wantsJSON(r) {
+			writeJSON(w, http.StatusNotFound, map[string]string{"error": "not found"})
+		} else {
+			http.NotFound(w, r)
+		}
 	} else {
-		a.serverError(w, "read video", err)
+		a.apiServerError(w, r, "read video", err)
 	}
 	return m, false
 }
@@ -37,14 +41,14 @@ func parseManagementForm(w http.ResponseWriter, r *http.Request) bool {
 	if err := r.ParseForm(); err != nil {
 		var tooLarge *http.MaxBytesError
 		if errors.As(err, &tooLarge) {
-			http.Error(w, "form too large", http.StatusRequestEntityTooLarge)
+			writeAPIError(w, r, http.StatusRequestEntityTooLarge, "form too large")
 		} else {
-			http.Error(w, "invalid form", http.StatusBadRequest)
+			writeAPIError(w, r, http.StatusBadRequest, "invalid form")
 		}
 		return false
 	}
 	if r.PostForm.Get("id") == "" {
-		http.Error(w, "id required", http.StatusBadRequest)
+		writeAPIError(w, r, http.StatusBadRequest, "id required")
 		return false
 	}
 	return true
@@ -56,14 +60,14 @@ func (a *application) handleEdit(w http.ResponseWriter, r *http.Request) {
 	}
 	title, desc, category := strings.TrimSpace(r.PostForm.Get("title")), strings.TrimSpace(r.PostForm.Get("desc")), strings.TrimSpace(r.PostForm.Get("category"))
 	if title == "" || len(title) > 512 || len(desc) > 8192 || len(category) > 256 {
-		http.Error(w, "title required; maximum bytes: title 512, description 8192, category 256", http.StatusBadRequest)
+		writeAPIError(w, r, http.StatusBadRequest, "title required; maximum bytes: title 512, description 8192, category 256")
 		return
 	}
 	a.claimMu.Lock()
 	defer a.claimMu.Unlock()
 	id := r.PostForm.Get("id")
 	if a.deleting[id] {
-		http.Error(w, "video deletion in progress", http.StatusConflict)
+		writeAPIError(w, r, http.StatusConflict, "video deletion in progress")
 		return
 	}
 	m, ok := a.readVideo(w, r, id)
@@ -72,7 +76,11 @@ func (a *application) handleEdit(w http.ResponseWriter, r *http.Request) {
 	}
 	m.Title, m.Desc, m.Category = title, desc, category
 	if err := a.fs.Put(m); err != nil {
-		a.serverError(w, "edit video", err)
+		a.apiServerError(w, r, "edit video", err)
+		return
+	}
+	if wantsJSON(r) {
+		writeJSON(w, http.StatusOK, map[string]any{"id": m.ID, "title": m.Title, "watch_url": "/watch?id=" + m.ID, "api_url": "/api/video?id=" + m.ID})
 		return
 	}
 	http.Redirect(w, r, "/watch?id="+m.ID, http.StatusSeeOther)
@@ -86,7 +94,7 @@ func (a *application) handleDelete(w http.ResponseWriter, r *http.Request) {
 	a.claimMu.Lock()
 	if a.deleting[id] {
 		a.claimMu.Unlock()
-		http.Error(w, "video deletion in progress", http.StatusConflict)
+		writeAPIError(w, r, http.StatusConflict, "video deletion in progress")
 		return
 	}
 	if _, ok := a.readVideo(w, r, id); !ok {
@@ -125,7 +133,7 @@ func (a *application) handleDelete(w http.ResponseWriter, r *http.Request) {
 		case <-r.Context().Done():
 			return
 		case <-timer.C:
-			http.Error(w, "conversion did not stop; retry deletion", http.StatusServiceUnavailable)
+			writeAPIError(w, r, http.StatusServiceUnavailable, "conversion did not stop; retry deletion")
 			return
 		}
 	}
@@ -133,9 +141,13 @@ func (a *application) handleDelete(w http.ResponseWriter, r *http.Request) {
 	err := a.fs.Delete(id)
 	a.claimMu.Unlock()
 	if err != nil {
-		a.serverError(w, "delete video", err)
+		a.apiServerError(w, r, "delete video", err)
 		return
 	}
 	deleted = true
+	if wantsJSON(r) {
+		writeJSON(w, http.StatusOK, map[string]any{"id": id, "deleted": true})
+		return
+	}
 	http.Redirect(w, r, "/", http.StatusSeeOther)
 }

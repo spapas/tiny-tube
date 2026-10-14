@@ -40,7 +40,7 @@ func reserveUploadDir(root string) (string, string, error) {
 func (a *application) handleUpload(w http.ResponseWriter, r *http.Request) {
 	r.Body = http.MaxBytesReader(w, r.Body, a.cfg.MaxUploadBytes)
 	if r.ContentLength > a.cfg.MaxUploadBytes {
-		http.Error(w, "upload exceeds MAX_UPLOAD_BYTES", http.StatusRequestEntityTooLarge)
+		writeAPIError(w, r, http.StatusRequestEntityTooLarge, "upload exceeds MAX_UPLOAD_BYTES")
 		return
 	}
 	err := r.ParseMultipartForm(multipartMemory)
@@ -54,39 +54,39 @@ func (a *application) handleUpload(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		var tooLarge *http.MaxBytesError
 		if errors.As(err, &tooLarge) {
-			http.Error(w, "upload exceeds MAX_UPLOAD_BYTES", http.StatusRequestEntityTooLarge)
+			writeAPIError(w, r, http.StatusRequestEntityTooLarge, "upload exceeds MAX_UPLOAD_BYTES")
 		} else {
-			http.Error(w, "invalid multipart upload", http.StatusBadRequest)
+			writeAPIError(w, r, http.StatusBadRequest, "invalid multipart upload")
 		}
 		return
 	}
 	title, desc, category := strings.TrimSpace(r.FormValue("title")), r.FormValue("desc"), r.FormValue("category")
 	if title == "" || len(title) > 512 || len(desc) > 8192 || len(category) > 256 {
-		http.Error(w, "title required; maximum bytes: title 512, description 8192, category 256", http.StatusBadRequest)
+		writeAPIError(w, r, http.StatusBadRequest, "title required; maximum bytes: title 512, description 8192, category 256")
 		return
 	}
 	f, hdr, err := r.FormFile("file")
 	if err != nil {
-		http.Error(w, "file required", http.StatusBadRequest)
+		writeAPIError(w, r, http.StatusBadRequest, "file required")
 		return
 	}
 	defer f.Close()
 	ext := strings.ToLower(filepath.Ext(hdr.Filename))
 	if ext != ".mp4" && ext != ".mov" && ext != ".mkv" && ext != ".webm" {
-		http.Error(w, "supported formats: mp4, mov, mkv, webm", http.StatusUnsupportedMediaType)
+		writeAPIError(w, r, http.StatusUnsupportedMediaType, "supported formats: mp4, mov, mkv, webm")
 		return
 	}
 	if !hasMediaHeader(f, ext) {
-		http.Error(w, "file does not have a supported media header", http.StatusUnsupportedMediaType)
+		writeAPIError(w, r, http.StatusUnsupportedMediaType, "file does not have a supported media header")
 		return
 	}
 	if _, err = f.Seek(0, io.SeekStart); err != nil {
-		a.serverError(w, "rewind upload", err)
+		a.apiServerError(w, r, "rewind upload", err)
 		return
 	}
 	id, dir, err := reserveUploadDir(a.videoDir)
 	if err != nil {
-		a.serverError(w, "reserve upload", err)
+		a.apiServerError(w, r, "reserve upload", err)
 		return
 	}
 	keep := false
@@ -101,14 +101,14 @@ func (a *application) handleUpload(w http.ResponseWriter, r *http.Request) {
 	orig := "original" + ext
 	dst, err := os.OpenFile(filepath.Join(dir, orig), os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0o644)
 	if err != nil {
-		a.serverError(w, "create original", err)
+		a.apiServerError(w, r, "create original", err)
 		return
 	}
 	_, copyErr := io.Copy(dst, f)
 	syncErr := dst.Sync()
 	closeErr := dst.Close()
 	if err = errors.Join(copyErr, syncErr, closeErr); err != nil {
-		a.serverError(w, "save original", err)
+		a.apiServerError(w, r, "save original", err)
 		return
 	}
 	m := store.Meta{ID: id, Title: title, Desc: desc, Category: category, Original: orig, Status: "ready", Created: time.Now().UTC().Format(time.RFC3339Nano)}
@@ -116,12 +116,22 @@ func (a *application) handleUpload(w http.ResponseWriter, r *http.Request) {
 		m.Status = "queued"
 	}
 	if err = a.fs.Put(m); err != nil {
-		a.serverError(w, "save metadata", err)
+		a.apiServerError(w, r, "save metadata", err)
 		return
 	}
 	keep = true
 	if m.Status == "queued" {
 		a.notifyWorkers()
+	}
+	if wantsJSON(r) {
+		writeJSON(w, http.StatusCreated, map[string]any{
+			"id": id, "title": title, "desc": desc, "category": category,
+			"status": m.Status, "original": orig,
+			"watch_url": "/watch?id=" + id,
+			"video_url": "/videos/" + id + "/" + orig,
+			"api_url":   "/api/video?id=" + id,
+		})
+		return
 	}
 	http.Redirect(w, r, "/watch?id="+id, http.StatusSeeOther)
 }

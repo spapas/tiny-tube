@@ -143,6 +143,48 @@ removes the original, HLS, poster and metadata. There is no undo.
    otherwise they become `failed`. On graceful shutdown, active conversions are
    cancelled and requeued. Failed jobs are not automatically retried.
 
+### REST API for upload (automation / LLM clients)
+
+The same Basic Auth credentials (`UPLOAD_USER` / `UPLOAD_PASS`) work for
+programmatic clients. Uploads stay `multipart/form-data`; only the response
+format changes. Send `Accept: application/json` (or `?format=json`) to get JSON
+instead of the browser `303` redirect. Error responses use the same HTTP status
+codes with a `{"error": "..."}` body, and `401` keeps the `WWW-Authenticate`
+challenge. Reading is public, like the library pages; writing requires auth.
+
+| Method | Route | Auth | Description |
+| --- | --- | --- | --- |
+| `POST` | `/api/upload` | Basic | Multipart fields `title` (required), `desc`, `category`, `file`. JSON clients get `201` with `id`, `title`, `status`, `original`, `watch_url`, `video_url`, `api_url`. Browsers get `303` to `/watch?id=`. |
+| `GET` | `/api/videos?q=&category=` | none | JSON `{"total", "count", "q", "category", "items"}` with the same filtering as the library page. |
+| `GET` | `/api/video?id=<id>` | none | JSON metadata for one video, including `status` (`queued`/`processing`/`ready`/`failed`). `404` when missing. |
+| `POST` | `/api/edit` | Basic | Form fields `id`, `title`, `desc`, `category`. JSON clients get `200` with `id`, `title`, `watch_url`, `api_url`. |
+| `POST` | `/api/delete` | Basic | Form field `id`. JSON clients get `200` with `{"id", "deleted": true}`. |
+
+Poll `GET /api/video?id=<id>` until `status` is `ready` (or `failed`), then
+open `watch_url`. Serve over HTTPS when credentials cross a network; the Go
+server itself serves HTTP (see the Nginx example).
+
+```sh
+curl -u admin:secret -H "Accept: application/json" \
+  -F title="Demo" -F desc="Recorded meeting" -F category="Meetings" \
+  -F file=@demo.mp4 http://127.0.0.1:8081/api/upload
+curl "http://127.0.0.1:8081/api/video?id=<id>"
+```
+
+```python
+import requests
+auth = ("admin", "secret")
+base = "http://127.0.0.1:8081"
+with open("demo.mp4", "rb") as f:
+    r = requests.post(f"{base}/api/upload", auth=auth,
+        headers={"Accept": "application/json"},
+        data={"title": "Demo", "desc": "Recorded meeting", "category": "Meetings"},
+        files={"file": ("demo.mp4", f, "video/mp4")})
+r.raise_for_status()
+video_id = r.json()["id"]
+print(requests.get(f"{base}/api/video", params={"id": video_id}).json())
+```
+
 ```text
 videos/
   tiny-tube.db       # SQLite metadata; WAL/SHM files may also exist

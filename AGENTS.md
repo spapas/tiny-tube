@@ -75,13 +75,18 @@ update the documentation when an issue is resolved.
 
 ## Verification
 
-Run the checks appropriate to the change:
+Run the checks appropriate to the change (always, not optionally):
 
 ```sh
+gofmt -l <changed .go files>
 go test ./...
 go vet ./...
 go build ./...
 ```
+
+Changed Go files must be `gofmt`-clean before finishing; run `gofmt -w` on
+them when needed. Leave pre-existing formatting issues in untouched files
+alone so the diff stays scoped.
 
 Keep focused regression coverage for substantive behavior fixes, especially upload
 collisions/limits, metadata persistence, authentication, and conversion failure.

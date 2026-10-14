@@ -5,6 +5,7 @@ import (
 	"crypto/subtle"
 	"net/http"
 	"os"
+	"strings"
 )
 
 // Viewers: open. Upload: single password via BasicAuth.
@@ -19,6 +20,12 @@ func uploadAuth(user, pass string, next http.Handler) http.Handler {
 		w.Header().Set("Cache-Control", "no-store")
 		if !ok || userOK&passOK != 1 {
 			w.Header().Set("WWW-Authenticate", `Basic realm="upload"`)
+			if strings.Contains(r.Header.Get("Accept"), "application/json") || r.URL.Query().Get("format") == "json" {
+				w.Header().Set("Content-Type", "application/json; charset=utf-8")
+				w.WriteHeader(http.StatusUnauthorized)
+				w.Write([]byte(`{"error":"auth required"}` + "\n"))
+				return
+			}
 			http.Error(w, "auth required", http.StatusUnauthorized)
 			return
 		}
