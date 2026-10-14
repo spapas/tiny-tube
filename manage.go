@@ -33,7 +33,7 @@ func (a *application) handleEditPage(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	render(w, editTmpl, map[string]any{"Page": "edit", "Title": "Επεξεργασία βίντεο", "Video": m})
+	a.renderPage(w, r, editTmpl, map[string]any{"Page": "edit", "Title": "Επεξεργασία βίντεο", "Video": m})
 }
 
 func parseManagementForm(w http.ResponseWriter, r *http.Request) bool {

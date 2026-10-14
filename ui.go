@@ -41,6 +41,8 @@ var (
 	watchTmpl  = pageTemplates.Lookup("watch")
 	uploadTmpl = pageTemplates.Lookup("upload")
 	editTmpl   = pageTemplates.Lookup("edit")
+	loginTmpl  = pageTemplates.Lookup("login")
+	adminTmpl  = pageTemplates.Lookup("admin")
 )
 
 func staticFiles() fs.FS {

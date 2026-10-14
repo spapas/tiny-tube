@@ -37,20 +37,31 @@ func TestBothBackendsUploadEditRangeAndDelete(t *testing.T) {
 			a := testBackendApplication(t, backend)
 			h := a.routes()
 			w := httptest.NewRecorder()
-			h.ServeHTTP(w, uploadRequest(t, "ΑΡΧΙΚΟΣ", "sample.mp4", sampleVideo(t)))
+			h.ServeHTTP(w, uploadRequest(t, a, "ΑΡΧΙΚΟΣ", "sample.mp4", sampleVideo(t)))
 			if w.Code != 303 {
 				t.Fatal(w.Code, w.Body.String())
 			}
 			id := strings.TrimPrefix(w.Header().Get("Location"), "/watch?id=")
 			for _, tc := range []struct{ method, path string }{{"GET", "/edit?id=" + id}, {"POST", "/api/edit"}, {"POST", "/api/delete"}} {
 				w = httptest.NewRecorder()
-				h.ServeHTTP(w, httptest.NewRequest(tc.method, tc.path, nil))
+				r := httptest.NewRequest(tc.method, tc.path, nil)
+				r.Header.Set("Accept", "application/json")
+				h.ServeHTTP(w, r)
 				if w.Code != 401 {
 					t.Errorf("unauthenticated %s: %d", tc.path, w.Code)
 				}
 			}
+			// Editors can edit but not delete; admins can do both.
+			testUser(t, a, "ed", store.RoleEditor)
+			w, forbidden := postForm(t, "/api/delete", url.Values{"id": {id}})
+			forbidden.AddCookie(testSession(t, a, "ed"))
+			forbidden.Header.Set("Accept", "application/json")
+			h.ServeHTTP(w, forbidden)
+			if w.Code != 403 {
+				t.Fatalf("editor delete: %d", w.Code)
+			}
 			w, edit := postForm(t, "/api/edit", url.Values{"id": {id}, "title": {"ΕΝΗΜΕΡΩΣΗ"}, "desc": {"new"}, "category": {"ΟΜΑΔΑ"}})
-			edit.SetBasicAuth("tester", "test-password")
+			edit.AddCookie(testSession(t, a, "ed"))
 			h.ServeHTTP(w, edit)
 			if w.Code != 303 {
 				t.Fatal(w.Code, w.Body.String())
@@ -74,7 +85,7 @@ func TestBothBackendsUploadEditRangeAndDelete(t *testing.T) {
 				}
 			}
 			w, del := postForm(t, "/api/delete", url.Values{"id": {id}})
-			del.SetBasicAuth("tester", "test-password")
+			del.AddCookie(testSession(t, a, "tester"))
 			h.ServeHTTP(w, del)
 			if w.Code != 303 {
 				t.Fatal(w.Code, w.Body.String())
@@ -206,10 +217,9 @@ func TestSQLiteStartupImportsLegacyWithoutOverwritingEdits(t *testing.T) {
 }
 
 func TestConfigAddressPrecedence(t *testing.T) {
-	for _, key := range []string{"UPLOAD_USER", "HOST", "PORT", "ADDR", "STORE", "MAX_UPLOAD_BYTES", "TRANSCODE_WORKERS", "AUTH_REQUESTS_PER_MINUTE", "UPLOAD_TIMEOUT_SECONDS", "TRANSCODE_TIMEOUT_SECONDS"} {
+	for _, key := range []string{"ADMIN_USER", "ADMIN_PASS", "AUTH_MODE", "HOST", "PORT", "ADDR", "STORE", "MAX_UPLOAD_BYTES", "TRANSCODE_WORKERS", "AUTH_REQUESTS_PER_MINUTE", "UPLOAD_TIMEOUT_SECONDS", "TRANSCODE_TIMEOUT_SECONDS"} {
 		t.Setenv(key, "")
 	}
-	t.Setenv("UPLOAD_PASS", "test-password")
 	cfg, err := loadConfig()
 	if err != nil || cfg.address() != "127.0.0.1:8081" || cfg.Store != "sqlite" {
 		t.Fatalf("defaults: %+v %v", cfg, err)

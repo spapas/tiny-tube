@@ -30,6 +30,21 @@ const sqliteSchema = `CREATE TABLE IF NOT EXISTS videos (
   poster TEXT NOT NULL DEFAULT '',
   status TEXT NOT NULL DEFAULT '',
   error TEXT NOT NULL DEFAULT ''
+);
+CREATE TABLE IF NOT EXISTS users (
+  username TEXT PRIMARY KEY,
+  display_name TEXT NOT NULL DEFAULT '',
+  password_hash TEXT NOT NULL DEFAULT '',
+  auth_source TEXT NOT NULL DEFAULT 'local',
+  role TEXT NOT NULL DEFAULT 'viewer',
+  active INTEGER NOT NULL DEFAULT 1,
+  created_at TEXT NOT NULL DEFAULT '',
+  last_login_at TEXT NOT NULL DEFAULT ''
+);
+CREATE TABLE IF NOT EXISTS sessions (
+  token_hash TEXT PRIMARY KEY,
+  username TEXT NOT NULL,
+  expires_at TEXT NOT NULL DEFAULT ''
 )`
 
 func NewSQLite(root, path string) (*SQLite, error) {
@@ -88,9 +103,17 @@ func migrateSQLite(db *sql.DB) error {
 		return err
 	}
 	if !hasError {
-		_, err = db.Exec(`ALTER TABLE videos ADD COLUMN error TEXT NOT NULL DEFAULT ''`)
+		if _, err = db.Exec(`ALTER TABLE videos ADD COLUMN error TEXT NOT NULL DEFAULT ''`); err != nil {
+			return err
+		}
 	}
-	return err
+	// Preserve databases created before user display names were persisted.
+	if _, err = db.Exec(`ALTER TABLE users ADD COLUMN display_name TEXT NOT NULL DEFAULT ''`); err != nil {
+		if !strings.Contains(err.Error(), "duplicate column name") {
+			return err
+		}
+	}
+	return nil
 }
 
 func (s *SQLite) Close() error { return s.db.Close() }
@@ -163,8 +186,7 @@ func (s *SQLite) List(q string) ([]Meta, error) {
 	return out, rows.Err()
 }
 
-// ImportFS copies metadata from legacy meta.json files (FS layout) into the
-// database. Entries whose id already exists are left untouched, so it is safe
+// ImportFS copies metadata from legacy meta.json files (FS layout) into the// database. Entries whose id already exists are left untouched, so it is safe
 // to run on every boot. Returns the number of imported entries.
 func ImportFS(s *SQLite, root string) (int, error) {
 	fs := NewFS(root)
@@ -185,4 +207,150 @@ func ImportFS(s *SQLite, root string) (int, error) {
 		}
 	}
 	return n, nil
+}
+
+func scanUser(row interface {
+	Scan(dest ...any) error
+}) (User, error) {
+	var u User
+	var active int
+	err := row.Scan(&u.Username, &u.DisplayName, &u.PasswordHash, &u.AuthSource, &u.Role, &active, &u.CreatedAt, &u.LastLoginAt)
+	if err != nil {
+		return u, err
+	}
+	u.Active = active != 0
+	return u, nil
+}
+
+func (s *SQLite) GetUser(username string) (User, error) {
+	var u User
+	if !ValidUsername(username) {
+		return u, os.ErrInvalid
+	}
+	u, err := scanUser(s.db.QueryRow(`SELECT username,display_name,password_hash,auth_source,role,active,created_at,last_login_at
+		FROM users WHERE username=?`, username))
+	if errors.Is(err, sql.ErrNoRows) {
+		return User{}, os.ErrNotExist
+	}
+	return u, err
+}
+
+func (s *SQLite) PutUser(u User) error {
+	if !ValidUsername(u.Username) || !ValidRole(u.Role) {
+		return os.ErrInvalid
+	}
+	if u.AuthSource != AuthLocal && u.AuthSource != AuthLDAP {
+		return os.ErrInvalid
+	}
+	if u.CreatedAt == "" {
+		u.CreatedAt = time.Now().UTC().Format(time.RFC3339Nano)
+	}
+	active := 0
+	if u.Active {
+		active = 1
+	}
+	_, err := s.db.Exec(`INSERT INTO users(username,display_name,password_hash,auth_source,role,active,created_at,last_login_at)
+		VALUES(?,?,?,?,?,?,?,?)
+		ON CONFLICT(username) DO UPDATE SET display_name=excluded.display_name,password_hash=excluded.password_hash,auth_source=excluded.auth_source,
+			role=excluded.role,active=excluded.active,last_login_at=excluded.last_login_at`,
+		u.Username, u.DisplayName, u.PasswordHash, u.AuthSource, u.Role, active, u.CreatedAt, u.LastLoginAt)
+	return err
+}
+
+func (s *SQLite) DeleteUser(username string) error {
+	if !ValidUsername(username) {
+		return os.ErrInvalid
+	}
+	res, err := s.db.Exec(`DELETE FROM users WHERE username=?`, username)
+	if err != nil {
+		return err
+	}
+	aff, _ := res.RowsAffected()
+	if aff == 0 {
+		return os.ErrNotExist
+	}
+	return nil
+}
+
+func (s *SQLite) ListUsers() ([]User, error) {
+	rows, err := s.db.Query(`SELECT username,display_name,password_hash,auth_source,role,active,created_at,last_login_at
+		FROM users ORDER BY username`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var out []User
+	for rows.Next() {
+		var u User
+		var active int
+		if err := rows.Scan(&u.Username, &u.DisplayName, &u.PasswordHash, &u.AuthSource, &u.Role, &active, &u.CreatedAt, &u.LastLoginAt); err != nil {
+			return nil, err
+		}
+		u.Active = active != 0
+		out = append(out, u)
+	}
+	return out, rows.Err()
+}
+
+func (s *SQLite) UserCount() (int, error) {
+	var n int
+	err := s.db.QueryRow(`SELECT COUNT(*) FROM users`).Scan(&n)
+	return n, err
+}
+
+func (s *SQLite) CreateSession(sess Session) error {
+	if !validTokenHash(sess.TokenHash) || !ValidUsername(sess.Username) {
+		return os.ErrInvalid
+	}
+	_, err := s.db.Exec(`INSERT INTO sessions(token_hash,username,expires_at) VALUES(?,?,?)
+		ON CONFLICT(token_hash) DO UPDATE SET username=excluded.username,expires_at=excluded.expires_at`,
+		sess.TokenHash, sess.Username, sess.ExpiresAt)
+	return err
+}
+
+func (s *SQLite) GetSession(tokenHash string) (Session, error) {
+	var sess Session
+	if !validTokenHash(tokenHash) {
+		return sess, os.ErrInvalid
+	}
+	err := s.db.QueryRow(`SELECT token_hash,username,expires_at FROM sessions WHERE token_hash=?`, tokenHash).
+		Scan(&sess.TokenHash, &sess.Username, &sess.ExpiresAt)
+	if errors.Is(err, sql.ErrNoRows) {
+		return Session{}, os.ErrNotExist
+	}
+	if err != nil {
+		return Session{}, err
+	}
+	if sess.SessionExpired(time.Now()) {
+		return Session{}, os.ErrNotExist
+	}
+	return sess, nil
+}
+
+func (s *SQLite) DeleteSession(tokenHash string) error {
+	if !validTokenHash(tokenHash) {
+		return os.ErrInvalid
+	}
+	res, err := s.db.Exec(`DELETE FROM sessions WHERE token_hash=?`, tokenHash)
+	if err != nil {
+		return err
+	}
+	aff, _ := res.RowsAffected()
+	if aff == 0 {
+		return os.ErrNotExist
+	}
+	return nil
+}
+
+func (s *SQLite) DeleteUserSessions(username string) error {
+	if !ValidUsername(username) {
+		return os.ErrInvalid
+	}
+	_, err := s.db.Exec(`DELETE FROM sessions WHERE username=?`, username)
+	return err
+}
+
+func (s *SQLite) PruneSessions(now time.Time) error {
+	_, err := s.db.Exec(`DELETE FROM sessions WHERE expires_at <= ?`, now.UTC().Format(time.RFC3339Nano))
+	return err
 }

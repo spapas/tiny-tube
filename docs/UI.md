@@ -16,7 +16,7 @@ copying, original-file access, playback speeds and click-to-play with sound. Aut
 editing/deletion use the same restrained styling; deletion requests confirmation.
 The uploader supports drag-and-drop, selected
 file details, progress, client-side validation, and recoverable inline errors.
-Server-side validation and Basic Auth remain authoritative.
+Server-side validation and session role checks remain authoritative.
 
 Templates and web assets are embedded through `ui.go`; the project still has no
 frontend build dependencies. Rebuild/restart after changing `web/`.

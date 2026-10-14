@@ -1,6 +1,8 @@
 # Project review and fixes — 2026-10-14
 
-The pilot keeps media on disk, public viewing, and single-account Basic Auth.
+The pilot keeps media on disk and public viewing. Session login with local or
+LDAP users and admin/editor/viewer roles replaced the former single-account
+Basic Auth on 2026-10-15; see [SECURITY.md](SECURITY.md).
 The merged implementation supports SQLite metadata (pure Go, no CGO) by default
 and legacy filesystem JSON via `STORE=fs`. The initial findings have been addressed
 in code, with regression tests.

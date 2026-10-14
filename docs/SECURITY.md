@@ -5,22 +5,41 @@ editing/deletion, filesystem/SQLite persistence, conversion and Nginx example.
 Viewing and metadata/API reads remain public by design. It is not a certification
 of a production deployment or an assurance that unknown vulnerabilities do not exist.
 
+## Session login, roles and LDAP — 2026-10-15
+
+HTTP Basic Auth is removed. Upload/edit require an editor or administrator
+session; deletion and `/admin` require an administrator; viewing and metadata
+reads stay public. Sessions are 32-byte opaque tokens in an HttpOnly
+SameSite=Lax cookie (`Secure` when `COOKIE_SECURE=true`); only the SHA-256 is
+persisted and expiry slides 24 hours on each validated request. Local passwords
+use bcrypt; inactive users, missing rows and expired sessions resolve to
+anonymous, and login errors stay vague. LDAP (`AUTH_MODE=ldap|both`, go-ldap)
+verifies identity only and provisions viewer rows on first login — roles are
+granted locally at `/admin`, which also blocks self-demotion, last-admin
+removal, and revokes sessions on password reset, deactivation and deletion.
+The login rate limit still runs before any credential or session check, and
+cross-origin mutations are still rejected by `CrossOriginProtection`. FS user
+and session records live under the dot-leading `.auth/` directory, which video
+listing skips and media serving rejects. `govulncheck` v1.9.0 reports no
+vulnerabilities in called code; one advisory (GO-2026-5932, `x/crypto`) touches
+only an uncalled package.
+
 ## Confirmed findings and corrections
 
 | Finding | Correction and evidence |
 | --- | --- |
-| Cached Basic Auth credentials could authorize requests from a foreign website | Go's `CrossOriginProtection` rejects cross-origin mutations with 403. Tests first reproduced accepted edits/deletion, then verify that upload/edit/delete are blocked for both stores. JSON errors and legitimate browser/CLI clients are covered. |
+| Session cookies authorizing requests from a foreign website | Go's `CrossOriginProtection` rejects cross-origin mutations with 403. Tests first reproduced accepted edits/deletion, then verify that upload/edit/delete are blocked for both stores. JSON errors and legitimate browser/CLI clients are covered. |
 | A database hard link renamed as a video was publicly downloadable | The pre-fix test retrieved 4096 bytes with HTTP 200. Media now compares opened file identities with the configured DB/WAL/SHM/journal and returns 404 for aliases. All four private file types are tested. |
 | Plain file serving followed links outside the storage tree | `os.Root` constrains opens to the media tree. Tests verify an external Windows junction is rejected while its target remains unchanged; the test uses a symlink on Unix. Paths with hidden components, backslashes, NTFS stream syntax, and directory listings are rejected. |
 | A direct Nginx alias bypassed Go's private-file checks | The sample proxies media through Go, preserving Range and MIME behavior. Host (including port) is preserved for origin checks, and incoming forwarding headers are replaced at the proxy. Nginx itself was not available for `nginx -t`. |
-| Unlimited Basic Auth guesses and client bookkeeping | Protected routes enforce a per-socket-IP fixed-window limit before checking credentials. Correct passwords and forged forwarding headers cannot bypass a cooldown. Client memory is capped at 4096 entries with a bounded shared overflow bucket. Public reads are unaffected. |
+| Unlimited login guesses and client bookkeeping | Login and protected routes enforce a per-socket-IP fixed-window limit before checking credentials or sessions. Valid sessions and forged forwarding headers cannot bypass a cooldown. Client memory is capped at 4096 entries with a bounded shared overflow bucket. Public reads are unaffected. |
 | Missing browser execution/embedding/MIME protections | CSP permits local scripts and the exact pinned player URL, with no unsafe-inline/eval exemptions. `nosniff`, frame denial, same-origin referrers and same-origin form actions apply to pages, assets, APIs and errors. Theme startup moved into an embedded external script. |
 | Stalled request bodies and conversions could run indefinitely | Header/body/write deadlines are configured. Authenticated uploads get a separate total deadline; the slow-socket test gets 408 with no files left behind. Conversion deadline failures retain originals, clean staging and are not requeued endlessly. |
 | Media input could select unrelated FFmpeg demuxers/protocols | Server-generated original names are validated, the MOV/Matroska demuxer is explicit and only the file protocol is allowed. Invalid names never invoke FFmpeg. Normal MP4/HLS/poster conversion still passes with real FFmpeg. |
 | The local Go 1.27.1 build missed newly released security patches | `go.mod` selects Go 1.27.2. Startup rejects unpatched/unverified builds; patched 1.26.9 is also accepted. The system Go installation was left intact. See [Go's release history](https://go.dev/doc/devel/release#go1.27.2). |
 | A Scoop FFmpeg launcher could hide the actual process from cancellation | Known launcher metadata is resolved to the real executable before execution. Unsupported arguments, invalid paths and cyclic chains fail discovery. Generic wrappers are not a supported cancellation guarantee. |
 
-Other checks preserve the existing defenses: constant-time Basic Auth comparison,
+Other checks preserve the existing defenses: bcrypt password comparison,
 no default password, loopback binding, random exclusive upload directories,
 whole-request size limits, multipart/original cleanup, parameterized SQL, escaped
 HTML, metadata error handling, bounded workers and edit/delete synchronization.
@@ -54,7 +73,7 @@ Stored malicious HTML and SQL strings are tested as data with both stores.
 
 ## Deployment requirements and remaining limits
 
-- Use HTTPS for any network-accessible Basic Auth. Configure/validate real Nginx
+- Use HTTPS for any network-accessible login. Configure/validate real Nginx
   certificates and firewall rules on the target host. The example is not deployed
   or validated here; Linux runtime and load testing are not covered.
 - Keep storage and executable/configuration files writable only by trusted service
@@ -65,8 +84,8 @@ Stored malicious HTML and SQL strings are tested as data with both stores.
   peer's bucket: tune the aggregate setting and enforce client limits at the trusted
   edge. Forwarding headers do not grant bypasses. Limits are per process.
 - All originals and metadata remain public. Do not upload confidential workplace
-  material unless that visibility is intended. There is no viewer authentication,
-  private-video mode, storage quota or automatic backup.
+  material unless that visibility is intended. There is no private-video mode,
+  storage quota or automatic backup.
 - Run one process per storage directory. Abrupt termination can leave orphan files;
   no general orphan recovery is included. Filesystem/database failures during
   deletion can leave an incomplete deletion and require operator attention.

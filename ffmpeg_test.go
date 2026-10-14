@@ -216,7 +216,7 @@ func TestRealFFmpegUploadAndHLS(t *testing.T) {
 	defer server.Close()
 	client := server.Client()
 	client.CheckRedirect = func(r *http.Request, via []*http.Request) error { return http.ErrUseLastResponse }
-	request := uploadRequest(t, "real transcode", "sample.mp4", sampleVideo(t))
+	request := uploadRequest(t, a, "real transcode", "sample.mp4", sampleVideo(t))
 	request.URL, _ = request.URL.Parse(server.URL + "/api/upload")
 	request.RequestURI = ""
 	response, err := client.Do(request)

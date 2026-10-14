@@ -28,6 +28,9 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
+	if os.Getenv("UPLOAD_USER") != "" || os.Getenv("UPLOAD_PASS") != "" {
+		log.Printf("UPLOAD_USER/UPLOAD_PASS are obsolete; login uses ADMIN_USER/ADMIN_PASS and managed users")
+	}
 	a, err := newApplication(cfg)
 	if err != nil {
 		log.Fatal(err)

@@ -25,40 +25,43 @@ func TestGetenv(t *testing.T) {
 	}
 }
 
-func TestUploadAuth(t *testing.T) {
-	t.Setenv("UPLOAD_USER", "admin")
-	t.Setenv("UPLOAD_PASS", "secret")
-	ok := uploadAuth("admin", "secret", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Write([]byte("next"))
-	}))
+func TestUploadRequiresEditorRole(t *testing.T) {
+	a := testApplication(t)
+	testUser(t, a, "viewer1", store.RoleViewer)
+	testUser(t, a, "editor1", store.RoleEditor)
+	h := a.routes()
 
-	// no creds -> 401 + challenge
+	// Anonymous browsers are sent to login; JSON clients get 401.
 	r := httptest.NewRequest("GET", "/upload", nil)
 	w := httptest.NewRecorder()
-	ok.ServeHTTP(w, r)
-	if w.Code != http.StatusUnauthorized {
-		t.Errorf("no creds = %d, want 401", w.Code)
+	h.ServeHTTP(w, r)
+	if w.Code != http.StatusSeeOther || !strings.HasPrefix(w.Header().Get("Location"), "/login?next=") {
+		t.Errorf("anonymous browser = %d %q, want redirect to login", w.Code, w.Header().Get("Location"))
 	}
-	if !strings.Contains(w.Header().Get("WWW-Authenticate"), `Basic realm="upload"`) {
-		t.Errorf("missing WWW-Authenticate header: %v", w.Header())
+	r = httptest.NewRequest("POST", "/api/upload", nil)
+	r.Header.Set("Accept", "application/json")
+	w = httptest.NewRecorder()
+	h.ServeHTTP(w, r)
+	if w.Code != http.StatusUnauthorized {
+		t.Errorf("anonymous JSON = %d, want 401", w.Code)
 	}
 
-	// wrong pass -> 401
-	r = httptest.NewRequest("GET", "/upload", nil)
-	r.SetBasicAuth("admin", "wrong")
-	w = httptest.NewRecorder()
-	ok.ServeHTTP(w, r)
-	if w.Code != http.StatusUnauthorized {
-		t.Errorf("wrong pass = %d, want 401", w.Code)
-	}
-
-	// right creds -> next
-	r = httptest.NewRequest("GET", "/upload", nil)
-	r.SetBasicAuth("admin", "secret")
-	w = httptest.NewRecorder()
-	ok.ServeHTTP(w, r)
-	if w.Code != http.StatusOK || w.Body.String() != "next" {
-		t.Errorf("right creds = %d %q, want 200 next", w.Code, w.Body.String())
+	// Viewers cannot upload; editors and admins can reach the page.
+	for _, tc := range []struct {
+		user string
+		want int
+	}{
+		{"viewer1", http.StatusForbidden},
+		{"editor1", http.StatusOK},
+		{"tester", http.StatusOK},
+	} {
+		r = httptest.NewRequest("GET", "/upload", nil)
+		r.AddCookie(testSession(t, a, tc.user))
+		w = httptest.NewRecorder()
+		h.ServeHTTP(w, r)
+		if w.Code != tc.want {
+			t.Errorf("%s = %d, want %d", tc.user, w.Code, tc.want)
+		}
 	}
 }
 

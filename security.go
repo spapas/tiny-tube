@@ -5,7 +5,6 @@ import (
 	"go/version"
 	"net"
 	"net/http"
-	"strconv"
 	"sync"
 	"time"
 )
@@ -95,20 +94,6 @@ func (l *authLimiter) allow(remoteAddr string) (bool, int) {
 		retry = 1
 	}
 	return allowed, retry
-}
-
-func (a *application) protect(next http.Handler) http.Handler {
-	authed := uploadAuth(a.cfg.UploadUser, a.cfg.UploadPass, next)
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// Check the limit before credentials, so 429 cannot become a password oracle.
-		if allowed, retry := a.authRequests.allow(r.RemoteAddr); !allowed {
-			w.Header().Set("Cache-Control", "no-store")
-			w.Header().Set("Retry-After", strconv.Itoa(retry))
-			writeAPIError(w, r, http.StatusTooManyRequests, "too many authentication requests; retry later")
-			return
-		}
-		authed.ServeHTTP(w, r)
-	})
 }
 
 func (a *application) httpServer() *http.Server {

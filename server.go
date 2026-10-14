@@ -108,6 +108,10 @@ func newApplication(cfg config) (*application, error) {
 		a.close()
 		return nil, err
 	}
+	if err = a.ensureAdmin(); err != nil {
+		a.close()
+		return nil, err
+	}
 	return a, nil
 }
 
@@ -145,15 +149,25 @@ func (a *application) routes() http.Handler {
 		}
 		w.Write([]byte("ok"))
 	})
-	mux.HandleFunc("GET /{$}", a.handleList)
-	mux.HandleFunc("GET /watch", a.handleWatch)
-	mux.Handle("GET /upload", a.protect(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		render(w, uploadTmpl, map[string]any{"Page": "upload", "Title": "Ανέβασμα βίντεο", "MaxUploadBytes": a.cfg.MaxUploadBytes})
-	})))
-	mux.Handle("POST /api/upload", a.protect(http.HandlerFunc(a.handleUpload)))
-	mux.Handle("GET /edit", a.protect(http.HandlerFunc(a.handleEditPage)))
-	mux.Handle("POST /api/edit", a.protect(http.HandlerFunc(a.handleEdit)))
-	mux.Handle("POST /api/delete", a.protect(http.HandlerFunc(a.handleDelete)))
+	mux.Handle("GET /{$}", a.withUser(http.HandlerFunc(a.handleList)))
+	mux.Handle("GET /watch", a.withUser(http.HandlerFunc(a.handleWatch)))
+	mux.Handle("GET /upload", a.limited(a.withUser(a.requireEditor(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		a.renderPage(w, r, uploadTmpl, map[string]any{"Page": "upload", "Title": "Ανέβασμα βίντεο", "MaxUploadBytes": a.cfg.MaxUploadBytes})
+	})))))
+	mux.Handle("POST /api/upload", a.limited(a.withUser(a.requireEditor(http.HandlerFunc(a.handleUpload)))))
+	mux.Handle("GET /edit", a.limited(a.withUser(a.requireEditor(http.HandlerFunc(a.handleEditPage)))))
+	mux.Handle("POST /api/edit", a.limited(a.withUser(a.requireEditor(http.HandlerFunc(a.handleEdit)))))
+	mux.Handle("POST /api/delete", a.limited(a.withUser(a.requireAdmin(http.HandlerFunc(a.handleDelete)))))
+	mux.Handle("GET /login", a.withUser(http.HandlerFunc(a.handleLoginPage)))
+	mux.Handle("POST /login", a.limited(a.withUser(http.HandlerFunc(a.handleLogin))))
+	mux.Handle("POST /api/login", a.limited(http.HandlerFunc(a.handleAPILogin)))
+	mux.Handle("POST /logout", a.withUser(http.HandlerFunc(a.handleLogout)))
+	mux.Handle("GET /admin", a.limited(a.withUser(a.requireAdmin(http.HandlerFunc(a.handleAdmin)))))
+	mux.Handle("POST /api/admin/users/create", a.limited(a.withUser(a.requireAdmin(http.HandlerFunc(a.handleAdminCreateUser)))))
+	mux.Handle("POST /api/admin/users/role", a.limited(a.withUser(a.requireAdmin(http.HandlerFunc(a.handleAdminSetRole)))))
+	mux.Handle("POST /api/admin/users/active", a.limited(a.withUser(a.requireAdmin(http.HandlerFunc(a.handleAdminSetActive)))))
+	mux.Handle("POST /api/admin/users/password", a.limited(a.withUser(a.requireAdmin(http.HandlerFunc(a.handleAdminSetPassword)))))
+	mux.Handle("POST /api/admin/users/delete", a.limited(a.withUser(a.requireAdmin(http.HandlerFunc(a.handleAdminDeleteUser)))))
 	mux.HandleFunc("GET /api/videos", a.handleAPIVideos)
 	mux.HandleFunc("GET /api/video", a.handleAPIVideo)
 	mux.HandleFunc("GET /videos/", a.serveVideo)
@@ -286,7 +300,7 @@ func (a *application) handleList(w http.ResponseWriter, r *http.Request) {
 		categories = append(categories, categoryFilter{name, count, name == category})
 	}
 	sort.Slice(categories, func(i, j int) bool { return categories[i].Name < categories[j].Name })
-	render(w, listTmpl, map[string]any{"Page": "list", "Title": "Βιβλιοθήκη", "Items": items, "Q": q, "Category": category, "Categories": categories, "Total": len(all)})
+	a.renderPage(w, r, listTmpl, map[string]any{"Page": "list", "Title": "Βιβλιοθήκη", "Items": items, "Q": q, "Category": category, "Categories": categories, "Total": len(all)})
 }
 
 func (a *application) handleWatch(w http.ResponseWriter, r *http.Request) {
@@ -299,5 +313,5 @@ func (a *application) handleWatch(w http.ResponseWriter, r *http.Request) {
 		}
 		return
 	}
-	render(w, watchTmpl, map[string]any{"Page": "watch", "Title": m.Title, "Video": m})
+	a.renderPage(w, r, watchTmpl, map[string]any{"Page": "watch", "Title": m.Title, "Video": m})
 }

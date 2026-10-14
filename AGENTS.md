@@ -5,7 +5,8 @@
 Tiny Tube is a small Go video-sharing pilot. Media stays on the filesystem;
 metadata defaults to SQLite via `modernc.org/sqlite` (pure Go, no CGO), with
 `STORE=fs` retaining the legacy JSON backend. Preserve this single-binary design.
-Viewing is public; upload/edit/delete use a single Basic Auth account. Do not
+Viewing is public; upload/edit/delete use session login with local or LDAP
+users and admin/editor/viewer roles. Do not
 introduce another database, framework, account system, or dependency incidentally.
 
 Read `README.md` and `docs/REVIEW.md` before changing behavior. The review records
@@ -23,7 +24,10 @@ update the documentation when an issue is resolved.
 - `server.go`: application state, routes, list/watch handlers, and readiness checks.
 - `upload.go`: request limits, media header checks, unique directories, and cleanup.
 - `manage.go`: authenticated metadata edits and deletion, including active-job cancellation.
-- `auth.go`: upload Basic Auth and environment defaults.
+- `auth.go`: environment defaults. `authn.go`: bcrypt passwords, sliding
+  sessions, login/logout (HTML/JSON), role middleware and first-admin seeding.
+  `ldap.go`: LDAP identity verification with local JIT provisioning.
+  `admin.go`: administrator dashboard and user/role management.
 - `security.go`: CSRF/CSP, bounded auth throttling, server deadlines and Go patch checks.
 - `media.go`: traversal-resistant media serving and private DB file identity checks.
 - `ffmpeg.go`: FFmpeg discovery, persisted queue, bounded workers, HLS/poster publication.
@@ -43,7 +47,8 @@ update the documentation when an issue is resolved.
   documented accurately. `.env` is loaded from the working directory at startup;
   existing environment values, including explicitly empty ones, win over it.
   `ADDR` overrides `HOST`/`PORT`; the default is `127.0.0.1:8081`.
-  `UPLOAD_PASS` remains required and cannot be blank or `changeme`.
+  `ADMIN_PASS` is required on first boot (empty user table) and cannot be blank
+  or `changeme`.
 - Keep light mode as the default. The optional dark mode is a browser-local choice.
   Preserve accessible labels/focus states and mobile layouts. No frontend framework
   or package install is required; assets are embedded in the executable.
@@ -107,7 +112,7 @@ The real FFmpeg integration test skips when FFmpeg is absent. Documentation-only
 changes do not require new tests. Use the race detector where the toolchain supports it.
 
 For HTTP or playback changes, also check the affected paths manually: list/search,
-watch, Basic Auth on upload/edit/delete routes, multipart upload, HLS/poster transition,
+watch, session login on upload/edit/delete/admin routes, multipart upload, HLS/poster transition,
 and `206 Partial Content` for an original-file Range request. Use a small video
 and temporary storage. When touching conversion, verify both FFmpeg-present and
 FFmpeg-absent behavior. Report unavailable checks honestly.

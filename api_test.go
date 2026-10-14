@@ -9,9 +9,9 @@ import (
 	"testing"
 )
 
-func jsonUploadRequest(t *testing.T, title, filename string, data []byte) *http.Request {
+func jsonUploadRequest(t *testing.T, a *application, title, filename string, data []byte) *http.Request {
 	t.Helper()
-	r := uploadRequest(t, title, filename, data)
+	r := uploadRequest(t, a, title, filename, data)
 	r.Header.Set("Accept", "application/json")
 	return r
 }
@@ -29,7 +29,7 @@ func TestAPIUploadReturnsJSON(t *testing.T) {
 	a := testApplication(t)
 	h := a.routes()
 	w := httptest.NewRecorder()
-	h.ServeHTTP(w, jsonUploadRequest(t, "API video", "sample.mp4", sampleVideo(t)))
+	h.ServeHTTP(w, jsonUploadRequest(t, a, "API video", "sample.mp4", sampleVideo(t)))
 	if w.Code != http.StatusCreated {
 		t.Fatalf("want 201, got %d: %s", w.Code, w.Body.String())
 	}
@@ -77,7 +77,7 @@ func TestAPIUploadReturnsJSON(t *testing.T) {
 
 func TestAPIUploadFormatParamReturnsJSON(t *testing.T) {
 	a := testApplication(t)
-	r := uploadRequest(t, "Param video", "sample.mp4", sampleVideo(t))
+	r := uploadRequest(t, a, "Param video", "sample.mp4", sampleVideo(t))
 	r.URL.RawQuery = "format=json"
 	w := httptest.NewRecorder()
 	a.routes().ServeHTTP(w, r)
@@ -92,7 +92,7 @@ func TestAPIUploadFormatParamReturnsJSON(t *testing.T) {
 func TestAPIBrowserUploadStillRedirects(t *testing.T) {
 	a := testApplication(t)
 	w := httptest.NewRecorder()
-	a.routes().ServeHTTP(w, uploadRequest(t, "Browser video", "sample.mp4", sampleVideo(t)))
+	a.routes().ServeHTTP(w, uploadRequest(t, a, "Browser video", "sample.mp4", sampleVideo(t)))
 	if w.Code != http.StatusSeeOther {
 		t.Fatalf("want 303, got %d: %s", w.Code, w.Body.String())
 	}
@@ -110,7 +110,7 @@ func TestAPIJSONErrors(t *testing.T) {
 
 	// Validation error as JSON.
 	w := httptest.NewRecorder()
-	h.ServeHTTP(w, jsonUploadRequest(t, "", "sample.mp4", sampleVideo(t)))
+	h.ServeHTTP(w, jsonUploadRequest(t, a, "", "sample.mp4", sampleVideo(t)))
 	if w.Code != http.StatusBadRequest {
 		t.Fatalf("want 400, got %d", w.Code)
 	}
@@ -118,9 +118,9 @@ func TestAPIJSONErrors(t *testing.T) {
 		t.Fatalf("missing error field: %v", body)
 	}
 
-	// Auth error as JSON.
-	r := jsonUploadRequest(t, "x", "sample.mp4", sampleVideo(t))
-	r.SetBasicAuth("tester", "wrong")
+	// Auth error as JSON: no session cookie.
+	r := jsonUploadRequest(t, a, "x", "sample.mp4", sampleVideo(t))
+	r.Header.Del("Cookie")
 	w = httptest.NewRecorder()
 	h.ServeHTTP(w, r)
 	if w.Code != http.StatusUnauthorized {
@@ -145,14 +145,14 @@ func TestAPIEditDeleteJSON(t *testing.T) {
 	a := testApplication(t)
 	h := a.routes()
 	w := httptest.NewRecorder()
-	h.ServeHTTP(w, jsonUploadRequest(t, "Before", "sample.mp4", sampleVideo(t)))
+	h.ServeHTTP(w, jsonUploadRequest(t, a, "Before", "sample.mp4", sampleVideo(t)))
 	if w.Code != http.StatusCreated {
 		t.Fatalf("upload: %d %s", w.Code, w.Body.String())
 	}
 	id := decodeJSON(t, w)["id"].(string)
 
 	w, r := postForm(t, "/api/edit", url.Values{"id": {id}, "title": {"After"}, "desc": {"d"}, "category": {"c"}})
-	r.SetBasicAuth("tester", "test-password")
+	r.AddCookie(testSession(t, a, "tester"))
 	r.Header.Set("Accept", "application/json")
 	h.ServeHTTP(w, r)
 	if w.Code != http.StatusOK {
@@ -169,7 +169,7 @@ func TestAPIEditDeleteJSON(t *testing.T) {
 	}
 
 	w, r = postForm(t, "/api/delete", url.Values{"id": {id}})
-	r.SetBasicAuth("tester", "test-password")
+	r.AddCookie(testSession(t, a, "tester"))
 	r.Header.Set("Accept", "application/json")
 	h.ServeHTTP(w, r)
 	if w.Code != http.StatusOK {

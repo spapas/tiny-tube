@@ -38,7 +38,7 @@ func TestCrossOriginMutationsAreRejected(t *testing.T) {
 				} {
 					t.Run(path+"/"+tc.name, func(t *testing.T) {
 						w, r := postForm(t, path, url.Values{"id": {"protected"}, "title": {"Changed"}})
-						r.SetBasicAuth("tester", "test-password")
+						r.AddCookie(testSession(t, a, "tester"))
 						r.Header.Set("Origin", tc.origin)
 						r.Header.Set("Sec-Fetch-Site", tc.site)
 						h.ServeHTTP(w, r)
@@ -95,7 +95,7 @@ func TestSameOriginAndCLIJSONClientsStillWork(t *testing.T) {
 	for _, site := range []string{"same-origin", ""} {
 		t.Run(site, func(t *testing.T) {
 			a := testApplication(t)
-			r := jsonUploadRequest(t, "Allowed", "sample.mp4", sampleVideo(t))
+			r := jsonUploadRequest(t, a, "Allowed", "sample.mp4", sampleVideo(t))
 			if site != "" {
 				r.Header.Set("Sec-Fetch-Site", site)
 				r.Header.Set("Origin", "http://example.com")
@@ -114,14 +114,14 @@ func TestSameOriginAndCLIJSONClientsStillWork(t *testing.T) {
 	w, r := postForm(t, "/api/edit", url.Values{"id": {"missing"}, "title": {"test"}})
 	r.Header.Set("Origin", "https://other.example")
 	r.Header.Set("Accept", "application/json")
-	r.SetBasicAuth("tester", "test-password")
+	r.AddCookie(testSession(t, a, "tester"))
 	a.routes().ServeHTTP(w, r)
 	if w.Code != 403 || decodeJSON(t, w)["error"] == "" {
 		t.Fatal("CSRF error did not preserve JSON API")
 	}
 }
 
-func TestAuthLimitCannotBeBypassedWithCorrectPasswordOrForwardingHeaders(t *testing.T) {
+func TestAuthLimitCannotBeBypassedWithSessionOrForwardingHeaders(t *testing.T) {
 	a := testApplication(t)
 	a.authRequests = newAuthLimiter(3)
 	now := time.Now()
@@ -132,14 +132,17 @@ func TestAuthLimitCannotBeBypassedWithCorrectPasswordOrForwardingHeaders(t *test
 		r.RemoteAddr = fmt.Sprintf("192.0.2.1:%d", 1000+i)
 		w := httptest.NewRecorder()
 		h.ServeHTTP(w, r)
-		if w.Code != 401 {
-			t.Fatal("wrong credentials", w.Code)
+		if w.Code != 303 {
+			t.Fatal("anonymous upload page", w.Code)
 		}
 	}
-	for _, pass := range []string{"wrong", "test-password"} {
+	// A valid session from the throttled IP is still limited.
+	for _, user := range []string{"", "tester"} {
 		w, r := postForm(t, "/api/edit", url.Values{"id": {"missing"}, "title": {"x"}})
 		r.RemoteAddr = "192.0.2.1:9999"
-		r.SetBasicAuth("tester", pass)
+		if user != "" {
+			r.AddCookie(testSession(t, a, user))
+		}
 		r.Header.Set("X-Forwarded-For", "203.0.113.50")
 		r.Header.Set("Forwarded", "for=203.0.113.51")
 		r.Header.Set("Accept", "application/json")
@@ -156,7 +159,7 @@ func TestAuthLimitCannotBeBypassedWithCorrectPasswordOrForwardingHeaders(t *test
 	now = now.Add(time.Minute)
 	r := httptest.NewRequest("GET", "/upload", nil)
 	r.RemoteAddr = "192.0.2.1:9999"
-	r.SetBasicAuth("tester", "test-password")
+	r.AddCookie(testSession(t, a, "tester"))
 	w = httptest.NewRecorder()
 	h.ServeHTTP(w, r)
 	if w.Code != 200 {
@@ -324,13 +327,12 @@ func TestSlowUploadIsTerminatedAndCleaned(t *testing.T) {
 	}
 	defer conn.Close()
 	conn.SetDeadline(time.Now().Add(5 * time.Second))
-	request := httptest.NewRequest("POST", "/api/upload", nil)
-	request.SetBasicAuth("tester", "test-password")
-	_, err = fmt.Fprintf(conn, "POST /api/upload HTTP/1.1\r\nHost: %s\r\nAuthorization: %s\r\nContent-Type: multipart/form-data; boundary=slow\r\nContent-Length: 500\r\nConnection: close\r\n\r\n--slow\r\n", listener.Addr().String(), request.Header.Get("Authorization"))
+	cookie := testSession(t, a, "tester")
+	_, err = fmt.Fprintf(conn, "POST /api/upload HTTP/1.1\r\nHost: %s\r\nCookie: %s=%s\r\nContent-Type: multipart/form-data; boundary=slow\r\nContent-Length: 500\r\nConnection: close\r\n\r\n--slow\r\n", listener.Addr().String(), cookie.Name, cookie.Value)
 	if err != nil {
 		t.Fatal(err)
 	}
-	response, err := http.ReadResponse(bufio.NewReader(conn), request)
+	response, err := http.ReadResponse(bufio.NewReader(conn), httptest.NewRequest("POST", "/api/upload", nil))
 	if err != nil {
 		t.Fatal("stalled upload did not return in time", err)
 	}
@@ -339,10 +341,7 @@ func TestSlowUploadIsTerminatedAndCleaned(t *testing.T) {
 	if response.StatusCode != 408 {
 		t.Fatal("stalled upload not terminated", response.StatusCode)
 	}
-	entries, err := os.ReadDir(a.videoDir)
-	if err != nil || len(entries) != 0 {
-		t.Fatal("stalled upload left files", entries, err)
-	}
+	assertNoVideoDirs(t, a.videoDir)
 }
 
 func TestStartupRejectsUnpatchedGoBuilds(t *testing.T) {
@@ -398,7 +397,7 @@ func TestSQLInjectionAndStoredHTMLRemainData(t *testing.T) {
 			for _, path := range []string{"/", "/watch?id=untrusted", "/edit?id=untrusted"} {
 				w := httptest.NewRecorder()
 				r := httptest.NewRequest("GET", path, nil)
-				r.SetBasicAuth("tester", "test-password")
+				r.AddCookie(testSession(t, a, "tester"))
 				h.ServeHTTP(w, r)
 				if w.Code != 200 || strings.Contains(w.Body.String(), m.Desc) || strings.Contains(w.Body.String(), m.Category) {
 					t.Fatalf("stored HTML executed or page failed: %s %d", path, w.Code)

@@ -2,7 +2,10 @@
 
 A small video-sharing server written in Go, with media on disk, SQLite metadata,
 and optional FFmpeg conversion to HLS with preview posters. Viewing is public;
-uploading, editing and deleting require HTTP Basic Auth. SQLite uses the pure Go
+uploading and editing require login with an editor or administrator account,
+and deleting or managing users requires an administrator. Users authenticate
+with a local password (bcrypt) or against LDAP; roles are assigned locally.
+SQLite uses the pure Go
 `modernc.org/sqlite` driver, so single-binary builds do not require CGO. Legacy
 filesystem JSON metadata remains available with `STORE=fs`.
 
@@ -27,13 +30,16 @@ From the repository directory:
 ```powershell
 $env:VIDEO_DIR = "videos"
 $env:ADDR = "127.0.0.1:8081"
-$env:UPLOAD_USER = "admin"
-$env:UPLOAD_PASS = "replace-with-a-strong-password"
+$env:ADMIN_USER = "admin"
+$env:ADMIN_PASS = "replace-with-a-strong-password"
 go run .
 ```
 
-Open <http://localhost:8081> for the searchable list, and
-<http://localhost:8081/upload> to upload. Runtime storage starts empty; the small
+Open <http://localhost:8081> for the searchable list, <http://localhost:8081/upload>
+to upload after login, and <http://localhost:8081/admin> to manage users.
+On first boot with an empty user table the server creates the administrator
+from `ADMIN_USER`/`ADMIN_PASS`; afterwards users and roles are managed at
+`/admin`. Runtime storage starts empty; the small
 video under `testdata/` is a test fixture.
 
 To build a Windows executable:
@@ -45,7 +51,7 @@ go build -o tiny-tube.exe .
 
 Environment settings apply to the current shell and processes started from it.
 The application also loads `.env` from its working directory at startup. Copy
-`.env.example` to `.env` and set `UPLOAD_PASS`; explicitly set environment variables
+`.env.example` to `.env` and set `ADMIN_PASS`; explicitly set environment variables
 take precedence, including empty values. Values may be quoted; there is no variable
 expansion or inline-comment support. `.env` is ignored by Git.
 
@@ -59,8 +65,8 @@ Build on the target platform with Go installed:
 
 ```sh
 go build -o tiny-tube .
-VIDEO_DIR=/srv/tiny-tube/videos ADDR=127.0.0.1:8081 UPLOAD_USER=admin \
-  UPLOAD_PASS='replace-with-a-strong-password' ./tiny-tube
+VIDEO_DIR=/srv/tiny-tube/videos ADDR=127.0.0.1:8081 ADMIN_USER=admin \
+  ADMIN_PASS='replace-with-a-strong-password' ./tiny-tube
 ```
 
 For a Linux binary built from Windows:
@@ -87,8 +93,21 @@ write there and find FFmpeg on its `PATH`.
 | `PORT` | `8081` | HTTP port when `ADDR` is unset; `PORT=8080` remains supported. |
 | `STORE` | `sqlite` | Metadata backend: `sqlite` or legacy `fs`. Video files remain on disk in both modes. |
 | `DB_PATH` | `<VIDEO_DIR>/tiny-tube.db` | SQLite metadata database in WAL mode. Relative paths use the working directory. |
-| `UPLOAD_USER` | `admin` | Username for upload, edit and delete routes. |
-| `UPLOAD_PASS` | required | Startup rejects an unset/blank password or `changeme`. |
+| `ADMIN_USER` | `admin` | First administrator, created on first boot when no users exist. Ignored afterwards. |
+| `ADMIN_PASS` | required on first boot | Password for the first administrator; startup rejects an unset/blank password or `changeme` when the user table is empty. |
+| `AUTH_MODE` | `local` | Login source: `local`, `ldap`, or `both` (LDAP first, local fallback). |
+| `COOKIE_SECURE` | `false` | Set `true` behind HTTPS so session cookies carry the Secure flag. |
+| `LDAP_ADDR` | `ldap://localhost:389` | Directory address (`ldap://` or `ldaps://`). |
+| `LDAP_BASE_DN` | `dc=example,dc=com` | Fallback search base and direct-bind default. |
+| `LDAP_BIND_DN` | unset | Service account for subtree search; without it, users bind directly. |
+| `LDAP_BIND_PASSWORD` | unset | Service account password. |
+| `LDAP_SEARCH_BASES` | unset | `;`-separated search bases enabling subtree search. |
+| `LDAP_USER_FILTER` | `(uid=%s)` | Search filter with the escaped username as `%s`. |
+| `LDAP_USER_DN` | `uid=%s,<base>` | Direct-bind DN template for the username. |
+| `LDAP_ATTR_EMAIL` | `mail` | Directory attribute mapped to the user record. |
+| `LDAP_ATTR_FIRST_NAME` | `givenName` | Directory attribute for the display name. |
+| `LDAP_ATTR_LAST_NAME` | `sn` | Directory attribute for the display name. |
+| `LDAP_ALWAYS_UPDATE` | `true` | Refresh LDAP user records from the directory on every login. |
 | `MAX_UPLOAD_BYTES` | `2147483648` | Maximum **whole multipart request**, including form fields and overhead: 2 GiB. Larger requests return HTTP 413. |
 | `TRANSCODE_WORKERS` | `1` | Maximum concurrent FFmpeg processes, between 1 and 16. Pending jobs remain on disk. |
 | `AUTH_REQUESTS_PER_MINUTE` | `60` | Protected-route requests per source IP per minute, checked before authentication; 1–3600. Excess requests return 429 with `Retry-After`. |
@@ -97,9 +116,10 @@ write there and find FFmpeg on its `PATH`.
 | `FFMPEG_BIN` | unset | Explicit executable path/name, preferred over `PATH`. An invalid explicit value fails startup. Otherwise FFmpeg is discovered on `PATH`. |
 
 Empty optional values fall back to the defaults. For direct LAN access, set `HOST`
-explicitly (or set `ADDR=0.0.0.0:8081`) and configure the firewall. Basic Auth needs HTTPS when used over a
-network; the Go server itself serves HTTP. Video files and metadata are public,
-including the originals. There is no viewer login or private-video support.
+explicitly (or set `ADDR=0.0.0.0:8081`) and configure the firewall. Session cookies
+need HTTPS when used over a network; the Go server itself serves HTTP. Video files
+and metadata are public. Login sessions last 24 hours sliding; password resets,
+deactivation and user deletion revoke sessions.
 
 Browser mutations must originate from this site. Cross-origin upload/edit/delete
 requests return 403, including JSON clients; command-line clients without browser
@@ -134,8 +154,8 @@ available and a neutral placeholder otherwise. The player offers speeds from
 it, the viewer presses play. The video is never muted.
 
 The watch page links to `/edit?id=<id>` and provides deletion with a confirmation
-prompt. `GET /edit`, `POST /api/edit` and `POST /api/delete` require the same Basic
-Auth credentials as upload. Editing changes title/description/category while
+prompt. `GET /edit` and `POST /api/edit` require an editor or administrator login;
+`POST /api/delete` and `/admin` require an administrator. Editing changes title/description/category while
 preserving playback data. Deletion cancels and waits for active conversion, then
 removes the original, HLS, poster and metadata. There is no undo.
 
@@ -165,27 +185,33 @@ removes the original, HLS, poster and metadata. There is no undo.
 
 ### REST API for upload (automation / LLM clients)
 
-The same Basic Auth credentials (`UPLOAD_USER` / `UPLOAD_PASS`) work for
-programmatic clients. Uploads stay `multipart/form-data`; only the response
-format changes. Send `Accept: application/json` (or `?format=json`) to get JSON
-instead of the browser `303` redirect. Error responses use the same HTTP status
-codes with a `{"error": "..."}` body, and `401` keeps the `WWW-Authenticate`
-challenge. Reading is public, like the library pages; writing requires auth.
+Programmatic clients log in with `POST /api/login` (`{"username", "password"}`)
+and reuse the session cookie, exactly like a browser. Uploads stay
+`multipart/form-data`; only the response format changes. Send
+`Accept: application/json` (or `?format=json`) to get JSON instead of the
+browser `303` redirect. Error responses use the same HTTP status codes with a
+`{"error": "..."}` body. Anonymous JSON clients get `401`; logged-in users
+without the role get `403`. Reading is public, like the library pages; writing
+requires the matching role.
 
 | Method | Route | Auth | Description |
 | --- | --- | --- | --- |
-| `POST` | `/api/upload` | Basic | Multipart fields `title` (required), `desc`, `category`, `file`. JSON clients get `201` with `id`, `title`, `status`, `original`, `watch_url`, `video_url`, `api_url`. Browsers get `303` to `/watch?id=`. |
+| `POST` | `/api/login` | none | JSON `{"username", "password"}`; sets the session cookie, returns `{"username", "role"}`. |
+| `POST` | `/logout` | session | Revokes the session cookie. |
+| `POST` | `/api/upload` | editor | Multipart fields `title` (required), `desc`, `category`, `file`. JSON clients get `201` with `id`, `title`, `status`, `original`, `watch_url`, `video_url`, `api_url`. Browsers get `303` to `/watch?id=`. |
 | `GET` | `/api/videos?q=&category=` | none | JSON `{"total", "count", "q", "category", "items"}` with the same filtering as the library page. |
 | `GET` | `/api/video?id=<id>` | none | JSON metadata for one video, including `status` (`queued`/`processing`/`ready`/`failed`). `404` when missing. |
-| `POST` | `/api/edit` | Basic | Form fields `id`, `title`, `desc`, `category`. JSON clients get `200` with `id`, `title`, `watch_url`, `api_url`. |
-| `POST` | `/api/delete` | Basic | Form field `id`. JSON clients get `200` with `{"id", "deleted": true}`. |
+| `POST` | `/api/edit` | editor | Form fields `id`, `title`, `desc`, `category`. JSON clients get `200` with `id`, `title`, `watch_url`, `api_url`. |
+| `POST` | `/api/delete` | admin | Form field `id`. JSON clients get `200` with `{"id", "deleted": true}`. |
 
 Poll `GET /api/video?id=<id>` until `status` is `ready` (or `failed`), then
 open `watch_url`. Serve over HTTPS when credentials cross a network; the Go
 server itself serves HTTP (see the Nginx example).
 
 ```sh
-curl -u admin:secret -H "Accept: application/json" \
+curl -c session.txt -H "Content-Type: application/json" \
+  -d '{"username":"admin","password":"secret"}' http://127.0.0.1:8081/api/login
+curl -b session.txt -H "Accept: application/json" \
   -F title="Demo" -F desc="Recorded meeting" -F category="Meetings" \
   -F file=@demo.mp4 http://127.0.0.1:8081/api/upload
 curl "http://127.0.0.1:8081/api/video?id=<id>"
@@ -194,10 +220,12 @@ curl "http://127.0.0.1:8081/api/video?id=<id>"
 ```python
 import os
 import requests
-auth = (os.environ.get("UPLOAD_USER", "admin"), os.environ["UPLOAD_PASS"])
 base = "http://127.0.0.1:8081"
+s = requests.Session()
+s.post(f"{base}/api/login",
+    json={"username": "admin", "password": os.environ["ADMIN_PASS"]}).raise_for_status()
 with open("demo.mp4", "rb") as f:
-    r = requests.post(f"{base}/api/upload", auth=auth,
+    r = s.post(f"{base}/api/upload",
         headers={"Accept": "application/json"},
         data={"title": "Demo", "desc": "Recorded meeting", "category": "Meetings"},
         files={"file": ("demo.mp4", f, "video/mp4")})
@@ -232,7 +260,8 @@ Existing videos, including root-level `index.m3u8` and `poster.jpg`, remain comp
 SQLite startup imports legacy `meta.json` records whose IDs are absent from the
 database. Repeated imports leave existing SQLite edits untouched. JSON files are
 retained; switching back to `STORE=fs` does not export later SQLite edits. Existing
-SQLite databases are upgraded to retain conversion error messages without losing rows.
+SQLite databases are upgraded to retain conversion error messages and add
+user/session tables without losing rows.
 In FS mode, metadata is written to a temporary file, synced/closed, and replaced.
 Application reads and writes use in-process synchronization. Run **one server process per video
 directory**; shared storage across multiple instances is not supported.
@@ -250,8 +279,8 @@ not a complete deployment configuration:
   Keep the proxy cap consistent if changing `MAX_UPLOAD_BYTES`. Upload request
   buffering is disabled to avoid an additional full copy at the proxy.
 - Restrict direct access to the Go port when TLS/auth routing relies on the proxy.
-- Go already checks upload credentials. Additional Nginx upload authentication is
-  optional and must use matching credentials if enabled.
+- Go already checks session roles. Additional Nginx upload authentication is
+  optional and must not break the session cookie if enabled.
 - Keep SQLite files and their journals private. The example blocks database
   extensions and staging paths; Go also checks file identities to reject DB aliases.
   Its upstream uses the default port 8081; adjust it if changing `ADDR`/`PORT`.

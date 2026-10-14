@@ -35,6 +35,7 @@ type Store interface {
 	Put(m Meta) error
 	Delete(id string) error
 	Dir(id string) string
+	AuthStore
 }
 
 type FS struct {
