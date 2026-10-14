@@ -48,12 +48,30 @@ func TestEmbeddedUIAssetsAreServed(t *testing.T) {
 	for _, tc := range []struct{ path, contentType string }{
 		{"/assets/app.css", "text/css"}, {"/assets/app.js", "javascript"},
 		{"/assets/player.js", "javascript"}, {"/assets/upload.js", "javascript"},
+		{"/assets/hls.min.js", "javascript"},
 	} {
 		w := httptest.NewRecorder()
 		a.routes().ServeHTTP(w, httptest.NewRequest("GET", tc.path, nil))
 		if w.Code != 200 || w.Body.Len() == 0 || !strings.Contains(w.Header().Get("Content-Type"), tc.contentType) {
 			t.Errorf("asset failed: %s %d %s", tc.path, w.Code, w.Header().Get("Content-Type"))
 		}
+	}
+}
+
+func TestWatchPageUsesVendoredPlayer(t *testing.T) {
+	a := testApplication(t)
+	m := store.Meta{ID: "vendored", Title: "Watch me", Original: "original.mp4", HLS: "hls-ready/index.m3u8", Status: "ready"}
+	if err := a.fs.Put(m); err != nil {
+		t.Fatal(err)
+	}
+	w := httptest.NewRecorder()
+	a.routes().ServeHTTP(w, httptest.NewRequest("GET", "/watch?id=vendored", nil))
+	body := w.Body.String()
+	if w.Code != 200 || !strings.Contains(body, `/assets/hls.min.js`) {
+		t.Fatal("watch page does not use the vendored player", w.Code)
+	}
+	if strings.Contains(body, "https://") {
+		t.Fatal("watch page references an external URL")
 	}
 }
 

@@ -47,7 +47,7 @@ Integration corrections covered by regression tests:
 | `FFMPEG_BIN` checked but not executed | An explicit override is resolved first and used by the actual conversion command. Invalid overrides fail startup; absent optional FFmpeg permits original playback. |
 | Failed/interrupted conversion stuck in `processing` | Failures persist `failed` plus a visible message. Startup requeues interrupted work, or marks it failed if FFmpeg is absent. Graceful shutdown cancels/requeues active work. |
 | Unbounded FFmpeg processes | A fixed number of workers claims the oldest queued jobs from metadata on disk. Default concurrency is one, configurable up to 16. |
-| Floating player version and silent HLS failure | hls.js is pinned to 1.6.19. Fatal HLS/native video errors fall back to the original; original playback errors are shown. The CDN dependency remains. |
+| Floating player version and silent HLS failure | hls.js is pinned to 1.6.19 and vendored under `web/static`. Fatal HLS/native video errors fall back to the original; original playback errors are shown. No CDN dependency remains. |
 | Hidden list/watch/rendering failures | Storage errors return 500 and are logged; templates are buffered before sending. `/healthz` is liveness; `/readyz` checks storage/metadata and returns 503 on failure. |
 
 HLS output is generated in a staging directory and then published under a unique
@@ -108,9 +108,9 @@ claim. The README documents the current behavior and compatibility changes.
   may not support an original's codecs. Originals are not remuxed for MP4 faststart.
 - HLS is a single 720-pixel-high rendition, without adaptive quality. Reload the
   watch page after a queued/processing conversion completes.
-- hls.js is still served from an external CDN. Offline deployments should vendor
-  that pinned release and its license. A local download attempt encountered a
-  socket access restriction, so no vendored asset is included.
+- hls.js 1.6.19 is vendored (`web/static/hls.min.js`, Apache-2.0) and served
+  from `/assets`; offline deployments work without external browser access.
+  The vendored bytes were verified identical on jsDelivr and unpkg.
 - Failed jobs are not automatically retried. Pending jobs resume at startup.
   Abrupt process termination can leave staging/output directories or uploads
   without metadata; there is no general orphan cleanup. Authenticated deletion

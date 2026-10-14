@@ -18,8 +18,7 @@ and bounded conversion workers are covered by regression tests. See the
 - Optional FFmpeg on `PATH`, with the `libx264` and AAC encoders, for HLS conversion.
   Without FFmpeg, the server serves the original file; playback depends on the
   browser's support for its container and codecs.
-- Internet access from viewers' browsers for the externally hosted hls.js player.
-  Native HLS playback and original-file playback do not require that script.
+- Native HLS playback and original-file playback do not require that script.
 
 ## Run on Windows (PowerShell)
 
@@ -156,8 +155,9 @@ removes the original, HLS, poster and metadata. There is no undo.
    Without FFmpeg, status is immediately `ready` for original-file playback.
 4. Reload the watch page after conversion to use HLS. Safari can use native HLS;
    other supported browsers use hls.js, with original-file fallback when HLS
-   support is unavailable or HLS playback fails. The bundled page references a
-   pinned CDN version of hls.js (1.6.19); it still requires external browser access.
+   support is unavailable or HLS playback fails. The page uses the vendored
+   hls.js 1.6.19 (`web/static/hls.min.js`, Apache-2.0, see `hls.js.LICENSE.txt`);
+   no external browser access is required.
 5. Conversion failures become `failed`, with a visible message and the original
    retained. Pending/interrupted jobs resume on startup if FFmpeg is available;
    otherwise they become `failed`. On graceful shutdown, active conversions are

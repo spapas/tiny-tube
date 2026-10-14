@@ -70,10 +70,11 @@ Stored malicious HTML and SQL strings are tested as data with both stores.
 - Run one process per storage directory. Abrupt termination can leave orphan files;
   no general orphan recovery is included. Filesystem/database failures during
   deletion can leave an incomplete deletion and require operator attention.
-- The pinned hls.js 1.6.19 file remains externally hosted. CSP restricts its URL,
-  but CDN availability and trust remain dependencies. Fetching an asset for local
-  vendoring/integrity verification was unavailable in this environment. Native
-  HLS and original-file fallback remain available.
+- The pinned hls.js 1.6.19 file is vendored under `web/static` and served from
+  `/assets`; playback needs no external host and CSP allows only `'self'` scripts.
+  The vendored bytes were verified identical on two independent CDNs (jsDelivr,
+  unpkg) and self-identify as 1.6.19. Native HLS and original-file fallback
+  remain available.
 - The race detector needs an unavailable C compiler in this Windows environment.
   Focused concurrency tests do run; this is not a race-detector pass.
 
