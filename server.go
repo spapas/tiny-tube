@@ -29,6 +29,7 @@ type application struct {
 	runFFmpeg           func(context.Context, string, []string) error
 	activeJobs          map[string]*conversionJob
 	deleting            map[string]bool
+	authRequests        *authLimiter
 }
 
 type conversionJob struct {
@@ -38,6 +39,15 @@ type conversionJob struct {
 }
 
 func newApplication(cfg config) (*application, error) {
+	if cfg.AuthRequestsPerMinute == 0 {
+		cfg.AuthRequestsPerMinute = 60
+	}
+	if cfg.UploadTimeoutSeconds == 0 {
+		cfg.UploadTimeoutSeconds = 1800
+	}
+	if cfg.TranscodeTimeoutSeconds == 0 {
+		cfg.TranscodeTimeoutSeconds = 1800
+	}
 	root, err := filepath.Abs(cfg.VideoDir)
 	if err != nil {
 		return nil, err
@@ -53,6 +63,7 @@ func newApplication(cfg config) (*application, error) {
 		return nil, err
 	}
 	a := &application{cfg: cfg, videoDir: root, ffmpegBin: bin, wake: make(chan struct{}, cfg.TranscodeWorkers), activeJobs: make(map[string]*conversionJob), deleting: make(map[string]bool)}
+	a.authRequests = newAuthLimiter(cfg.AuthRequestsPerMinute)
 	switch cfg.Store {
 	case "fs":
 		a.fs = store.NewFS(root)
@@ -127,48 +138,18 @@ func (a *application) routes() http.Handler {
 	})
 	mux.HandleFunc("GET /{$}", a.handleList)
 	mux.HandleFunc("GET /watch", a.handleWatch)
-	mux.Handle("GET /upload", uploadAuth(a.cfg.UploadUser, a.cfg.UploadPass, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	mux.Handle("GET /upload", a.protect(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		render(w, uploadTmpl, map[string]any{"Page": "upload", "Title": "Ανέβασμα βίντεο", "MaxUploadBytes": a.cfg.MaxUploadBytes})
 	})))
-	mux.Handle("POST /api/upload", uploadAuth(a.cfg.UploadUser, a.cfg.UploadPass, http.HandlerFunc(a.handleUpload)))
-	mux.Handle("GET /edit", uploadAuth(a.cfg.UploadUser, a.cfg.UploadPass, http.HandlerFunc(a.handleEditPage)))
-	mux.Handle("POST /api/edit", uploadAuth(a.cfg.UploadUser, a.cfg.UploadPass, http.HandlerFunc(a.handleEdit)))
-	mux.Handle("POST /api/delete", uploadAuth(a.cfg.UploadUser, a.cfg.UploadPass, http.HandlerFunc(a.handleDelete)))
+	mux.Handle("POST /api/upload", a.protect(http.HandlerFunc(a.handleUpload)))
+	mux.Handle("GET /edit", a.protect(http.HandlerFunc(a.handleEditPage)))
+	mux.Handle("POST /api/edit", a.protect(http.HandlerFunc(a.handleEdit)))
+	mux.Handle("POST /api/delete", a.protect(http.HandlerFunc(a.handleDelete)))
 	mux.HandleFunc("GET /api/videos", a.handleAPIVideos)
 	mux.HandleFunc("GET /api/video", a.handleAPIVideo)
-	media := http.StripPrefix("/videos/", http.FileServer(http.Dir(a.videoDir)))
-	mux.HandleFunc("GET /videos/", func(w http.ResponseWriter, r *http.Request) {
-		// The default DB is under VIDEO_DIR. Only files inside video ID directories
-		// are public; SQLite databases, their journals and staging files stay private.
-		rel := strings.TrimPrefix(r.URL.Path, "/videos/")
-		file := filepath.Join(a.videoDir, filepath.FromSlash(rel))
-		for _, suffix := range []string{"", "-wal", "-shm", "-journal"} {
-			if a.cfg.DBPath != "" && strings.EqualFold(file, a.cfg.DBPath+suffix) {
-				http.NotFound(w, r)
-				return
-			}
-		}
-		parts := strings.Split(rel, "/")
-		if len(parts) < 2 || !store.ValidID(parts[0]) {
-			http.NotFound(w, r)
-			return
-		}
-		for _, part := range parts[1:] {
-			if part == "" || strings.HasPrefix(part, ".") {
-				http.NotFound(w, r)
-				return
-			}
-		}
-		ext := strings.ToLower(filepath.Ext(rel))
-		switch ext {
-		case ".mp4", ".mov", ".mkv", ".webm", ".m3u8", ".ts", ".jpg", ".jpeg", ".png", ".json":
-			media.ServeHTTP(w, r)
-		default:
-			http.NotFound(w, r)
-		}
-	})
+	mux.HandleFunc("GET /videos/", a.serveVideo)
 	mux.Handle("GET /assets/", http.StripPrefix("/assets/", http.FileServer(http.FS(staticFiles()))))
-	return mux
+	return secureHTTP(mux)
 }
 
 func render(w http.ResponseWriter, tmpl *template.Template, data any) {

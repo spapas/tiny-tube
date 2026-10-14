@@ -9,10 +9,11 @@ import (
 )
 
 type config struct {
-	VideoDir, Host, Port, UploadUser, UploadPass, FFmpegBin string
-	Addr, Store, DBPath                                     string
-	MaxUploadBytes                                          int64
-	TranscodeWorkers                                        int
+	VideoDir, Host, Port, UploadUser, UploadPass, FFmpegBin              string
+	Addr, Store, DBPath                                                  string
+	MaxUploadBytes                                                       int64
+	TranscodeWorkers                                                     int
+	AuthRequestsPerMinute, UploadTimeoutSeconds, TranscodeTimeoutSeconds int
 }
 
 func loadConfig() (config, error) {
@@ -50,6 +51,20 @@ func loadConfig() (config, error) {
 	c.TranscodeWorkers, err = strconv.Atoi(getenv("TRANSCODE_WORKERS", "1"))
 	if err != nil || c.TranscodeWorkers < 1 || c.TranscodeWorkers > 16 {
 		return c, fmt.Errorf("TRANSCODE_WORKERS must be between 1 and 16")
+	}
+	for _, setting := range []struct {
+		name, fallback string
+		target         *int
+		max            int
+	}{
+		{"AUTH_REQUESTS_PER_MINUTE", "60", &c.AuthRequestsPerMinute, 3600},
+		{"UPLOAD_TIMEOUT_SECONDS", "1800", &c.UploadTimeoutSeconds, 86400},
+		{"TRANSCODE_TIMEOUT_SECONDS", "1800", &c.TranscodeTimeoutSeconds, 86400},
+	} {
+		*setting.target, err = strconv.Atoi(getenv(setting.name, setting.fallback))
+		if err != nil || *setting.target < 1 || *setting.target > setting.max {
+			return c, fmt.Errorf("%s must be between 1 and %d", setting.name, setting.max)
+		}
 	}
 	return c, nil
 }

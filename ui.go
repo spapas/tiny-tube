@@ -15,11 +15,12 @@ import (
 var webFiles embed.FS
 
 var pageTemplates = template.Must(template.New("pages").Funcs(template.FuncMap{
-	"formatDate":  formatDate,
-	"formatBytes": formatBytes,
-	"statusLabel": statusLabel,
-	"statusClass": statusClass,
-	"videoCount":  func(n int) string { return fmt.Sprintf("%d βίντεο", n) },
+	"hlsScriptURL": func() string { return hlsScriptURL },
+	"formatDate":   formatDate,
+	"formatBytes":  formatBytes,
+	"statusLabel":  statusLabel,
+	"statusClass":  statusClass,
+	"videoCount":   func(n int) string { return fmt.Sprintf("%d βίντεο", n) },
 	"filterURL": func(q, category string) string {
 		values := url.Values{}
 		if q != "" {

@@ -1,5 +1,5 @@
 {{define "watch"}}<!doctype html>
-<html lang="el" data-theme="light"><head>{{template "head" .}}<script src="https://cdn.jsdelivr.net/npm/hls.js@1.6.19/dist/hls.min.js" defer></script><script src="/assets/player.js?v=3" defer></script></head><body>
+<html lang="el" data-theme="light"><head>{{template "head" .}}<script src="{{hlsScriptURL}}" defer></script><script src="/assets/player.js?v=3" defer></script></head><body>
 {{template "header" .}}
 <main id="main" class="container watch-main">
   <a class="back-link" href="/">{{template "back"}} Πίσω στη βιβλιοθήκη</a>

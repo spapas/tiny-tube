@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"net"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -43,6 +44,10 @@ func (a *application) handleUpload(w http.ResponseWriter, r *http.Request) {
 		writeAPIError(w, r, http.StatusRequestEntityTooLarge, "upload exceeds MAX_UPLOAD_BYTES")
 		return
 	}
+	if err := http.NewResponseController(w).SetReadDeadline(time.Now().Add(time.Duration(a.cfg.UploadTimeoutSeconds) * time.Second)); err != nil && !errors.Is(err, http.ErrNotSupported) {
+		a.apiServerError(w, r, "set upload read deadline", err)
+		return
+	}
 	err := r.ParseMultipartForm(multipartMemory)
 	defer func() {
 		if r.MultipartForm != nil {
@@ -53,8 +58,11 @@ func (a *application) handleUpload(w http.ResponseWriter, r *http.Request) {
 	}()
 	if err != nil {
 		var tooLarge *http.MaxBytesError
+		var timeout net.Error
 		if errors.As(err, &tooLarge) {
 			writeAPIError(w, r, http.StatusRequestEntityTooLarge, "upload exceeds MAX_UPLOAD_BYTES")
+		} else if errors.As(err, &timeout) && timeout.Timeout() {
+			writeAPIError(w, r, http.StatusRequestTimeout, "upload timed out")
 		} else {
 			writeAPIError(w, r, http.StatusBadRequest, "invalid multipart upload")
 		}

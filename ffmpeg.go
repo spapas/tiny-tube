@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log"
 	"os"
@@ -114,7 +115,7 @@ func (a *application) claimJob(ctx context.Context) (store.Meta, bool, error) {
 		if err := a.fs.Put(m); err != nil {
 			return m, false, err
 		}
-		jobCtx, cancel := context.WithCancel(ctx)
+		jobCtx, cancel := context.WithTimeout(ctx, time.Duration(a.cfg.TranscodeTimeoutSeconds)*time.Second)
 		a.activeJobs[m.ID] = &conversionJob{ctx: jobCtx, cancel: cancel, done: make(chan struct{})}
 		return m, true, nil
 	}
@@ -150,6 +151,8 @@ func (a *application) transcode(ctx context.Context, m store.Meta) {
 	m = current
 	m.HLS, m.Error = "", ""
 	switch {
+	case errors.Is(ctx.Err(), context.DeadlineExceeded):
+		m.Status, m.Error = "failed", "Conversion exceeded TRANSCODE_TIMEOUT_SECONDS; original playback is still available."
 	case ctx.Err() != nil:
 		m.Status = "queued" // graceful shutdown; persisted work resumes next startup
 	case err != nil:
@@ -181,7 +184,8 @@ func (a *application) removePublishedHLS(id, hls string) {
 }
 
 func (a *application) transcodeToHLS(ctx context.Context, m store.Meta) (string, error) {
-	if !store.ValidID(m.ID) || strings.ContainsAny(m.Original, "/\\") || m.Original == "" || m.Original == "." || m.Original == ".." {
+	format, err := originalFormat(m.Original)
+	if !store.ValidID(m.ID) || err != nil {
 		return "", fmt.Errorf("invalid conversion path")
 	}
 	outDir := filepath.Join(a.videoDir, m.ID)
@@ -196,7 +200,7 @@ func (a *application) transcodeToHLS(ctx context.Context, m store.Meta) (string,
 		}
 	}()
 	args := []string{
-		"-nostdin", "-y", "-protocol_whitelist", "file,pipe,crypto", "-i", filepath.Join(outDir, m.Original),
+		"-nostdin", "-y", "-protocol_whitelist", "file", "-f", format, "-i", filepath.Join(outDir, m.Original),
 		"-c:v", "libx264", "-preset", "veryfast", "-crf", "23", "-vf", "scale=-2:720",
 		"-c:a", "aac", "-b:a", "128k", "-hls_time", "6", "-hls_playlist_type", "vod",
 		"-hls_segment_filename", filepath.Join(tmp, "seg%03d.ts"), filepath.Join(tmp, "index.m3u8"),
@@ -227,8 +231,12 @@ func (a *application) transcodeToHLS(ctx context.Context, m store.Meta) (string,
 }
 
 func (a *application) extractPoster(ctx context.Context, src, dst string) {
+	format, err := originalFormat(filepath.Base(src))
+	if err != nil {
+		return
+	}
 	for _, seek := range []bool{true, false} {
-		args := []string{"-nostdin", "-y", "-protocol_whitelist", "file,pipe,crypto"}
+		args := []string{"-nostdin", "-y", "-protocol_whitelist", "file", "-f", format}
 		if seek {
 			args = append(args, "-ss", "1")
 		}
@@ -245,4 +253,14 @@ func (a *application) extractPoster(ctx context.Context, src, dst string) {
 		log.Printf("poster cleanup: %v", err)
 	}
 	log.Printf("poster unavailable for %s", src)
+}
+
+func originalFormat(name string) (string, error) {
+	switch name {
+	case "original.mp4", "original.mov":
+		return "mov", nil
+	case "original.mkv", "original.webm":
+		return "matroska", nil
+	}
+	return "", fmt.Errorf("invalid original filename")
 }

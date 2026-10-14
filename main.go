@@ -36,7 +36,7 @@ func main() {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 	a.startWorkers(ctx)
-	server := &http.Server{Addr: cfg.address(), Handler: a.routes(), ReadHeaderTimeout: 10 * time.Second, IdleTimeout: 60 * time.Second}
+	server := a.httpServer()
 	shutdownDone := make(chan struct{})
 	go func() {
 		defer close(shutdownDone)
