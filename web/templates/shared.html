@@ -1,0 +1,43 @@
+{{define "head"}}
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>{{.Title}} · Tiny Tube</title>
+<script>try{document.documentElement.dataset.theme=localStorage.getItem('tiny-tube-theme')==='dark'?'dark':'light'}catch(_){document.documentElement.dataset.theme='light'}</script>
+<link rel="stylesheet" href="/assets/app.css?v=3">
+<script src="/assets/app.js?v=3" defer></script>
+{{end}}
+
+{{define "header"}}
+<a class="skip-link" href="#main">Μετάβαση στο περιεχόμενο</a>
+<header class="site-header">
+  <div class="container header-inner">
+    <a class="brand" href="/" aria-label="Tiny Tube — Αρχική"><span class="brand-mark">{{template "play"}}</span><span>Tiny Tube</span></a>
+    <nav class="primary-nav" aria-label="Κύρια πλοήγηση">
+      <a class="nav-link{{if eq .Page "list"}} is-active{{end}}" href="/" {{if eq .Page "list"}}aria-current="page"{{end}}>{{template "grid"}} Βιβλιοθήκη</a>
+      <a class="nav-link{{if eq .Page "upload"}} is-active{{end}}" href="/upload" {{if eq .Page "upload"}}aria-current="page"{{end}}>{{template "upload-icon"}} Ανέβασμα βίντεο</a>
+    </nav>
+    <button class="theme-toggle" type="button" data-theme-toggle aria-label="Ενεργοποίηση σκοτεινού θέματος" aria-pressed="false"><span class="theme-sun">{{template "sun"}}</span><span class="theme-moon">{{template "moon"}}</span><span class="theme-label" data-theme-label>Ανοιχτό</span></button>
+  </div>
+</header>
+{{end}}
+
+{{define "footer"}}
+<footer class="site-footer container"><span class="footer-brand">Tiny Tube</span><span>Βιβλιοθήκη βίντεο για ομάδες.</span></footer>
+{{end}}
+
+{{define "play"}}<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5.5a1 1 0 0 1 1.5-.86l10 6a1.6 1.6 0 0 1 0 2.72l-10 6A1 1 0 0 1 8 18.5z"/></svg>{{end}}
+{{define "grid"}}<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="2"/><rect x="14" y="3" width="7" height="7" rx="2"/><rect x="3" y="14" width="7" height="7" rx="2"/><rect x="14" y="14" width="7" height="7" rx="2"/></svg>{{end}}
+{{define "upload-icon"}}<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 16V3m-5 5 5-5 5 5M4 15v4a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-4"/></svg>{{end}}
+{{define "sun"}}<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M2 12h2m16 0h2M5 5l1.5 1.5m11 11L19 19M5 19l1.5-1.5m11-11L19 5"/></svg>{{end}}
+{{define "moon"}}<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round" aria-hidden="true"><path d="M20 14.3A8.5 8.5 0 0 1 9.7 4 8.5 8.5 0 1 0 20 14.3Z"/></svg>{{end}}
+{{define "search"}}<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 5 5"/></svg>{{end}}
+{{define "arrow"}}<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 12h16m-6-6 6 6-6 6"/></svg>{{end}}
+{{define "back"}}<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 12H4m6-6-6 6 6 6"/></svg>{{end}}
+{{define "film"}}<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="3"/><path d="M7 3v18m10-18v18M3 8h4m10 0h4M3 16h4m10 0h4"/></svg>{{end}}
+{{define "clock"}}<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>{{end}}
+{{define "share"}}<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="m8.5 10.5 7-4m-7 7 7 4"/></svg>{{end}}
+{{define "download"}}<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v13m-5-5 5 5 5-5M4 17v3a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-3"/></svg>{{end}}
+{{define "info"}}<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 11v6m0-10h.01"/></svg>{{end}}
+{{define "check"}}<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 12 4 4L19 6"/></svg>{{end}}
+{{define "close"}}<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><path d="m6 6 12 12M6 18 18 6"/></svg>{{end}}

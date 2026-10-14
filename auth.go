@@ -1,6 +1,7 @@
 package main
 
 import (
+	"crypto/sha256"
 	"crypto/subtle"
 	"net/http"
 	"os"
@@ -8,14 +9,15 @@ import (
 
 // Viewers: open. Upload: single password via BasicAuth.
 // Nginx mode: same creds in htpasswd, Go re-checks anyway.
-func uploadAuth(next http.Handler) http.Handler {
-	user := getenv("UPLOAD_USER", "admin")
-	pass := getenv("UPLOAD_PASS", "changeme")
+func uploadAuth(user, pass string, next http.Handler) http.Handler {
+	wantUser, wantPass := sha256.Sum256([]byte(user)), sha256.Sum256([]byte(pass))
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		u, p, ok := r.BasicAuth()
-		if !ok ||
-			subtle.ConstantTimeCompare([]byte(u), []byte(user)) != 1 ||
-			subtle.ConstantTimeCompare([]byte(p), []byte(pass)) != 1 {
+		gotUser, gotPass := sha256.Sum256([]byte(u)), sha256.Sum256([]byte(p))
+		userOK := subtle.ConstantTimeCompare(gotUser[:], wantUser[:])
+		passOK := subtle.ConstantTimeCompare(gotPass[:], wantPass[:])
+		w.Header().Set("Cache-Control", "no-store")
+		if !ok || userOK&passOK != 1 {
 			w.Header().Set("WWW-Authenticate", `Basic realm="upload"`)
 			http.Error(w, "auth required", http.StatusUnauthorized)
 			return

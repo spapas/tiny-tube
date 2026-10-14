@@ -1,0 +1,45 @@
+{{define "list"}}<!doctype html>
+<html lang="el" data-theme="light"><head>{{template "head" .}}</head><body>
+{{template "header" .}}
+<main id="main" class="container library-main">
+  <section class="library-hero" aria-labelledby="library-title">
+    <div class="hero-copy">
+      <span class="eyebrow muted">ΠΕΡΙΕΧΟΜΕΝΟ ΟΜΑΔΑΣ</span>
+      <h1 id="library-title">Βιβλιοθήκη βίντεο</h1>
+      <p class="hero-description">Εκπαιδεύσεις, παρουσιάσεις και καταγεγραμμένες συναντήσεις,<br class="desktop-break"> οργανωμένες σε ένα σημείο.</p>
+    </div>
+    <a class="button button-primary library-upload" href="/upload">{{template "upload-icon"}} Ανέβασμα βίντεο</a>
+  </section>
+
+  <section class="library-content" aria-labelledby="videos-title">
+    <div class="section-heading"><h2 id="videos-title">Βίντεο <span class="count-bubble">{{.Total}}</span></h2><span class="section-note">Ταξινόμηση: πιο πρόσφατα</span></div>
+    <div class="library-toolbar">
+      <form class="search-form" method="GET" action="/" role="search">
+        {{template "search"}}<label class="sr-only" for="search">Αναζήτηση βίντεο</label>
+        <input id="search" type="search" name="q" placeholder="Αναζήτηση με τίτλο, περιγραφή ή κατηγορία…" value="{{.Q}}">
+        {{if .Category}}<input type="hidden" name="category" value="{{.Category}}">{{end}}
+        <button type="submit" class="search-submit" aria-label="Αναζήτηση">{{template "arrow"}}</button>
+      </form>
+      <span class="result-count">{{videoCount (len .Items)}}</span>
+    </div>
+    <nav class="category-filters" aria-label="Φίλτρα κατηγορίας">
+      <a class="filter-chip{{if not .Category}} is-selected{{end}}" href="{{filterURL .Q ""}}" {{if not .Category}}aria-current="true"{{end}}>Όλα <span>{{.Total}}</span></a>
+      {{range .Categories}}<a class="filter-chip{{if .Selected}} is-selected{{end}}" href="{{filterURL $.Q .Name}}" {{if .Selected}}aria-current="true"{{end}}>{{.Name}} <span>{{.Count}}</span></a>{{end}}
+    </nav>
+    {{if or .Q .Category}}<div class="active-search"><span>Αποτελέσματα{{if .Q}} για «{{.Q}}»{{end}}{{if .Category}} στην κατηγορία «{{.Category}}»{{end}}</span><a href="/">Καθαρισμός φίλτρων {{template "close"}}</a></div>{{end}}
+    <div class="video-grid">
+      {{range .Items}}
+      <article class="video-card">
+        <a class="video-card-link" href="/watch?id={{.ID}}">
+          <div class="video-cover" aria-hidden="true"><span class="cover-type">{{template "film"}} ΒΙΝΤΕΟ</span><span class="cover-play">{{template "play"}}</span></div>
+          <div class="card-body"><div class="card-topline"><span class="card-category">{{if .Category}}{{.Category}}{{else}}Χωρίς κατηγορία{{end}}</span><span class="status-badge status-{{statusClass .Status}}"><span></span>{{statusLabel .Status}}</span></div><h3>{{.Title}}</h3><p class="card-description">{{if .Desc}}{{.Desc}}{{else}}Δεν έχει προστεθεί περιγραφή.{{end}}</p><div class="card-bottom"><span>{{template "clock"}} {{formatDate .Created}}</span><span class="card-open">Προβολή {{template "arrow"}}</span></div></div>
+        </a>
+      </article>
+      {{else}}
+      <div class="empty-state"><span class="empty-icon">{{template "film"}}</span>{{if or .Q .Category}}<h3>Δεν βρέθηκαν βίντεο</h3><p>Αλλάξτε τους όρους αναζήτησης ή αφαιρέστε τα φίλτρα.</p><a class="button button-primary" href="/">Όλα τα βίντεο {{template "arrow"}}</a>{{else}}<h3>Δεν υπάρχουν ακόμη βίντεο</h3><p>Προσθέστε το πρώτο βίντεο στη βιβλιοθήκη της ομάδας.</p><a class="button button-primary" href="/upload">{{template "upload-icon"}} Ανέβασμα βίντεο</a>{{end}}</div>
+      {{end}}
+    </div>
+  </section>
+</main>
+{{template "footer" .}}
+</body></html>{{end}}

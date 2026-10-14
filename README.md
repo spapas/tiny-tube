@@ -1,32 +1,193 @@
-# Tiny Tube v1 (vibe, Go only + HLS)
+# Tiny Tube
 
-Filesystem only, no DB/LDAP/Docker. Viewers open, upload with 1 password.
+A small video-sharing server written in Go, with filesystem storage and optional
+FFmpeg conversion to HLS. Viewing is public; uploading requires HTTP Basic Auth.
+There is no database, LDAP integration, Docker setup, or external Go dependency.
 
-## Run Windows (dev here)
-```
-set VIDEO_DIR=videos
-set PORT=8080
-set UPLOAD_USER=admin
-set UPLOAD_PASS=changeme
+This is a small pilot. Upload isolation, request limits, metadata replacement,
+and bounded conversion workers are covered by regression tests. See the
+[review and remaining limitations](docs/REVIEW.md) before deployment.
+
+## Requirements
+
+- Go 1.23 or newer to build or run from source.
+- A writable video directory, with space for both originals and generated HLS files.
+- Optional FFmpeg on `PATH`, with the `libx264` and AAC encoders, for HLS conversion.
+  Without FFmpeg, the server serves the original file; playback depends on the
+  browser's support for its container and codecs.
+- Internet access from viewers' browsers for the externally hosted hls.js player.
+  Native HLS playback and original-file playback do not require that script.
+
+## Run on Windows (PowerShell)
+
+From the repository directory:
+
+```powershell
+$env:VIDEO_DIR = "videos"
+$env:PORT = "8080"
+$env:HOST = "127.0.0.1"
+$env:UPLOAD_USER = "admin"
+$env:UPLOAD_PASS = "replace-with-a-strong-password"
 go run .
 ```
-Open http://localhost:8080 , /upload for upload.
 
-## Run AlmaLinux (prod pilot, same binary)
-```
-VIDEO_DIR=/srv/tiny-tube/videos PORT=8080 UPLOAD_USER=admin UPLOAD_PASS=xxx ./tiny-tube
-# systemd unit points here. Optional Nginx: see nginx.sample.conf
+Open <http://localhost:8080> for the searchable list, and
+<http://localhost:8080/upload> to upload. The repository includes a small sample
+under `videos/smoke/`.
+
+To build a Windows executable:
+
+```powershell
+go build -o tiny-tube.exe .
+.\tiny-tube.exe
 ```
 
-## Layout
-```
-videos/{unix-id}/original.mp4 + index.m3u8 + seg000.ts ... + meta.json
+Environment settings apply to the current shell and processes started from it.
+The application does not load `.env` files automatically.
+
+## Run on Linux / AlmaLinux
+
+Build on the target platform with Go installed:
+
+```sh
+go build -o tiny-tube .
+VIDEO_DIR=/srv/tiny-tube/videos PORT=8080 UPLOAD_USER=admin \
+  UPLOAD_PASS='replace-with-a-strong-password' ./tiny-tube
 ```
 
-Upload mp4 -> status=processing -> ffmpeg background -> index.m3u8 ready.
-Player: native HLS on Safari, hls.js elsewhere, fallback to mp4.
-Seek to end = Range request (206), no full 1GB download. Needs HLS ready for best seek.
+For a Linux binary built from Windows:
 
-## Dual serve
-- Go only: Go serves /videos/* itself.
-- Go+Nginx: Nginx serves /videos/ via alias (same dir), Go serves / + /api.
+```powershell
+$env:GOOS = "linux"
+$env:GOARCH = "amd64" # match the target machine's architecture
+go build -o tiny-tube .
+Remove-Item Env:GOOS, Env:GOARCH
+```
+
+The same source supports both platforms; a Windows executable cannot run natively
+on Linux. A systemd unit is not included. If creating one, set an absolute
+`VIDEO_DIR`, supply the upload credentials, and ensure the service account can
+write there and find FFmpeg on its `PATH`.
+
+## Configuration
+
+| Variable | Default | Behavior |
+| --- | --- | --- |
+| `VIDEO_DIR` | `videos` | Video storage; relative paths use the process working directory. |
+| `HOST` | `127.0.0.1` | Bind address. Set `0.0.0.0` explicitly for IPv4 network access. |
+| `PORT` | `8080` | HTTP port. |
+| `UPLOAD_USER` | `admin` | Username for both the upload page and upload endpoint. |
+| `UPLOAD_PASS` | required | Startup rejects an unset/blank password or `changeme`. |
+| `MAX_UPLOAD_BYTES` | `2147483648` | Maximum **whole multipart request**, including form fields and overhead: 2 GiB. Larger requests return HTTP 413. |
+| `TRANSCODE_WORKERS` | `1` | Maximum concurrent FFmpeg processes, between 1 and 16. Pending jobs remain on disk. |
+| `FFMPEG_BIN` | unset | Explicit executable path/name, preferred over `PATH`. An invalid explicit value fails startup. Otherwise FFmpeg is discovered on `PATH`. |
+
+Empty optional values fall back to the defaults. For direct LAN access, set `HOST`
+explicitly and configure the firewall. Basic Auth needs HTTPS when used over a
+network; the Go server itself serves HTTP. Video files and metadata are public,
+including the originals. There is no viewer login or private-video support.
+
+## Upload and playback
+
+The interface defaults to light mode. The theme button switches between light and
+dark and remembers the selection in browser-local storage; it does not follow the
+operating system's theme automatically. Library, watch, and upload pages adapt to
+mobile, tablet, and desktop screens. Categories can be combined with text search.
+
+The upload page supports file selection or drag-and-drop, shows the chosen file,
+and reports upload progress and errors without discarding the form. Without
+JavaScript, its standard multipart form still works. The watch page provides link
+copying and access to the original file. The interface uses restrained colors and
+task-oriented wording for workplace use. Card covers are neutral placeholders,
+not generated video thumbnails.
+
+1. An authenticated `POST /api/upload` accepts multipart fields `title` (required),
+   `desc`, `category`, and `file`.
+2. The original is saved to `VIDEO_DIR/<id>/`. Recognized filename extensions are
+   `.mp4`, `.mov`, `.mkv`, and `.webm`; unsupported extensions or mismatched
+   container signatures return HTTP 415. This is a basic header check, not full
+   codec/file validation. Titles are limited to 512 bytes, descriptions to 8,192,
+   and categories to 256. A unique directory is reserved for each upload, and
+   incomplete uploads are removed if saving the original or metadata fails.
+3. If FFmpeg is available, metadata starts as `queued`. A bounded worker marks it
+   `processing`, generates HLS in a staging directory, and publishes it only after
+   FFmpeg succeeds and produces a complete playlist. Status then becomes `ready`.
+   Without FFmpeg, status is immediately `ready` for original-file playback.
+4. Reload the watch page after conversion to use HLS. Safari can use native HLS;
+   other supported browsers use hls.js, with original-file fallback when HLS
+   support is unavailable or HLS playback fails. The bundled page references a
+   pinned CDN version of hls.js (1.6.19); it still requires external browser access.
+5. Conversion failures become `failed`, with a visible message and the original
+   retained. Pending/interrupted jobs resume on startup if FFmpeg is available;
+   otherwise they become `failed`. On graceful shutdown, active conversions are
+   cancelled and requeued. Failed jobs are not automatically retried.
+
+```text
+videos/
+  <id>/
+    original.mp4     # or .mov, .mkv, .webm
+    meta.json
+    hls-<generated>/ # published after successful conversion
+      index.m3u8
+      seg000.ts
+      ...
+```
+
+HLS currently has a single rendition scaled to 720 pixels high, H.264 video,
+AAC audio, and a target segment duration of six seconds. It is not adaptive
+multi-quality streaming. Originals are kept after conversion.
+
+Original files support HTTP Range requests, but seeking also depends on the file
+layout and browser. The code does not apply MP4 `faststart` to originals. Multipart
+file parts use at most an 8 MiB memory threshold before spilling to temporary disk;
+the separate request limit is enforced by `http.MaxBytesReader`.
+
+Existing videos, including the sample's root-level `index.m3u8`, remain compatible.
+Metadata is written to a temporary file, synced/closed, and replaced. Application
+reads and writes use an in-process lock. Run **one server process per video
+directory**; shared storage across multiple instances is not supported.
+
+## Optional Nginx deployment
+
+Go can serve everything itself. [nginx.sample.conf](nginx.sample.conf) illustrates
+serving `/videos/` directly from the same directory while proxying the other routes
+to Go. It is a starting point, not a complete deployment configuration:
+
+- Replace the sample hostname and storage path, and configure TLS certificates;
+  the configured files must exist before Nginx can start.
+- The sample has a 2 GiB whole-request cap and 300-second inactivity timeouts.
+  Keep the proxy cap consistent if changing `MAX_UPLOAD_BYTES`. Upload request
+  buffering is disabled to avoid an additional full copy at the proxy.
+- Restrict direct access to the Go port when TLS/auth routing relies on the proxy.
+- Go already checks upload credentials. Additional Nginx upload authentication is
+  optional and must use matching credentials if enabled.
+
+Capacity has not been measured. Validate the edited configuration with `nginx -t`
+on the deployment machine, then check a real authenticated upload and playback.
+
+## Development
+
+```sh
+go test ./...
+go vet ./...
+go build ./...
+```
+
+Tests cover concurrent uploads, request limits, cleanup, metadata replacement,
+authentication, HTTP playback/Range support, bounded conversion concurrency, and
+shutdown/restart recovery. A real FFmpeg upload-to-HLS integration test runs when
+FFmpeg is on `PATH`, and is skipped otherwise.
+
+`GET /healthz` reports liveness. `GET /readyz` checks writable storage and readable
+metadata, returning 503 if either fails; it does not certify FFmpeg codecs or disk
+capacity. For manual verification, check search, authenticated upload, conversion,
+and browser playback. Use a temporary `VIDEO_DIR` for checks that modify storage.
+
+Contributor guidance is in [AGENTS.md](AGENTS.md). Runtime uploads are ignored by
+Git; the existing sample remains tracked. Back up the entire video directory,
+including metadata and originals; there is no built-in deletion, quota, recovery,
+or backup mechanism.
+
+HTML templates, styles, and scripts live under `web/` and are embedded in the Go
+executable. No frontend package installation or separate asset deployment is
+needed. Rebuild/restart the server after editing these files.

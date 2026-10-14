@@ -2,23 +2,26 @@ package store
 
 import (
 	"encoding/json"
+	"fmt"
 	"os"
 	"path/filepath"
 	"regexp"
 	"sort"
 	"strings"
+	"sync"
 	"time"
 )
 
 type Meta struct {
-	ID        string `json:"id"`
-	Title     string `json:"title"`
-	Desc      string `json:"desc"`
-	Category  string `json:"category"`
-	Created   string `json:"created"`
-	Original  string `json:"original"`
-	HLS       string `json:"hls"`
-	Status    string `json:"status"`
+	ID       string `json:"id"`
+	Title    string `json:"title"`
+	Desc     string `json:"desc"`
+	Category string `json:"category"`
+	Created  string `json:"created"`
+	Original string `json:"original"`
+	HLS      string `json:"hls"`
+	Status   string `json:"status"`
+	Error    string `json:"error,omitempty"`
 }
 
 var validID = regexp.MustCompile(`^[A-Za-z0-9_-]{1,64}$`)
@@ -32,13 +35,18 @@ type Store interface {
 	Dir(id string) string
 }
 
-type FS struct{ Root string }
+type FS struct {
+	Root string
+	mu   sync.RWMutex
+}
 
 func NewFS(root string) *FS { return &FS{Root: root} }
 
 func (s *FS) Dir(id string) string { return filepath.Join(s.Root, id) }
 
 func (s *FS) Put(m Meta) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
 	if !ValidID(m.ID) {
 		return os.ErrInvalid
 	}
@@ -47,13 +55,39 @@ func (s *FS) Put(m Meta) error {
 		return err
 	}
 	if m.Created == "" {
-		m.Created = time.Now().Format(time.RFC3339)
+		m.Created = time.Now().UTC().Format(time.RFC3339Nano)
 	}
-	b, _ := json.MarshalIndent(m, "", "  ")
-	return os.WriteFile(filepath.Join(d, "meta.json"), b, 0o644)
+	b, err := json.MarshalIndent(m, "", "  ")
+	if err != nil {
+		return err
+	}
+	f, err := os.CreateTemp(d, ".meta-*.json")
+	if err != nil {
+		return err
+	}
+	name := f.Name()
+	defer os.Remove(name)
+	if err = f.Chmod(0o644); err != nil {
+		f.Close()
+		return err
+	}
+	if _, err = f.Write(b); err != nil {
+		f.Close()
+		return err
+	}
+	if err = f.Sync(); err != nil {
+		f.Close()
+		return err
+	}
+	if err = f.Close(); err != nil {
+		return err
+	}
+	return os.Rename(name, filepath.Join(d, "meta.json"))
 }
 
 func (s *FS) Get(id string) (Meta, error) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
 	var m Meta
 	if !ValidID(id) {
 		return m, os.ErrInvalid
@@ -63,15 +97,15 @@ func (s *FS) Get(id string) (Meta, error) {
 		return m, err
 	}
 	err = json.Unmarshal(b, &m)
+	if err == nil && m.ID != id {
+		err = fmt.Errorf("metadata ID does not match directory %q", id)
+	}
 	return m, err
 }
 
 func (s *FS) List(q string) ([]Meta, error) {
 	entries, err := os.ReadDir(s.Root)
 	if err != nil {
-		if os.IsNotExist(err) {
-			return nil, nil
-		}
 		return nil, err
 	}
 	q = strings.ToLower(strings.TrimSpace(q))
@@ -82,7 +116,10 @@ func (s *FS) List(q string) ([]Meta, error) {
 		}
 		m, err := s.Get(e.Name())
 		if err != nil {
-			continue
+			if os.IsNotExist(err) || !ValidID(e.Name()) {
+				continue
+			}
+			return nil, fmt.Errorf("read metadata %s: %w", e.Name(), err)
 		}
 		if q != "" {
 			hay := strings.ToLower(m.Title + " " + m.Desc + " " + m.Category)
@@ -92,6 +129,13 @@ func (s *FS) List(q string) ([]Meta, error) {
 		}
 		out = append(out, m)
 	}
-	sort.Slice(out, func(i, j int) bool { return out[i].Created > out[j].Created })
+	sort.Slice(out, func(i, j int) bool {
+		ti, _ := time.Parse(time.RFC3339Nano, out[i].Created)
+		tj, _ := time.Parse(time.RFC3339Nano, out[j].Created)
+		if ti.Equal(tj) {
+			return out[i].ID > out[j].ID
+		}
+		return ti.After(tj)
+	})
 	return out, nil
 }

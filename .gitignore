@@ -15,12 +15,15 @@ coverage.html
 go.work
 go.work.sum
 
-# Env / local-only (see .env.example — commit that, never these)
+# Env / local-only (the application does not load .env automatically)
 .env
 .env.local
 deploy/windows-local.bat
 
 # Runtime data
+videos/*
+!videos/.gitkeep
+!videos/smoke/
 data/
 *.log
 logs/
