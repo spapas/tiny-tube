@@ -1,0 +1,141 @@
+package main
+
+import (
+	"errors"
+	"log"
+	"net/http"
+	"os"
+	"strings"
+	"time"
+
+	"tiny-tube/store"
+)
+
+func (a *application) readVideo(w http.ResponseWriter, r *http.Request, id string) (store.Meta, bool) {
+	m, err := a.fs.Get(id)
+	if err == nil {
+		return m, true
+	}
+	if errors.Is(err, os.ErrNotExist) || errors.Is(err, os.ErrInvalid) {
+		http.NotFound(w, r)
+	} else {
+		a.serverError(w, "read video", err)
+	}
+	return m, false
+}
+
+func (a *application) handleEditPage(w http.ResponseWriter, r *http.Request) {
+	m, ok := a.readVideo(w, r, r.URL.Query().Get("id"))
+	if !ok {
+		return
+	}
+	render(w, editTmpl, map[string]any{"Page": "edit", "Title": "Επεξεργασία βίντεο", "Video": m})
+}
+
+func parseManagementForm(w http.ResponseWriter, r *http.Request) bool {
+	r.Body = http.MaxBytesReader(w, r.Body, 64<<10)
+	if err := r.ParseForm(); err != nil {
+		var tooLarge *http.MaxBytesError
+		if errors.As(err, &tooLarge) {
+			http.Error(w, "form too large", http.StatusRequestEntityTooLarge)
+		} else {
+			http.Error(w, "invalid form", http.StatusBadRequest)
+		}
+		return false
+	}
+	if r.PostForm.Get("id") == "" {
+		http.Error(w, "id required", http.StatusBadRequest)
+		return false
+	}
+	return true
+}
+
+func (a *application) handleEdit(w http.ResponseWriter, r *http.Request) {
+	if !parseManagementForm(w, r) {
+		return
+	}
+	title, desc, category := strings.TrimSpace(r.PostForm.Get("title")), strings.TrimSpace(r.PostForm.Get("desc")), strings.TrimSpace(r.PostForm.Get("category"))
+	if title == "" || len(title) > 512 || len(desc) > 8192 || len(category) > 256 {
+		http.Error(w, "title required; maximum bytes: title 512, description 8192, category 256", http.StatusBadRequest)
+		return
+	}
+	a.claimMu.Lock()
+	defer a.claimMu.Unlock()
+	id := r.PostForm.Get("id")
+	if a.deleting[id] {
+		http.Error(w, "video deletion in progress", http.StatusConflict)
+		return
+	}
+	m, ok := a.readVideo(w, r, id)
+	if !ok {
+		return
+	}
+	m.Title, m.Desc, m.Category = title, desc, category
+	if err := a.fs.Put(m); err != nil {
+		a.serverError(w, "edit video", err)
+		return
+	}
+	http.Redirect(w, r, "/watch?id="+m.ID, http.StatusSeeOther)
+}
+
+func (a *application) handleDelete(w http.ResponseWriter, r *http.Request) {
+	if !parseManagementForm(w, r) {
+		return
+	}
+	id := r.PostForm.Get("id")
+	a.claimMu.Lock()
+	if a.deleting[id] {
+		a.claimMu.Unlock()
+		http.Error(w, "video deletion in progress", http.StatusConflict)
+		return
+	}
+	if _, ok := a.readVideo(w, r, id); !ok {
+		a.claimMu.Unlock()
+		return
+	}
+	a.deleting[id] = true
+	job := a.activeJobs[id]
+	if job != nil {
+		job.cancel()
+	}
+	a.claimMu.Unlock()
+	deleted := false
+	defer func() {
+		a.claimMu.Lock()
+		delete(a.deleting, id)
+		// If deletion failed after cancellation, allow the interrupted job to resume.
+		if !deleted && a.activeJobs[id] == nil {
+			if m, err := a.fs.Get(id); err == nil && m.Status == "processing" {
+				m.Status = "queued"
+				if err := a.fs.Put(m); err != nil {
+					log.Printf("restore canceled job %s: %v", id, err)
+				}
+			}
+		}
+		a.claimMu.Unlock()
+		if !deleted {
+			a.notifyWorkers()
+		}
+	}()
+	if job != nil {
+		timer := time.NewTimer(30 * time.Second)
+		defer timer.Stop()
+		select {
+		case <-job.done:
+		case <-r.Context().Done():
+			return
+		case <-timer.C:
+			http.Error(w, "conversion did not stop; retry deletion", http.StatusServiceUnavailable)
+			return
+		}
+	}
+	a.claimMu.Lock()
+	err := a.fs.Delete(id)
+	a.claimMu.Unlock()
+	if err != nil {
+		a.serverError(w, "delete video", err)
+		return
+	}
+	deleted = true
+	http.Redirect(w, r, "/", http.StatusSeeOther)
+}

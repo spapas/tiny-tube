@@ -31,7 +31,7 @@
       {{range .Items}}
       <article class="video-card">
         <a class="video-card-link" href="/watch?id={{.ID}}">
-          <div class="video-cover" aria-hidden="true"><span class="cover-type">{{template "film"}} ΒΙΝΤΕΟ</span><span class="cover-play">{{template "play"}}</span></div>
+          <div class="video-cover" aria-hidden="true">{{if .Poster}}<img class="video-poster" loading="lazy" src="/videos/{{.ID}}/{{.Poster}}" alt="">{{end}}<span class="cover-type">{{template "film"}} ΒΙΝΤΕΟ</span><span class="cover-play">{{template "play"}}</span></div>
           <div class="card-body"><div class="card-topline"><span class="card-category">{{if .Category}}{{.Category}}{{else}}Χωρίς κατηγορία{{end}}</span><span class="status-badge status-{{statusClass .Status}}"><span></span>{{statusLabel .Status}}</span></div><h3>{{.Title}}</h3><p class="card-description">{{if .Desc}}{{.Desc}}{{else}}Δεν έχει προστεθεί περιγραφή.{{end}}</p><div class="card-bottom"><span>{{template "clock"}} {{formatDate .Created}}</span><span class="card-open">Προβολή {{template "arrow"}}</span></div></div>
         </a>
       </article>

@@ -78,7 +78,7 @@ func (a *application) startWorkers(ctx context.Context) {
 				case <-ticker.C:
 				}
 				for ctx.Err() == nil {
-					m, found, err := a.claimJob()
+					m, found, err := a.claimJob(ctx)
 					if err != nil {
 						log.Printf("claim conversion: %v", err)
 						break
@@ -86,7 +86,10 @@ func (a *application) startWorkers(ctx context.Context) {
 					if !found {
 						break
 					}
-					a.transcode(ctx, m)
+					a.claimMu.Lock()
+					job := a.activeJobs[m.ID]
+					a.claimMu.Unlock()
+					a.transcode(job.ctx, m)
 				}
 			}
 		}()
@@ -94,7 +97,7 @@ func (a *application) startWorkers(ctx context.Context) {
 	a.notifyWorkers()
 }
 
-func (a *application) claimJob() (store.Meta, bool, error) {
+func (a *application) claimJob(ctx context.Context) (store.Meta, bool, error) {
 	a.claimMu.Lock()
 	defer a.claimMu.Unlock()
 	items, err := a.fs.List("")
@@ -104,13 +107,15 @@ func (a *application) claimJob() (store.Meta, bool, error) {
 	// List is newest first; service the oldest queued upload first.
 	for i := len(items) - 1; i >= 0; i-- {
 		m := items[i]
-		if m.Status != "queued" {
+		if m.Status != "queued" || a.deleting[m.ID] {
 			continue
 		}
 		m.Status, m.Error = "processing", ""
 		if err := a.fs.Put(m); err != nil {
 			return m, false, err
 		}
+		jobCtx, cancel := context.WithCancel(ctx)
+		a.activeJobs[m.ID] = &conversionJob{ctx: jobCtx, cancel: cancel, done: make(chan struct{})}
 		return m, true, nil
 	}
 	return store.Meta{}, false, nil
@@ -118,6 +123,31 @@ func (a *application) claimJob() (store.Meta, bool, error) {
 
 func (a *application) transcode(ctx context.Context, m store.Meta) {
 	hls, err := a.transcodeToHLS(ctx, m)
+	a.claimMu.Lock()
+	defer a.claimMu.Unlock()
+	defer func() {
+		if job := a.activeJobs[m.ID]; job != nil {
+			job.cancel()
+			delete(a.activeJobs, m.ID)
+			close(job.done)
+		}
+	}()
+	if a.deleting[m.ID] {
+		if hls != "" {
+			a.removePublishedHLS(m.ID, hls)
+		}
+		return
+	}
+	// Conversion only owns playback/status fields. Preserve edits made while running.
+	current, getErr := a.fs.Get(m.ID)
+	if getErr != nil {
+		log.Printf("read conversion status %s: %v", m.ID, getErr)
+		if hls != "" {
+			a.removePublishedHLS(m.ID, hls)
+		}
+		return
+	}
+	m = current
 	m.HLS, m.Error = "", ""
 	switch {
 	case ctx.Err() != nil:
@@ -127,6 +157,10 @@ func (a *application) transcode(ctx context.Context, m store.Meta) {
 		m.Status, m.Error = "failed", "HLS conversion failed. Check the server log; original playback is still available."
 	default:
 		m.Status, m.HLS = "ready", hls
+		poster := filepath.ToSlash(filepath.Join(filepath.Dir(filepath.FromSlash(hls)), "poster.jpg"))
+		if info, statErr := os.Stat(filepath.Join(a.videoDir, m.ID, filepath.FromSlash(poster))); statErr == nil && info.Size() > 0 {
+			m.Poster = poster
+		}
 	}
 	if putErr := a.fs.Put(m); putErr != nil {
 		log.Printf("save conversion status %s: %v", m.ID, putErr)
@@ -180,9 +214,35 @@ func (a *application) transcodeToHLS(ctx context.Context, m store.Meta) (string,
 	if !strings.HasPrefix(string(playlist), "#EXTM3U") || !strings.Contains(string(playlist), "#EXT-X-ENDLIST") {
 		return "", fmt.Errorf("FFmpeg did not produce a complete VOD playlist")
 	}
+	// Posters share the bounded conversion worker; a missing frame is non-fatal.
+	a.extractPoster(ctx, filepath.Join(outDir, m.Original), filepath.Join(tmp, "poster.jpg"))
+	if ctx.Err() != nil {
+		return "", ctx.Err()
+	}
 	published := strings.TrimPrefix(filepath.Base(tmp), ".")
 	if err = os.Rename(tmp, filepath.Join(outDir, published)); err != nil {
 		return "", err
 	}
 	return published + "/index.m3u8", nil
+}
+
+func (a *application) extractPoster(ctx context.Context, src, dst string) {
+	for _, seek := range []bool{true, false} {
+		args := []string{"-nostdin", "-y", "-protocol_whitelist", "file,pipe,crypto"}
+		if seek {
+			args = append(args, "-ss", "1")
+		}
+		args = append(args, "-i", src, "-frames:v", "1", "-vf", "scale=640:-2", "-q:v", "3", dst)
+		err := a.runFFmpeg(ctx, a.ffmpegBin, args)
+		if ctx.Err() != nil {
+			return
+		}
+		if info, statErr := os.Stat(dst); err == nil && statErr == nil && info.Size() > 0 {
+			return
+		}
+	}
+	if err := os.Remove(dst); err != nil && !os.IsNotExist(err) {
+		log.Printf("poster cleanup: %v", err)
+	}
+	log.Printf("poster unavailable for %s", src)
 }

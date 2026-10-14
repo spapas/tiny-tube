@@ -1,5 +1,12 @@
 (() => {
   const root = document.documentElement;
+  document.querySelectorAll('.video-poster').forEach(image => {
+    image.addEventListener('error', () => { image.hidden = true; });
+    if (image.complete && !image.naturalWidth) image.hidden = true;
+  });
+  document.querySelector('[data-delete-video]')?.addEventListener('submit', event => {
+    if (!window.confirm('Να διαγραφεί οριστικά το βίντεο και όλα τα αρχεία του;')) event.preventDefault();
+  });
   const toggle = document.querySelector('[data-theme-toggle]');
   const syncTheme = () => {
     const dark = root.dataset.theme === 'dark';

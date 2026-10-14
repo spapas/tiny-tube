@@ -18,6 +18,9 @@ import (
 
 func fakeHLS(ctx context.Context, bin string, args []string) error {
 	playlist := args[len(args)-1]
+	if filepath.Ext(playlist) == ".jpg" {
+		return os.WriteFile(playlist, []byte("fake poster"), 0o644)
+	}
 	if err := os.WriteFile(filepath.Join(filepath.Dir(playlist), "seg000.ts"), []byte("test segment"), 0o644); err != nil {
 		return err
 	}
@@ -63,6 +66,9 @@ func TestWorkersBoundConversionConcurrency(t *testing.T) {
 	}
 	started, release := make(chan struct{}, jobs), make(chan struct{}, jobs)
 	a.runFFmpeg = func(ctx context.Context, bin string, args []string) error {
+		if filepath.Ext(args[len(args)-1]) == ".jpg" {
+			return fakeHLS(ctx, bin, args)
+		}
 		started <- struct{}{}
 		select {
 		case <-ctx.Done():
@@ -228,6 +234,18 @@ func TestRealFFmpegUploadAndHLS(t *testing.T) {
 	m := waitStatus(t, a, items[0].ID, "ready")
 	if m.HLS == "" {
 		t.Fatal("conversion did not publish HLS")
+	}
+	if m.Poster == "" {
+		t.Fatal("conversion did not publish a poster")
+	}
+	posterResponse, err := client.Get(server.URL + "/videos/" + m.ID + "/" + m.Poster)
+	if err != nil {
+		t.Fatal(err)
+	}
+	poster, err := io.ReadAll(posterResponse.Body)
+	posterResponse.Body.Close()
+	if err != nil || posterResponse.StatusCode != 200 || len(poster) == 0 || !strings.Contains(posterResponse.Header.Get("Content-Type"), "image/jpeg") {
+		t.Fatalf("invalid poster: %d %d bytes %v", posterResponse.StatusCode, len(poster), err)
 	}
 	res, err := client.Get(server.URL + "/videos/" + m.ID + "/" + m.HLS)
 	if err != nil {

@@ -1,25 +1,39 @@
 # Interface update — 2026-10-14
 
-Library, watch, and upload pages share a light-first design for workplace training,
+Library, watch, upload and edit pages share a light-first design for workplace training,
 presentations, and recorded meetings: neutral white/gray surfaces, restrained navy
 accents, common navigation, and a responsive card layout. Headings and spacing are
 compact so the library content takes priority over decorative presentation.
 Dark mode is opt-in and persists under `tiny-tube-theme` in browser-local storage.
 
 The library combines category filters with text search and has separate empty
-library/no-results states. Covers are neutral placeholders, not extracted video
-frames. The initial storytelling slogans, colorful covers, large decorative numbers,
+library/no-results states. Covers show extracted posters when available and neutral
+placeholders otherwise. The initial storytelling slogans, colorful covers, large decorative numbers,
 and hero illustration have been removed. Copy and instructions use a professional,
 task-oriented tone throughout the three pages.
 The watch page includes video information, preparation/failure notices, link
-copying, and original-file access. The uploader supports drag-and-drop, selected
+copying, original-file access, playback speeds and muted autoplay. Authenticated
+editing/deletion use the same restrained styling; deletion requests confirmation.
+The uploader supports drag-and-drop, selected
 file details, progress, client-side validation, and recoverable inline errors.
 Server-side validation and Basic Auth remain authoritative.
 
 Templates and web assets are embedded through `ui.go`; the project still has no
 frontend build dependencies. Rebuild/restart after changing `web/`.
 
-## Browser verification
+## Browser verification after merge
+
+The local preview now runs the merged SQLite implementation and imports its
+temporary legacy metadata. The library and authenticated prefilled edit page
+render correctly. The watch player reaches ready state 4; selecting 2× updates
+the actual playback rate and selected control. Muted autoplay remains enabled.
+
+The watch page fits a 320-pixel viewport, including wrapped speed controls.
+The edit form was checked at 320, 768 and 1440 pixels without horizontal overflow.
+Temporary viewport overrides were reset and the preview was returned to the
+library. Earlier checks below cover the existing library/upload/theme behavior.
+
+## Browser verification before merge
 
 A local preview used temporary sample data and storage, without changing the
 tracked playback fixture or real video directory.

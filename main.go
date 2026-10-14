@@ -19,6 +19,7 @@ func init() {
 }
 
 func main() {
+	loadDotEnv(".env")
 	cfg, err := loadConfig()
 	if err != nil {
 		log.Fatal(err)
@@ -27,6 +28,11 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
+	defer func() {
+		if err := a.close(); err != nil {
+			log.Printf("close metadata: %v", err)
+		}
+	}()
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 	a.startWorkers(ctx)

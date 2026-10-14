@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"errors"
+	"fmt"
 	"html/template"
 	"log"
 	"net/http"
@@ -25,6 +26,14 @@ type application struct {
 	claimMu             sync.Mutex
 	workers             sync.WaitGroup
 	runFFmpeg           func(context.Context, string, []string) error
+	activeJobs          map[string]*conversionJob
+	deleting            map[string]bool
+}
+
+type conversionJob struct {
+	ctx    context.Context
+	cancel context.CancelFunc
+	done   chan struct{}
 }
 
 func newApplication(cfg config) (*application, error) {
@@ -42,16 +51,50 @@ func newApplication(cfg config) (*application, error) {
 	if err != nil {
 		return nil, err
 	}
-	a := &application{cfg: cfg, videoDir: root, ffmpegBin: bin, fs: store.NewFS(root), wake: make(chan struct{}, cfg.TranscodeWorkers)}
+	a := &application{cfg: cfg, videoDir: root, ffmpegBin: bin, wake: make(chan struct{}, cfg.TranscodeWorkers), activeJobs: make(map[string]*conversionJob), deleting: make(map[string]bool)}
+	switch cfg.Store {
+	case "fs":
+		a.fs = store.NewFS(root)
+	case "sqlite", "":
+		dbPath := cfg.DBPath
+		if dbPath == "" {
+			dbPath = filepath.Join(root, "tiny-tube.db")
+		}
+		a.cfg.DBPath, err = filepath.Abs(dbPath)
+		if err != nil {
+			return nil, err
+		}
+		db, err := store.NewSQLite(root, a.cfg.DBPath)
+		if err != nil {
+			return nil, err
+		}
+		a.fs = db
+		if count, err := store.ImportFS(db, root); err != nil {
+			db.Close()
+			return nil, err
+		} else if count > 0 {
+			log.Printf("imported %d legacy metadata records", count)
+		}
+	default:
+		return nil, fmt.Errorf("STORE must be sqlite or fs")
+	}
 	a.runFFmpeg = func(ctx context.Context, bin string, args []string) error {
 		cmd := exec.CommandContext(ctx, bin, args...)
 		cmd.Stdout, cmd.Stderr = log.Writer(), log.Writer()
 		return cmd.Run()
 	}
 	if err = a.recoverJobs(); err != nil {
+		a.close()
 		return nil, err
 	}
 	return a, nil
+}
+
+func (a *application) close() error {
+	if closer, ok := a.fs.(interface{ Close() error }); ok {
+		return closer.Close()
+	}
+	return nil
 }
 
 func checkWritable(root string) error {
@@ -87,7 +130,40 @@ func (a *application) routes() http.Handler {
 		render(w, uploadTmpl, map[string]any{"Page": "upload", "Title": "Ανέβασμα βίντεο", "MaxUploadBytes": a.cfg.MaxUploadBytes})
 	})))
 	mux.Handle("POST /api/upload", uploadAuth(a.cfg.UploadUser, a.cfg.UploadPass, http.HandlerFunc(a.handleUpload)))
-	mux.Handle("GET /videos/", http.StripPrefix("/videos/", http.FileServer(http.Dir(a.videoDir))))
+	mux.Handle("GET /edit", uploadAuth(a.cfg.UploadUser, a.cfg.UploadPass, http.HandlerFunc(a.handleEditPage)))
+	mux.Handle("POST /api/edit", uploadAuth(a.cfg.UploadUser, a.cfg.UploadPass, http.HandlerFunc(a.handleEdit)))
+	mux.Handle("POST /api/delete", uploadAuth(a.cfg.UploadUser, a.cfg.UploadPass, http.HandlerFunc(a.handleDelete)))
+	media := http.StripPrefix("/videos/", http.FileServer(http.Dir(a.videoDir)))
+	mux.HandleFunc("GET /videos/", func(w http.ResponseWriter, r *http.Request) {
+		// The default DB is under VIDEO_DIR. Only files inside video ID directories
+		// are public; SQLite databases, their journals and staging files stay private.
+		rel := strings.TrimPrefix(r.URL.Path, "/videos/")
+		file := filepath.Join(a.videoDir, filepath.FromSlash(rel))
+		for _, suffix := range []string{"", "-wal", "-shm", "-journal"} {
+			if a.cfg.DBPath != "" && strings.EqualFold(file, a.cfg.DBPath+suffix) {
+				http.NotFound(w, r)
+				return
+			}
+		}
+		parts := strings.Split(rel, "/")
+		if len(parts) < 2 || !store.ValidID(parts[0]) {
+			http.NotFound(w, r)
+			return
+		}
+		for _, part := range parts[1:] {
+			if part == "" || strings.HasPrefix(part, ".") {
+				http.NotFound(w, r)
+				return
+			}
+		}
+		ext := strings.ToLower(filepath.Ext(rel))
+		switch ext {
+		case ".mp4", ".mov", ".mkv", ".webm", ".m3u8", ".ts", ".jpg", ".jpeg", ".png", ".json":
+			media.ServeHTTP(w, r)
+		default:
+			http.NotFound(w, r)
+		}
+	})
 	mux.Handle("GET /assets/", http.StripPrefix("/assets/", http.FileServer(http.FS(staticFiles()))))
 	return mux
 }

@@ -15,7 +15,7 @@ coverage.html
 go.work
 go.work.sum
 
-# Env / local-only (the application does not load .env automatically)
+# Env / local-only (.env is loaded automatically at startup)
 .env
 .env.local
 deploy/windows-local.bat
@@ -23,10 +23,21 @@ deploy/windows-local.bat
 # Runtime data
 videos/*
 !videos/.gitkeep
-!videos/smoke/
 data/
 *.log
 logs/
+
+# SQLite databases and journals, including custom DB_PATH outside videos/
+*.db
+*.db-wal
+*.db-shm
+*.db-journal
+*.sqlite
+*.sqlite3
+*.sqlite-wal
+*.sqlite-shm
+*.sqlite3-wal
+*.sqlite3-shm
 
 # IDE / editors
 .idea/
@@ -59,3 +70,4 @@ docs/manual/images/captures.json
 # Rebuildable narrated training videos, subtitles and review exports
 docs/training/generated/
 scripts/training/__pycache__/
+tmpcheck*

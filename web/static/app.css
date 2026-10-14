@@ -51,6 +51,17 @@ h1, h2, h3 { line-height: 1.2; overflow-wrap: anywhere; }
 .button-secondary:hover { background: var(--surface-soft); }
 .button-quiet { color: var(--muted); }
 .button-quiet:hover { color: var(--text); background: var(--surface-soft); }
+.button-danger { color: #a52f36; background: var(--surface); border-color: var(--border); }
+.button-danger:hover { background: var(--warning-bg); }
+[data-theme="dark"] .button-danger { color: #f3a6ac; }
+.manage-card .button { width: 100%; margin-top: 12px; }
+.manage-card form { margin: 0; }
+.edit-card { max-width: 780px; }
+.speedbar { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; margin: 14px 0 20px; color: var(--muted); font-size: 12px; }
+.speedbar > span { margin-right: 6px; }
+.speedbar button { min-width: 44px; min-height: 40px; padding: 7px 10px; border: 1px solid var(--border); border-radius: 6px; background: var(--surface); color: var(--text); }
+.speedbar button:hover { border-color: var(--accent); }
+.speedbar button[aria-pressed="true"] { background: var(--accent); color: var(--surface); border-color: var(--accent); }
 .button:disabled { opacity: .6; cursor: wait; transform: none; }
 .text-link { display: inline-flex; gap: 7px; align-items: center; color: var(--accent); font-size: 13px; font-weight: 650; }
 .text-link:hover { text-decoration: underline; }
@@ -83,6 +94,8 @@ input::placeholder, textarea::placeholder { color: var(--muted); opacity: .8; }
 .video-cover { position: relative; flex-shrink: 0; aspect-ratio: 16 / 8; padding: 18px; overflow: hidden; background: var(--cover); color: var(--cover-ink); border-bottom: 1px solid var(--border); }
 .cover-type { display: inline-flex; align-items: center; gap: 7px; font-weight: 600; font-size: 10px; letter-spacing: .8px; }
 .cover-type svg { width: 15px; height: 15px; }
+.video-poster { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.video-poster:not([hidden]) ~ .cover-type { position: relative; padding: 4px 7px; border-radius: 4px; background: var(--surface); color: var(--muted); }
 .cover-play { position: absolute; display: grid; place-items: center; width: 46px; height: 46px; border: 1px solid var(--border); background: var(--surface); color: var(--accent); border-radius: 8px; top: 50%; left: 50%; transform: translate(-50%, -50%); }
 .video-card:hover .cover-play { border-color: var(--accent); }.cover-play svg { width: 23px; height: 23px; }
 

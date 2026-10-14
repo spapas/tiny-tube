@@ -20,6 +20,7 @@ type Meta struct {
 	Created  string `json:"created"`
 	Original string `json:"original"`
 	HLS      string `json:"hls"`
+	Poster   string `json:"poster"`
 	Status   string `json:"status"`
 	Error    string `json:"error,omitempty"`
 }
@@ -32,6 +33,7 @@ type Store interface {
 	List(q string) ([]Meta, error)
 	Get(id string) (Meta, error)
 	Put(m Meta) error
+	Delete(id string) error
 	Dir(id string) string
 }
 
@@ -43,6 +45,27 @@ type FS struct {
 func NewFS(root string) *FS { return &FS{Root: root} }
 
 func (s *FS) Dir(id string) string { return filepath.Join(s.Root, id) }
+
+func (s *FS) Delete(id string) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if !ValidID(id) {
+		return os.ErrInvalid
+	}
+	return removeAllRetry(s.Dir(id))
+}
+
+// Windows can briefly retain media handles after cancellation of FFmpeg.
+func removeAllRetry(dir string) error {
+	var err error
+	for attempt := 0; attempt < 30; attempt++ {
+		if err = os.RemoveAll(dir); err == nil {
+			return nil
+		}
+		time.Sleep(200 * time.Millisecond)
+	}
+	return err
+}
 
 func (s *FS) Put(m Meta) error {
 	s.mu.Lock()
@@ -129,6 +152,11 @@ func (s *FS) List(q string) ([]Meta, error) {
 		}
 		out = append(out, m)
 	}
+	sortMetadata(out)
+	return out, nil
+}
+
+func sortMetadata(out []Meta) {
 	sort.Slice(out, func(i, j int) bool {
 		ti, _ := time.Parse(time.RFC3339Nano, out[i].Created)
 		tj, _ := time.Parse(time.RFC3339Nano, out[j].Created)
@@ -137,5 +165,4 @@ func (s *FS) List(q string) ([]Meta, error) {
 		}
 		return ti.After(tj)
 	})
-	return out, nil
 }

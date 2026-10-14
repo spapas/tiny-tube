@@ -21,7 +21,7 @@ import (
 
 func testConfig(t *testing.T) config {
 	t.Helper()
-	return config{VideoDir: filepath.Join(t.TempDir(), "videos"), Host: "127.0.0.1", Port: "8080", UploadUser: "tester", UploadPass: "test-password", MaxUploadBytes: 2 << 20, TranscodeWorkers: 2}
+	return config{VideoDir: filepath.Join(t.TempDir(), "videos"), Store: "fs", Host: "127.0.0.1", Port: "8080", UploadUser: "tester", UploadPass: "test-password", MaxUploadBytes: 2 << 20, TranscodeWorkers: 2}
 }
 
 func testApplication(t *testing.T) *application {
@@ -31,12 +31,13 @@ func testApplication(t *testing.T) *application {
 		t.Fatal(err)
 	}
 	a.ffmpegBin = "" // isolate handler tests from locally installed FFmpeg
+	t.Cleanup(func() { a.close() })
 	return a
 }
 
 func sampleVideo(t *testing.T) []byte {
 	t.Helper()
-	b, err := os.ReadFile("videos/smoke/original.mp4")
+	b, err := os.ReadFile("testdata/sample.mp4")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -118,6 +119,8 @@ func TestUploadValidationAndLimits(t *testing.T) {
 	}{
 		{"missing title", "", "video.mp4", data, 2 << 20, 400, false},
 		{"unknown extension", "test", "video.txt", data, 2 << 20, 415, false},
+		{"executable extension", "test", "video.exe", data, 2 << 20, 415, false},
+		{"missing extension", "test", "video", data, 2 << 20, 415, false},
 		{"fake media", "test", "video.mp4", []byte("this is not a video file"), 2 << 20, 415, false},
 		{"oversized", "test", "video.mp4", data, 1024, 413, false},
 		{"oversized chunked", "test", "video.mp4", data, 1024, 413, true},
@@ -293,7 +296,7 @@ func TestHTTPPlaybackAuthAndErrors(t *testing.T) {
 }
 
 func TestConfigRejectsUnsafeOrInvalidSettings(t *testing.T) {
-	for _, key := range []string{"UPLOAD_PASS", "UPLOAD_USER", "PORT", "HOST", "MAX_UPLOAD_BYTES", "TRANSCODE_WORKERS", "FFMPEG_BIN"} {
+	for _, key := range []string{"UPLOAD_PASS", "UPLOAD_USER", "PORT", "HOST", "ADDR", "STORE", "DB_PATH", "MAX_UPLOAD_BYTES", "TRANSCODE_WORKERS", "FFMPEG_BIN"} {
 		t.Setenv(key, "")
 	}
 	for _, pass := range []string{"", " ", "changeme"} {

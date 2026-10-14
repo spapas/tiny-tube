@@ -1,8 +1,33 @@
 # Project review and fixes — 2026-10-14
 
-The pilot keeps its filesystem-only design, standard-library Go implementation,
-public viewing, and single-account upload authentication. The initial findings
-have now been addressed in code, with regression tests.
+The pilot keeps media on disk, public viewing, and single-account Basic Auth.
+The merged implementation supports SQLite metadata (pure Go, no CGO) by default
+and legacy filesystem JSON via `STORE=fs`. The initial findings have been addressed
+in code, with regression tests.
+
+## Merge integration
+
+The professional responsive light/dark interface, upload validation, random IDs,
+bounded conversion queue and restart recovery are combined with SQLite, `.env`,
+`ADDR`, posters, playback speeds/autoplay, editing/deleting, and Windows dev tooling.
+Runtime smoke files were removed by the incoming branch; the original small MP4
+is retained under `testdata/sample.mp4` for reproducible tests.
+
+Integration corrections covered by regression tests:
+
+- SQLite preserves `Poster` and conversion `Error`, upgrades older schemas,
+  returns the same missing-record errors as FS, and matches Unicode search and
+  chronological ordering across time zones.
+- Startup JSON import is idempotent and does not overwrite SQLite edits.
+- Conversion completion preserves edits made during processing. Deletion cancels
+  active conversion and waits before removing files, preventing resurrection.
+- Upload/edit/delete remain authenticated. Blank/`changeme` passwords remain
+  rejected; `.env` does not override existing environment values.
+- Database/journal files and staging paths are blocked by Go media serving; the
+  Nginx sample protects database extensions and staging paths. Custom database
+  paths should be outside the media directory when using Nginx.
+- Posters run within the worker limit and are optional. Existing root-level HLS
+  and poster paths remain compatible. Embedded assets are watched by `dev.bat`.
 
 ## Findings addressed
 
@@ -28,7 +53,25 @@ container signatures return 415, and Nginx's sample now includes upload caps,
 inactivity timeouts, active certificate directives, and no unverified capacity
 claim. The README documents the current behavior and compatibility changes.
 
-## Verification
+## Verification of the merged implementation
+
+- `go test ./... -count=1 -json`: 71 passing tests/subtests, zero skipped or
+  failed results on Windows/amd64 with Go 1.27.1. The real FFmpeg test also
+  checks successful JPEG poster generation and serving.
+- `go vet ./...`, `go build ./...` and a pure Go Linux/amd64 cross-build pass.
+  Linux runtime execution and Nginx validation remain unavailable here.
+- Manual HTTP checks against the merged SQLite preview pass for list/search,
+  readiness, authentication on all five management/upload routes, multipart
+  upload, HLS/poster publication and MIME types, original Range/206, metadata
+  editing, deletion of the newly created disposable upload, and DB privacy.
+  Preview storage is in the system temporary directory; repository uploads
+  were not used.
+- JavaScript syntax checks pass. Browser verification of the merged player and
+  edit page is recorded in [UI.md](UI.md).
+- The race detector still requires an unavailable C compiler; focused
+  concurrency tests exercise upload, metadata, worker, edit and deletion races.
+
+## Verification before merge
 
 - `go test -count=1 -json ./...` passes on Windows/amd64 with Go 1.27.1:
   28 passing test/subtest results, zero skipped tests after the UI update.
@@ -64,7 +107,8 @@ claim. The README documents the current behavior and compatibility changes.
   socket access restriction, so no vendored asset is included.
 - Failed jobs are not automatically retried. Pending jobs resume at startup.
   Abrupt process termination can leave staging/output directories or uploads
-  without metadata; there is no general orphan cleanup or deletion interface.
+  without metadata; there is no general orphan cleanup. Authenticated deletion
+  removes known videos, not arbitrary orphan directories.
 - FFmpeg cancellation targets the resolved executable. Prefer the real executable
   over a shell/launcher wrapper that may spawn independent child processes.
 - All media and metadata are public. There are no viewer accounts, private videos,
@@ -74,8 +118,6 @@ claim. The README documents the current behavior and compatibility changes.
   here. Capacity remains unmeasured. Browser checks used the local preview server.
 - The race detector was not run: the local Go environment has CGO disabled and no
   C compiler was found on `PATH`. Concurrency regression tests do run.
-- The existing sample description contains replacement characters. Its intended
-  original text is unknown and has been preserved.
 
 ## Primary references
 

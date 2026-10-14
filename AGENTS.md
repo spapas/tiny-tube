@@ -2,10 +2,11 @@
 
 ## Scope and design
 
-Tiny Tube is a small Go video-sharing pilot. Preserve the filesystem-only design
-and standard-library-only Go implementation unless the task calls for changing
-them. Viewing is public; uploads use a single Basic Auth account. Do not introduce
-a database, framework, account system, or deployment dependency as incidental work.
+Tiny Tube is a small Go video-sharing pilot. Media stays on the filesystem;
+metadata defaults to SQLite via `modernc.org/sqlite` (pure Go, no CGO), with
+`STORE=fs` retaining the legacy JSON backend. Preserve this single-binary design.
+Viewing is public; upload/edit/delete use a single Basic Auth account. Do not
+introduce another database, framework, account system, or dependency incidentally.
 
 Read `README.md` and `docs/REVIEW.md` before changing behavior. The review records
 known defects, not features to preserve. Fix relevant issues when authorized, and
@@ -15,16 +16,20 @@ update the documentation when an issue is resolved.
 
 - `main.go`: startup, MIME registration, and graceful shutdown.
 - `ui.go`: embedded web assets, template loading, and display helpers.
-- `web/templates/`: shared layout and library/watch/upload pages.
+- `web/templates/`: shared layout and library/watch/upload/edit pages.
 - `web/static/`: shared responsive styles, theme/share behavior, player, and upload.
 - `config.go`: environment settings and startup validation.
+- `dotenv.go`: startup `.env` loading; explicitly set environment variables win.
 - `server.go`: application state, routes, list/watch handlers, and readiness checks.
 - `upload.go`: request limits, media header checks, unique directories, and cleanup.
+- `manage.go`: authenticated metadata edits and deletion, including active-job cancellation.
 - `auth.go`: upload Basic Auth and environment defaults.
-- `ffmpeg.go`: FFmpeg discovery, persisted queue, bounded workers, and HLS publication.
+- `ffmpeg.go`: FFmpeg discovery, persisted queue, bounded workers, HLS/poster publication.
 - `store/store.go`: metadata model, ID validation, JSON persistence, and search.
+- `store/sqlite.go`: SQLite persistence, schema migration, and idempotent JSON import.
 - `nginx.sample.conf`: optional reverse-proxy example, not a validated deployment.
-- `videos/smoke/`: tracked playback sample; preserve it during normal development.
+- `testdata/sample.mp4`: tracked test fixture; runtime `videos/` is ignored.
+- `dev.bat`: Windows development watcher; rebuilds embedded assets as well as Go code.
 - `*_test.go` and `store/store_test.go`: regression and HTTP/FFmpeg integration tests.
 
 ## Implementation guidance
@@ -33,7 +38,10 @@ update the documentation when an issue is resolved.
   paths and URL paths for browser links. Keep instructions valid for their named
   shell; PowerShell uses `$env:NAME`, not `set NAME=value`.
 - Keep environment defaults, HTTP routes, storage layout, and player behavior
-  documented accurately. The application does not automatically load `.env` files.
+  documented accurately. `.env` is loaded from the working directory at startup;
+  existing environment values, including explicitly empty ones, win over it.
+  `ADDR` overrides `HOST`/`PORT`; the default is `127.0.0.1:8081`.
+  `UPLOAD_PASS` remains required and cannot be blank or `changeme`.
 - Keep light mode as the default. The optional dark mode is a browser-local choice.
   Preserve accessible labels/focus states and mobile layouts. No frontend framework
   or package install is required; assets are embedded in the executable.
@@ -49,8 +57,17 @@ update the documentation when an issue is resolved.
   reserve a unique directory, and clean up incomplete writes and temporary files.
 - For FFmpeg changes, use the same executable for discovery and execution. Account
   for conversion failure, concurrency, and application restart behavior.
+- Conversion completion must preserve edits made during processing. Cancel and
+  await active conversion before deleting files; never recreate deleted metadata.
+  Poster extraction is optional and shares the bounded worker. Failed posters
+  must not turn a successful HLS conversion into a failed video.
+- Keep SQLite `Error`/`Poster` fields round-trippable and migrate existing schemas
+  without losing rows. Startup JSON import must not overwrite SQLite edits.
+  Both stores must agree on missing-record errors, Unicode search and date ordering.
 - Originals and metadata are public under the current design. Changes to privacy
   must cover both Go static serving and the optional Nginx route.
+  Database files, journals and staging files must not be served as media. Place
+  custom `DB_PATH` outside `VIDEO_DIR` when using the optional Nginx example.
 - Run one server process per video directory. Metadata and job claiming are
   synchronized within an application instance; there is no cross-process lock.
 - Do not commit passwords, real user uploads, executables, or generated diagnostics.
@@ -72,7 +89,7 @@ The real FFmpeg integration test skips when FFmpeg is absent. Documentation-only
 changes do not require new tests. Use the race detector where the toolchain supports it.
 
 For HTTP or playback changes, also check the affected paths manually: list/search,
-watch, Basic Auth on both upload routes, multipart upload, HLS status transition,
+watch, Basic Auth on upload/edit/delete routes, multipart upload, HLS/poster transition,
 and `206 Partial Content` for an original-file Range request. Use a small video
 and temporary storage. When touching conversion, verify both FFmpeg-present and
 FFmpeg-absent behavior. Report unavailable checks honestly.
