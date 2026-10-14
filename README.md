@@ -130,8 +130,8 @@ JavaScript, its standard multipart form still works. The watch page provides lin
 copying and access to the original file. The interface uses restrained colors and
 task-oriented wording for workplace use. Cards display an extracted poster when
 available and a neutral placeholder otherwise. The player offers speeds from
-0.5× to 2× and attempts muted autoplay subject to browser policy; use the player
-to enable sound.
+0.5× to 2× and attempts playback with sound on load; where the browser blocks
+it, the viewer presses play. The video is never muted.
 
 The watch page links to `/edit?id=<id>` and provides deletion with a confirmation
 prompt. `GET /edit`, `POST /api/edit` and `POST /api/delete` require the same Basic

@@ -75,6 +75,22 @@ func TestWatchPageUsesVendoredPlayer(t *testing.T) {
 	}
 }
 
+func TestPlayerAttemptsUnmutedPlayback(t *testing.T) {
+	a := testApplication(t)
+	w := httptest.NewRecorder()
+	a.routes().ServeHTTP(w, httptest.NewRequest("GET", "/assets/player.js", nil))
+	if w.Code != 200 {
+		t.Fatal("player script not served", w.Code)
+	}
+	script := w.Body.String()
+	if !strings.Contains(script, "canplay") || !strings.Contains(script, "video.play()") {
+		t.Fatal("player does not attempt playback with sound")
+	}
+	if strings.Contains(script, "muted") {
+		t.Fatal("player must never mute the video")
+	}
+}
+
 func TestWatchMetadataEscapesHTMLAndPlayerAttributes(t *testing.T) {
 	a := testApplication(t)
 	m := store.Meta{ID: "escape", Title: `<img src=x onerror="alert(1)">`, Desc: "<script>alert(1)</script>", Original: "original.mp4", HLS: "hls-safe/index.m3u8", Status: "ready"}

@@ -77,10 +77,13 @@ func TestHandleWatchOK(t *testing.T) {
 		t.Fatalf("watch = %d, want 200", w.Code)
 	}
 	body := w.Body.String()
-	for _, s := range []string{"speedbar", "/assets/player.js", "autoplay", `data-speed="0.5"`, `data-speed="2"`, "Watch me"} {
+	for _, s := range []string{"speedbar", "/assets/player.js", `data-speed="0.5"`, `data-speed="2"`, "Watch me"} {
 		if !strings.Contains(body, s) {
 			t.Errorf("watch page missing %q", s)
 		}
+	}
+	if strings.Contains(body, "autoplay") || !strings.Contains(body, `<video id="v" controls playsinline`) {
+		t.Error("watch page should start with sound, without autoplay/muted attributes")
 	}
 	if strings.Contains(body, `notice notice-info`) {
 		t.Error("ready video with HLS should not show the transcode hint")

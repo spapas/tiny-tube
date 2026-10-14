@@ -12,7 +12,7 @@ placeholders otherwise. The initial storytelling slogans, colorful covers, large
 and hero illustration have been removed. Copy and instructions use a professional,
 task-oriented tone throughout the three pages.
 The watch page includes video information, preparation/failure notices, link
-copying, original-file access, playback speeds and muted autoplay. Authenticated
+copying, original-file access, playback speeds and click-to-play with sound. Authenticated
 editing/deletion use the same restrained styling; deletion requests confirmation.
 The uploader supports drag-and-drop, selected
 file details, progress, client-side validation, and recoverable inline errors.
@@ -26,7 +26,8 @@ frontend build dependencies. Rebuild/restart after changing `web/`.
 The local preview now runs the merged SQLite implementation and imports its
 temporary legacy metadata. The library and authenticated prefilled edit page
 render correctly. The watch player reaches ready state 4; selecting 2× updates
-the actual playback rate and selected control. Muted autoplay remains enabled.
+the actual playback rate and selected control. The player attempts playback
+with sound and stays paused for click-to-play where the browser blocks it.
 
 The watch page fits a 320-pixel viewport, including wrapped speed controls.
 The edit form was checked at 320, 768 and 1440 pixels without horizontal overflow.

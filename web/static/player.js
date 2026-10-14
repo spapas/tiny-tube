@@ -8,9 +8,11 @@
   const syncSpeed = () => speedButtons.forEach(button => button.setAttribute('aria-pressed', String(Number(button.dataset.speed) === video.playbackRate)));
   speedButtons.forEach(button => button.addEventListener('click', () => { video.playbackRate = Number(button.dataset.speed); syncSpeed(); }));
   video.addEventListener('ratechange', syncSpeed);
-  video.addEventListener('canplay', () => { if (video.autoplay) video.play()?.catch(() => {}); }, { once: true });
   syncSpeed();
-  video.addEventListener('pointerdown', () => { video.muted = false; }, { once: true });
+  // YouTube-style start: attempt playback with sound. Browsers allow it for
+  // engaged viewers (prior interaction with this site) and reject it otherwise;
+  // a rejected attempt leaves the video paused for click-to-play, always with sound.
+  video.addEventListener('canplay', () => { video.play()?.catch(() => {}); }, { once: true });
   let player = null, usingOriginal = false;
   const showMessage = text => { message.textContent = text; message.hidden = false; };
   function fallback() {
