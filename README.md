@@ -51,8 +51,8 @@ take precedence, including empty values. Values may be quoted; there is no varia
 expansion or inline-comment support. `.env` is ignored by Git.
 
 For automatic rebuilding/restarting on Windows, run `dev.bat` from cmd.exe or
-`.\dev.bat` from PowerShell. It watches Go sources, embedded HTML/CSS/JavaScript,
-module files and `.env`. Configure the password before starting the watcher.
+`.\dev.bat` from PowerShell. It watches Go sources (excluding test files),
+embedded HTML/CSS/JavaScript, module files and `.env`. Configure the password before starting the watcher.
 
 ## Run on Linux / AlmaLinux
 
