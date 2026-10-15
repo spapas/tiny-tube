@@ -294,7 +294,7 @@ func TestHTTPPlaybackAuthAndErrors(t *testing.T) {
 		path string
 		want int
 	}{
-		{"/", 200}, {"/?q=HTTP", 200}, {"/watch?id=" + m.ID, 200}, {"/upload", 303}, {"/unknown", 404}, {"/watch?id=missing", 404}, {"/watch?id=..", 404}, {"/healthz", 200}, {"/readyz", 200}, {"/login", 200}, {"/admin", 303},
+		{"/", 200}, {"/?q=HTTP", 200}, {"/watch?id=" + m.ID, 200}, {"/upload", 303}, {"/unknown", 404}, {"/watch?id=missing", 404}, {"/watch?id=..", 404}, {"/healthz", 200}, {"/readyz", 200}, {"/login", 200}, {"/admin", 303}, {"/admin/users", 303}, {"/admin/users/new", 303}, {"/admin/keys", 303},
 	} {
 		res, err := client.Get(server.URL + tc.path)
 		if err != nil {

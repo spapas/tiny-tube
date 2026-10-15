@@ -286,12 +286,27 @@ func TestAdminManagesUsersAndKeepsOneAdmin(t *testing.T) {
 func TestAdminDashboardShowsHealth(t *testing.T) {
 	a := testApplication(t)
 	h := a.routes()
+	cookie := loginRequest(t, h, "tester", "test-password")
+
 	r := httptest.NewRequest("GET", "/admin", nil)
-	r.AddCookie(loginRequest(t, h, "tester", "test-password"))
+	r.AddCookie(cookie)
 	w := httptest.NewRecorder()
 	h.ServeHTTP(w, r)
-	body := w.Body.String()
-	if w.Code != 200 || !strings.Contains(body, "tester") || !strings.Contains(body, "/readyz") {
-		t.Fatalf("admin dashboard: %d", w.Code)
+	if w.Code != 200 || !strings.Contains(w.Body.String(), "/readyz") {
+		t.Fatalf("admin overview: %d", w.Code)
+	}
+
+	for path, want := range map[string]string{
+		"/admin/users":     "tester",
+		"/admin/users/new": "new-username",
+		"/admin/keys":      "key-username",
+	} {
+		r := httptest.NewRequest("GET", path, nil)
+		r.AddCookie(cookie)
+		w := httptest.NewRecorder()
+		h.ServeHTTP(w, r)
+		if w.Code != 200 || !strings.Contains(w.Body.String(), want) {
+			t.Fatalf("%s: %d", path, w.Code)
+		}
 	}
 }

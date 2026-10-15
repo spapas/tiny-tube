@@ -57,12 +57,12 @@ func (a *application) handleAdminCreateKey(w http.ResponseWriter, r *http.Reques
 	username := r.PostForm.Get("username")
 	name := strings.TrimSpace(r.PostForm.Get("name"))
 	if name == "" || len(name) > 100 {
-		adminRedirectError(w, r, "key name required (up to 100 characters)")
+		adminRedirectError(w, r, "/admin/keys", "key name required (up to 100 characters)")
 		return
 	}
 	if _, err := a.fs.GetUser(username); err != nil {
 		if os.IsNotExist(err) {
-			adminRedirectError(w, r, "user not found")
+			adminRedirectError(w, r, "/admin/keys", "user not found")
 			return
 		}
 		a.apiServerError(w, r, "read user", err)
@@ -97,48 +97,26 @@ func (a *application) handleAdminRevokeKey(w http.ResponseWriter, r *http.Reques
 	}
 	if err := a.fs.DeleteAPIKey(prefix); err != nil {
 		if os.IsNotExist(err) {
-			adminRedirectError(w, r, "key not found")
+			adminRedirectError(w, r, "/admin/keys", "key not found")
 			return
 		}
 		a.apiServerError(w, r, "revoke key", err)
 		return
 	}
 	log.Printf("admin %q revoked API key %q", currentUser(r).Username, prefix)
-	adminRedirectNotice(w, r, "API key revoked")
+	adminRedirectNotice(w, r, "/admin/keys", "API key revoked")
 }
 
-// renderAdmin renders the dashboard; extracted so key creation can show the
-// plaintext once instead of redirecting.
+// renderAdmin renders the key dashboard; extracted so key creation can show
+// the plaintext once instead of redirecting.
 func (a *application) renderAdmin(w http.ResponseWriter, r *http.Request, extra map[string]any) {
-	users, err := a.fs.ListUsers()
+	data, err := a.adminData(r, "keys")
 	if err != nil {
-		a.serverError(w, "list users", err)
+		a.serverError(w, "admin data", err)
 		return
-	}
-	videos, err := a.fs.List("")
-	if err != nil {
-		a.serverError(w, "list videos", err)
-		return
-	}
-	byStatus := map[string]int{}
-	for _, m := range videos {
-		byStatus[m.Status]++
-	}
-	keys, err := a.fs.ListAPIKeys()
-	if err != nil {
-		a.serverError(w, "list API keys", err)
-		return
-	}
-	data := map[string]any{
-		"Page": "admin", "Title": "Διαχείριση",
-		"Users": users, "VideoTotal": len(videos), "ByStatus": byStatus,
-		"StorageOK": checkWritable(a.videoDir) == nil,
-		"Error":     r.URL.Query().Get("error"),
-		"Notice":    r.URL.Query().Get("notice"),
-		"APIKeys":   keys,
 	}
 	for k, v := range extra {
 		data[k] = v
 	}
-	a.renderPage(w, r, adminTmpl, data)
+	a.renderPage(w, r, adminKeysTmpl, data)
 }

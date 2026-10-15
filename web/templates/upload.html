@@ -12,9 +12,11 @@
       <div id="file-summary" class="file-summary" hidden><span class="file-summary-icon">{{template "film"}}</span><div><strong data-file-name></strong><span data-file-size></span></div><button class="icon-button" type="button" data-clear-file aria-label="Αφαίρεση επιλεγμένου αρχείου">{{template "close"}}</button></div>
       <div class="form-divider"></div>
       <div class="form-section-heading"><span class="step-number">02</span><div><h2>Στοιχεία βίντεο</h2><p>Πληροφορίες για την αναζήτηση και την οργάνωση του υλικού.</p></div></div>
-      <div class="form-field"><label for="title">Τίτλος <span class="required-mark">*</span></label><input id="title" name="title" type="text" maxlength="512" placeholder="π.χ. Εκπαίδευση νέων συνεργατών" required><p class="field-hint">Χρησιμοποιήστε έναν σύντομο, περιγραφικό τίτλο.</p></div>
-      <div class="form-field"><label for="desc">Περιγραφή <span class="optional-label">προαιρετικό</span></label><textarea id="desc" name="desc" rows="4" maxlength="8192" placeholder="Θέμα, περιεχόμενο και χρήσιμες πληροφορίες για το βίντεο."></textarea></div>
-      <div class="form-field"><label for="category">Κατηγορία <span class="optional-label">προαιρετικό</span></label><input id="category" name="category" type="text" maxlength="256" placeholder="π.χ. Εκπαίδευση, Παρουσιάσεις, Συναντήσεις"></div>
+      <div class="form-row">
+        <div class="form-field"><label for="title">Τίτλος <span class="required-mark">*</span></label><input id="title" name="title" type="text" maxlength="512" placeholder="π.χ. Εκπαίδευση νέων συνεργατών" required><p class="field-hint">Χρησιμοποιήστε έναν σύντομο, περιγραφικό τίτλο.</p></div>
+        <div class="form-field"><label for="category">Κατηγορία <span class="optional-label">προαιρετικό</span></label><input id="category" name="category" type="text" maxlength="256" placeholder="π.χ. Εκπαίδευση"></div>
+      </div>
+      <div class="form-field"><label for="desc">Περιγραφή <span class="optional-label">προαιρετικό</span></label><textarea id="desc" name="desc" rows="2" maxlength="8192" placeholder="Θέμα, περιεχόμενο και χρήσιμες πληροφορίες για το βίντεο."></textarea></div>
       <div id="upload-error" class="notice notice-warning" role="alert" hidden></div>
       <div class="upload-progress" hidden><div class="progress-copy"><strong data-progress-label>Ανέβασμα βίντεο…</strong><span data-progress-percent>0%</span></div><div class="progress-track" role="progressbar" aria-label="Πρόοδος ανεβάσματος" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><span data-progress-bar></span></div><p class="field-hint">Διατηρήστε τη σελίδα ανοιχτή μέχρι την ολοκλήρωση.</p></div>
       <div class="form-actions"><a class="text-link" href="/">Επιστροφή στη βιβλιοθήκη</a><button id="upload-submit" class="button button-primary" type="submit">{{template "upload-icon"}} Ανέβασμα βίντεο {{template "arrow"}}</button></div>
