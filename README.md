@@ -39,7 +39,11 @@ Open <http://localhost:8081> for the searchable list, <http://localhost:8081/upl
 to upload after login, and <http://localhost:8081/admin> to manage users.
 On first boot with an empty user table the server creates the administrator
 from `ADMIN_USER`/`ADMIN_PASS`; afterwards users and roles are managed at
-`/admin`. Runtime storage starts empty; the small
+`/admin`. For operator role fixes without the web UI, `cli.bat` (or
+`go run ./cmd/cli`) offers `users list` and
+`users set-role --username U --role admin|editor|viewer` against the same
+`VIDEO_DIR`/`STORE`/`DB_PATH` settings; it refuses to demote the last active
+administrator. Runtime storage starts empty; the small
 video under `testdata/` is a test fixture.
 
 To build a Windows executable:
