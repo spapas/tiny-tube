@@ -119,8 +119,11 @@ claim. The README documents the current behavior and compatibility changes.
   removes known videos, not arbitrary orphan directories.
 - FFmpeg cancellation targets the resolved executable. Prefer the real executable
   over a shell/launcher wrapper that may spawn independent child processes.
-- All media and metadata are public. There are no viewer accounts, private videos,
-  storage quotas or automated backups. Protected-route requests are rate limited;
+- All public media and metadata are public. Locked lists hide grouped videos
+  behind per-list long keys (`/view_list?key=…`, invisible without the key
+  across pages, API and media files); editors/administrators bypass keys for
+  management. There are no per-user private videos, storage quotas or automated
+  backups. Protected-route requests are rate limited;
   public traffic and overall storage capacity still require deployment controls.
 - The Nginx example requires actual certificate files and deployment-specific paths.
   Nginx validation, Linux runtime execution, and load testing have not been performed

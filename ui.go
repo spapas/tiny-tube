@@ -37,15 +37,17 @@ var pageTemplates = template.Must(template.New("pages").Funcs(template.FuncMap{
 }).ParseFS(webFiles, "web/templates/*.html"))
 
 var (
-	listTmpl        = pageTemplates.Lookup("list")
-	watchTmpl       = pageTemplates.Lookup("watch")
-	uploadTmpl      = pageTemplates.Lookup("upload")
-	editTmpl        = pageTemplates.Lookup("edit")
-	loginTmpl       = pageTemplates.Lookup("login")
-	adminTmpl       = pageTemplates.Lookup("admin")
-	adminUsersTmpl  = pageTemplates.Lookup("admin-users")
+	listTmpl         = pageTemplates.Lookup("list")
+	watchTmpl        = pageTemplates.Lookup("watch")
+	viewListTmpl     = pageTemplates.Lookup("view-list")
+	uploadTmpl       = pageTemplates.Lookup("upload")
+	editTmpl         = pageTemplates.Lookup("edit")
+	loginTmpl        = pageTemplates.Lookup("login")
+	adminTmpl        = pageTemplates.Lookup("admin")
+	adminUsersTmpl   = pageTemplates.Lookup("admin-users")
 	adminUserNewTmpl = pageTemplates.Lookup("admin-user-new")
-	adminKeysTmpl   = pageTemplates.Lookup("admin-keys")
+	adminKeysTmpl    = pageTemplates.Lookup("admin-keys")
+	adminListsTmpl   = pageTemplates.Lookup("admin-lists")
 )
 
 func staticFiles() fs.FS {

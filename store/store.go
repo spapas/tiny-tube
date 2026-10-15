@@ -13,16 +13,17 @@ import (
 )
 
 type Meta struct {
-	ID       string `json:"id"`
-	Title    string `json:"title"`
-	Desc     string `json:"desc"`
-	Category string `json:"category"`
-	Created  string `json:"created"`
-	Original string `json:"original"`
-	HLS      string `json:"hls"`
-	Poster   string `json:"poster"`
-	Status   string `json:"status"`
-	Error    string `json:"error,omitempty"`
+	ID         string `json:"id"`
+	Title      string `json:"title"`
+	Desc       string `json:"desc"`
+	Category   string `json:"category"`
+	Created    string `json:"created"`
+	Original   string `json:"original"`
+	HLS        string `json:"hls"`
+	Poster     string `json:"poster"`
+	Status     string `json:"status"`
+	Error      string `json:"error,omitempty"`
+	AccessList string `json:"access_list,omitempty"`
 }
 
 var validID = regexp.MustCompile(`^[A-Za-z0-9_-]{1,64}$`)
@@ -36,6 +37,7 @@ type Store interface {
 	Delete(id string) error
 	Dir(id string) string
 	AuthStore
+	AccessListStore
 }
 
 type FS struct {
@@ -72,6 +74,9 @@ func (s *FS) Put(m Meta) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	if !ValidID(m.ID) {
+		return os.ErrInvalid
+	}
+	if m.AccessList != "" && !ValidAccessListID(m.AccessList) {
 		return os.ErrInvalid
 	}
 	d := s.Dir(m.ID)

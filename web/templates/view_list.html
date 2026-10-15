@@ -1,0 +1,32 @@
+{{define "view-list"}}<!doctype html>
+<html lang="el" data-theme="light"><head>{{template "head" .}}</head><body>
+{{template "header" .}}
+<main id="main" class="container library-main">
+  <section class="library-hero" aria-labelledby="library-title">
+    <div class="hero-copy">
+      <span class="eyebrow muted">ΚΛΕΙΔΩΜΕΝΗ ΛΙΣΤΑ</span>
+      <h1 id="library-title">{{if .ListName}}{{.ListName}}{{else}}Κλειδωμένα βίντεο{{end}}</h1>
+      <p class="hero-description">Βίντεο ορατά μόνο με τον σύνδεσμο αυτής της λίστας.</p>
+    </div>
+    <a class="button button-primary library-upload" href="/upload">{{template "upload-icon"}} Ανέβασμα βίντεο</a>
+  </section>
+
+  <section class="library-content" aria-labelledby="videos-title">
+    <div class="section-heading"><h2 id="videos-title">Βίντεο <span class="count-bubble">{{.Total}}</span></h2><span class="section-note">Ταξινόμηση: πιο πρόσφατα</span></div>
+    {{if .ListKey}}<div class="notice notice-info">{{template "info"}}<div><strong>Σύνδεσμος λίστας</strong><p>Όποιος έχει αυτόν τον σύνδεσμο βλέπει αυτά τα βίντεο. Κοινοποιήστε τον μόνο από ασφαλές κανάλι.</p><p><code>/view_list?key={{.ListKey}}</code></p></div></div>{{end}}
+    <div class="video-grid">
+      {{range .Items}}
+      <article class="video-card">
+        <a class="video-card-link" href="/watch?id={{.ID}}{{if $.ListKey}}&amp;key={{$.ListKey}}{{end}}">
+          <div class="video-cover" aria-hidden="true">{{if .Poster}}<img class="video-poster" loading="lazy" src="/videos/{{.ID}}/{{.Poster}}{{if $.ListKey}}?key={{$.ListKey}}{{end}}" alt="">{{end}}<span class="cover-type">{{template "film"}} ΒΙΝΤΕΟ</span><span class="cover-play">{{template "play"}}</span></div>
+          <div class="card-body"><div class="card-topline"><span class="card-category">{{if .Category}}{{.Category}}{{else}}Χωρίς κατηγορία{{end}}</span><span class="status-badge status-{{statusClass .Status}}"><span></span>{{statusLabel .Status}}</span></div><h3>{{.Title}}</h3><p class="card-description">{{if .Desc}}{{.Desc}}{{else}}Δεν έχει προστεθεί περιγραφή.{{end}}</p><div class="card-bottom"><span>{{template "clock"}} {{formatDate .Created}}</span><span class="card-open">Προβολή {{template "arrow"}}</span></div></div>
+        </a>
+      </article>
+      {{else}}
+      <div class="empty-state"><span class="empty-icon">{{template "film"}}</span><h3>Δεν υπάρχουν βίντεο σε αυτή τη λίστα</h3><p>Αναθέστε βίντεο στη λίστα από τη σελίδα επεξεργασίας τους.</p><a class="button button-primary" href="/">Όλα τα βίντεο {{template "arrow"}}</a></div>
+      {{end}}
+    </div>
+  </section>
+</main>
+{{template "footer" .}}
+</body></html>{{end}}

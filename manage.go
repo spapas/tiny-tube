@@ -33,7 +33,7 @@ func (a *application) handleEditPage(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	a.renderPage(w, r, editTmpl, map[string]any{"Page": "edit", "Title": "Επεξεργασία βίντεο", "Video": m})
+	a.renderPage(w, r, editTmpl, map[string]any{"Page": "edit", "Title": "Επεξεργασία βίντεο", "Video": m, "AccessLists": a.accessListsForForm()})
 }
 
 func parseManagementForm(w http.ResponseWriter, r *http.Request) bool {
@@ -74,7 +74,12 @@ func (a *application) handleEdit(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
+	accessList, ok := a.resolveAccessList(w, r)
+	if !ok {
+		return
+	}
 	m.Title, m.Desc, m.Category = title, desc, category
+	m.AccessList = accessList
 	if err := a.fs.Put(m); err != nil {
 		a.apiServerError(w, r, "edit video", err)
 		return

@@ -3,7 +3,10 @@
 A small video-sharing server written in Go, with media on disk, SQLite metadata,
 and optional FFmpeg conversion to HLS with preview posters. Viewing is public;
 uploading and editing require login with an editor or administrator account,
-and deleting or managing users requires an administrator. Users authenticate
+and deleting or managing users requires an administrator. Videos can also be
+assigned to locked lists, visible only through a long list link
+(`/view_list?key=…`); editors and administrators bypass keys for management.
+Users authenticate
 with a local password (bcrypt) or against LDAP; roles are assigned locally.
 SQLite uses the pure Go
 `modernc.org/sqlite` driver, so single-binary builds do not require CGO. Legacy
@@ -58,6 +61,32 @@ The application also loads `.env` from its working directory at startup. Copy
 `.env.example` to `.env` and set `ADMIN_PASS`; explicitly set environment variables
 take precedence, including empty values. Values may be quoted; there is no variable
 expansion or inline-comment support. `.env` is ignored by Git.
+
+## Locked lists
+
+Public videos stay visible to everyone. For sensitive material, an
+administrator creates any number of locked lists at `/admin/lists` (section
+«Κλειδωμένες λίστες»), each with its own long random key. Uploads and edits
+offer a visibility picker: public by default, or one locked list per video.
+Existing videos stay public unless moved.
+
+- Holders of `/view_list?key=…` see exactly that list; without the key its
+  videos are invisible everywhere — library, search, category counts, watch
+  page, JSON API, originals, HLS segments and posters all answer 404.
+- The first key visit sets an unlock cookie so posters, HLS segments and
+  later pages keep working without repeating the key.
+- Editors and administrators see every video without a key, so lost links
+  never block management.
+- A link is a bearer credential: anyone it is forwarded to gains access.
+  Share links only over a safe channel. Rotating the key («Αλλαγή κλειδιού»)
+  revokes every copy at once, including previously granted cookies.
+  Deleting a list is refused while it still holds videos, so videos cannot
+  silently become public.
+- The Nginx sample proxies every route through Go, so the same checks apply
+  behind the proxy.
+
+For scripts, pass the key as `?key=…` on `/api/videos`, `/api/video`,
+`/watch` and `/videos/…`, or reuse the unlock cookie from a link visit.
 
 For automatic rebuilding/restarting on Windows, run `dev.bat` from cmd.exe or
 `.\dev.bat` from PowerShell. It watches Go sources (excluding test files),
@@ -122,8 +151,10 @@ write there and find FFmpeg on its `PATH`.
 Empty optional values fall back to the defaults. For direct LAN access, set `HOST`
 explicitly (or set `ADDR=0.0.0.0:8081`) and configure the firewall. Session cookies
 need HTTPS when used over a network; the Go server itself serves HTTP. Video files
-and metadata are public. Login sessions last 24 hours sliding; password resets,
-deactivation and user deletion revoke sessions.
+and public metadata are public. Login sessions last 24 hours sliding; password resets,
+deactivation and user deletion revoke sessions. Unlock cookies are session
+cookies signed per process and die with the browser session or a restart;
+reopening the list link restores them.
 
 Browser mutations must originate from this site. Cross-origin upload/edit/delete
 requests return 403, including JSON clients; command-line clients without browser
@@ -202,17 +233,19 @@ Uploads stay
 `Accept: application/json` (or `?format=json`) to get JSON instead of the
 browser `303` redirect. Error responses use the same HTTP status codes with a
 `{"error": "..."}` body. Anonymous JSON clients get `401`; logged-in users
-without the role get `403`. Reading is public, like the library pages; writing
+without the role get `403`. Reading is public, like the library pages, except
+locked-list videos (see above); writing
 requires the matching role.
 
 | Method | Route | Auth | Description |
 | --- | --- | --- | --- |
 | `POST` | `/api/login` | none | JSON `{"username", "password"}`; sets the session cookie, returns `{"username", "role"}`. |
 | `POST` | `/logout` | session | Revokes the session cookie. |
-| `POST` | `/api/upload` | editor | Multipart fields `title` (required), `desc`, `category`, `file`. JSON clients get `201` with `id`, `title`, `status`, `original`, `watch_url`, `video_url`, `api_url`. Browsers get `303` to `/watch?id=`. |
-| `GET` | `/api/videos?q=&category=` | none | JSON `{"total", "count", "q", "category", "items"}` with the same filtering as the library page. |
-| `GET` | `/api/video?id=<id>` | none | JSON metadata for one video, including `status` (`queued`/`processing`/`ready`/`failed`). `404` when missing. |
-| `POST` | `/api/edit` | editor | Form fields `id`, `title`, `desc`, `category`. JSON clients get `200` with `id`, `title`, `watch_url`, `api_url`. |
+| `POST` | `/api/upload` | editor | Multipart fields `title` (required), `desc`, `category`, `file`, `access_list` (empty for public, otherwise a locked-list id). JSON clients get `201` with `id`, `title`, `status`, `original`, `access_list`, `watch_url`, `video_url`, `api_url`. Browsers get `303` to `/watch?id=`. |
+| `GET` | `/view_list?key=…` | none | HTML page with exactly one locked list's videos; grants an unlock cookie. Without `key`, shows everything the cookie already unlocked. Unknown keys return 404. |
+| `GET` | `/api/videos?q=&category=` | none | JSON `{"total", "count", "q", "category", "items"}` with the same filtering as the library page. Locked videos are excluded unless `?key=…`, an unlock cookie, or an editor/administrator credential is presented; `total` counts only visible videos. |
+| `GET` | `/api/video?id=<id>` | none | JSON metadata for one video, including `status` (`queued`/`processing`/`ready`/`failed`) and `access_list`. `404` when missing or locked without access. |
+| `POST` | `/api/edit` | editor | Form fields `id`, `title`, `desc`, `category`, `access_list`. JSON clients get `200` with `id`, `title`, `watch_url`, `api_url`. |
 | `POST` | `/api/delete` | admin | Form field `id`. JSON clients get `200` with `{"id", "deleted": true}`. |
 
 Poll `GET /api/video?id=<id>` until `status` is `ready` (or `failed`), then

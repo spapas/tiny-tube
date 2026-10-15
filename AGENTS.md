@@ -76,7 +76,10 @@ update the documentation when an issue is resolved.
 - Keep SQLite `Error`/`Poster` fields round-trippable and migrate existing schemas
   without losing rows. Startup JSON import must not overwrite SQLite edits.
   Both stores must agree on missing-record errors, Unicode search and date ordering.
-- Originals and metadata are public under the current design. Changes to privacy
+- Public originals and metadata are public under the current design; videos
+  assigned to a locked list (`store.Meta.AccessList`, `store.AccessList`)
+  additionally require the list key or an editor/administrator session on every
+  surface (library, watch, JSON API, `/videos/` media, posters/HLS). Changes to privacy
   must cover both Go static serving and the optional Nginx route.
   Database files, journals and staging files must not be served as media. Place
   custom `DB_PATH` outside `VIDEO_DIR` when using the optional Nginx example.

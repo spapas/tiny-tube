@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"context"
+	"crypto/rand"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -30,6 +31,7 @@ type application struct {
 	activeJobs          map[string]*conversionJob
 	deleting            map[string]bool
 	authRequests        *authLimiter
+	listSignKey         [32]byte
 }
 
 type conversionJob struct {
@@ -64,6 +66,9 @@ func newApplication(cfg config) (*application, error) {
 	}
 	a := &application{cfg: cfg, videoDir: root, ffmpegBin: bin, wake: make(chan struct{}, cfg.TranscodeWorkers), activeJobs: make(map[string]*conversionJob), deleting: make(map[string]bool)}
 	a.authRequests = newAuthLimiter(cfg.AuthRequestsPerMinute)
+	if _, err := rand.Read(a.listSignKey[:]); err != nil {
+		return nil, err
+	}
 	switch cfg.Store {
 	case "fs":
 		a.fs = store.NewFS(root)
@@ -151,8 +156,9 @@ func (a *application) routes() http.Handler {
 	})
 	mux.Handle("GET /{$}", a.withUser(http.HandlerFunc(a.handleList)))
 	mux.Handle("GET /watch", a.withUser(http.HandlerFunc(a.handleWatch)))
+	mux.Handle("GET /view_list", a.withUser(http.HandlerFunc(a.handleViewList)))
 	mux.Handle("GET /upload", a.limited(a.withUser(a.requireEditor(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		a.renderPage(w, r, uploadTmpl, map[string]any{"Page": "upload", "Title": "Ανέβασμα βίντεο", "MaxUploadBytes": a.cfg.MaxUploadBytes})
+		a.renderPage(w, r, uploadTmpl, map[string]any{"Page": "upload", "Title": "Ανέβασμα βίντεο", "MaxUploadBytes": a.cfg.MaxUploadBytes, "AccessLists": a.accessListsForForm()})
 	})))))
 	mux.Handle("POST /api/upload", a.limited(a.withUser(a.requireEditor(http.HandlerFunc(a.handleUpload)))))
 	mux.Handle("GET /edit", a.limited(a.withUser(a.requireEditor(http.HandlerFunc(a.handleEditPage)))))
@@ -163,6 +169,7 @@ func (a *application) routes() http.Handler {
 	mux.Handle("POST /api/login", a.limited(http.HandlerFunc(a.handleAPILogin)))
 	mux.Handle("POST /logout", a.withUser(http.HandlerFunc(a.handleLogout)))
 	mux.Handle("GET /admin", a.limited(a.withUser(a.requireAdmin(http.HandlerFunc(a.handleAdmin)))))
+	mux.Handle("GET /admin/lists", a.limited(a.withUser(a.requireAdmin(http.HandlerFunc(a.handleAdminLists)))))
 	mux.Handle("GET /admin/users", a.limited(a.withUser(a.requireAdmin(http.HandlerFunc(a.handleAdminUsers)))))
 	mux.Handle("GET /admin/users/new", a.limited(a.withUser(a.requireAdmin(http.HandlerFunc(a.handleAdminUserNew)))))
 	mux.Handle("GET /admin/keys", a.limited(a.withUser(a.requireAdmin(http.HandlerFunc(a.handleAdminKeys)))))
@@ -173,8 +180,12 @@ func (a *application) routes() http.Handler {
 	mux.Handle("POST /api/admin/users/delete", a.limited(a.withUser(a.requireAdmin(http.HandlerFunc(a.handleAdminDeleteUser)))))
 	mux.Handle("POST /api/admin/users/keys/create", a.limited(a.withUser(a.requireAdmin(http.HandlerFunc(a.handleAdminCreateKey)))))
 	mux.Handle("POST /api/admin/users/keys/revoke", a.limited(a.withUser(a.requireAdmin(http.HandlerFunc(a.handleAdminRevokeKey)))))
-	mux.HandleFunc("GET /api/videos", a.handleAPIVideos)
-	mux.HandleFunc("GET /api/video", a.handleAPIVideo)
+	mux.Handle("POST /api/admin/lists/create", a.limited(a.withUser(a.requireAdmin(http.HandlerFunc(a.handleAdminCreateList)))))
+	mux.Handle("POST /api/admin/lists/rename", a.limited(a.withUser(a.requireAdmin(http.HandlerFunc(a.handleAdminRenameList)))))
+	mux.Handle("POST /api/admin/lists/rotate", a.limited(a.withUser(a.requireAdmin(http.HandlerFunc(a.handleAdminRotateList)))))
+	mux.Handle("POST /api/admin/lists/delete", a.limited(a.withUser(a.requireAdmin(http.HandlerFunc(a.handleAdminDeleteList)))))
+	mux.Handle("GET /api/videos", a.withUser(http.HandlerFunc(a.handleAPIVideos)))
+	mux.Handle("GET /api/video", a.withUser(http.HandlerFunc(a.handleAPIVideo)))
 	mux.HandleFunc("GET /videos/", a.serveVideo)
 	mux.Handle("GET /assets/", http.StripPrefix("/assets/", http.FileServer(http.FS(staticFiles()))))
 	return secureHTTP(mux)
@@ -233,6 +244,8 @@ func (a *application) apiServerError(w http.ResponseWriter, r *http.Request, ope
 
 // GET /api/videos?q=&category= — public JSON mirror of the library page,
 // so API clients (including LLMs) can list videos and poll conversion status.
+// Locked videos stay invisible without their list key (?key=lt-...) or an
+// unlock cookie; editors and administrators (session or API key) see all.
 func (a *application) handleAPIVideos(w http.ResponseWriter, r *http.Request) {
 	q := r.URL.Query().Get("q")
 	category := r.URL.Query().Get("category")
@@ -241,9 +254,11 @@ func (a *application) handleAPIVideos(w http.ResponseWriter, r *http.Request) {
 		a.apiServerError(w, r, "list videos", err)
 		return
 	}
-	items := make([]store.Meta, 0, len(all))
+	grants := a.resolveGrants(w, r)
+	visible := a.visibleVideos(all, r, grants)
+	items := make([]store.Meta, 0, len(visible))
 	query := strings.ToLower(strings.TrimSpace(q))
-	for _, m := range all {
+	for _, m := range visible {
 		if category != "" && m.Category != category {
 			continue
 		}
@@ -253,12 +268,13 @@ func (a *application) handleAPIVideos(w http.ResponseWriter, r *http.Request) {
 		items = append(items, m)
 	}
 	writeJSON(w, http.StatusOK, map[string]any{
-		"total": len(all), "count": len(items),
+		"total": len(visible), "count": len(items),
 		"q": q, "category": category, "items": items,
 	})
 }
 
-// GET /api/video?id= — public JSON metadata for one video.
+// GET /api/video?id= — JSON metadata for one video. Locked videos answer
+// 404 without their key, like missing ones, so existence stays unconfirmed.
 func (a *application) handleAPIVideo(w http.ResponseWriter, r *http.Request) {
 	m, err := a.fs.Get(r.URL.Query().Get("id"))
 	if err != nil {
@@ -267,6 +283,10 @@ func (a *application) handleAPIVideo(w http.ResponseWriter, r *http.Request) {
 		} else {
 			a.apiServerError(w, r, "read video", err)
 		}
+		return
+	}
+	if !a.canView(m, r, a.resolveGrants(w, r)) {
+		writeJSON(w, http.StatusNotFound, map[string]string{"error": "not found"})
 		return
 	}
 	writeJSON(w, http.StatusOK, m)
@@ -280,15 +300,18 @@ func (a *application) handleList(w http.ResponseWriter, r *http.Request) {
 		a.serverError(w, "list videos", err)
 		return
 	}
+	// Category counts come from the visible set only, so locked videos do
+	// not leak titles or counts to outsiders.
+	visible := a.visibleVideos(all, r, a.resolveGrants(w, r))
 	type categoryFilter struct {
 		Name     string
 		Count    int
 		Selected bool
 	}
 	counts := make(map[string]int)
-	items := make([]store.Meta, 0, len(all))
+	items := make([]store.Meta, 0, len(visible))
 	query := strings.ToLower(strings.TrimSpace(q))
-	for _, m := range all {
+	for _, m := range visible {
 		if m.Category != "" {
 			counts[m.Category]++
 		}
@@ -305,7 +328,7 @@ func (a *application) handleList(w http.ResponseWriter, r *http.Request) {
 		categories = append(categories, categoryFilter{name, count, name == category})
 	}
 	sort.Slice(categories, func(i, j int) bool { return categories[i].Name < categories[j].Name })
-	a.renderPage(w, r, listTmpl, map[string]any{"Page": "list", "Title": "Βιβλιοθήκη", "Items": items, "Q": q, "Category": category, "Categories": categories, "Total": len(all)})
+	a.renderPage(w, r, listTmpl, map[string]any{"Page": "list", "Title": "Βιβλιοθήκη", "Items": items, "Q": q, "Category": category, "Categories": categories, "Total": len(visible)})
 }
 
 func (a *application) handleWatch(w http.ResponseWriter, r *http.Request) {
@@ -318,5 +341,24 @@ func (a *application) handleWatch(w http.ResponseWriter, r *http.Request) {
 		}
 		return
 	}
-	a.renderPage(w, r, watchTmpl, map[string]any{"Page": "watch", "Title": m.Title, "Video": m})
+	grants := a.resolveGrants(w, r)
+	if !a.canView(m, r, grants) {
+		http.NotFound(w, r)
+		return
+	}
+	data := map[string]any{"Page": "watch", "Title": m.Title, "Video": m}
+	if m.AccessList != "" {
+		w.Header().Set("Cache-Control", "no-store")
+		if l, err := a.fs.GetAccessList(m.AccessList); err == nil {
+			data["LockedListName"] = l.Name
+		}
+		// Keep the presented key available so the page can share a
+		// working link; cookie-only visitors share via /view_list.
+		if raw := r.URL.Query().Get("key"); raw != "" {
+			if l, ok := a.findListByKey(raw); ok && l.ID == m.AccessList {
+				data["ListKey"] = raw
+			}
+		}
+	}
+	a.renderPage(w, r, watchTmpl, data)
 }

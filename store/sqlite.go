@@ -29,8 +29,17 @@ const sqliteSchema = `CREATE TABLE IF NOT EXISTS videos (
   hls TEXT NOT NULL DEFAULT '',
   poster TEXT NOT NULL DEFAULT '',
   status TEXT NOT NULL DEFAULT '',
-  error TEXT NOT NULL DEFAULT ''
+  error TEXT NOT NULL DEFAULT '',
+  access_list TEXT NOT NULL DEFAULT ''
 );
+CREATE TABLE IF NOT EXISTS access_lists (
+  id TEXT PRIMARY KEY,
+  name TEXT NOT NULL DEFAULT '',
+  prefix TEXT NOT NULL DEFAULT '',
+  key_hash TEXT NOT NULL DEFAULT '',
+  created_at TEXT NOT NULL DEFAULT ''
+);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_access_lists_prefix ON access_lists(prefix);
 CREATE TABLE IF NOT EXISTS users (
   username TEXT PRIMARY KEY,
   display_name TEXT NOT NULL DEFAULT '',
@@ -92,7 +101,7 @@ func migrateSQLite(db *sql.DB) error {
 	if err != nil {
 		return err
 	}
-	hasError := false
+	columns := map[string]bool{}
 	for rows.Next() {
 		var index, notNull, primaryKey int
 		var name, columnType string
@@ -101,17 +110,21 @@ func migrateSQLite(db *sql.DB) error {
 			rows.Close()
 			return err
 		}
-		if name == "error" {
-			hasError = true
-		}
+		columns[name] = true
 	}
 	err = rows.Err()
 	rows.Close()
 	if err != nil {
 		return err
 	}
-	if !hasError {
+	if !columns["error"] {
 		if _, err = db.Exec(`ALTER TABLE videos ADD COLUMN error TEXT NOT NULL DEFAULT ''`); err != nil {
+			return err
+		}
+	}
+	// Preserve databases created before locked lists existed.
+	if !columns["access_list"] {
+		if _, err = db.Exec(`ALTER TABLE videos ADD COLUMN access_list TEXT NOT NULL DEFAULT ''`); err != nil {
 			return err
 		}
 	}
@@ -146,15 +159,19 @@ func (s *SQLite) Put(m Meta) error {
 	if !ValidID(m.ID) {
 		return os.ErrInvalid
 	}
+	if m.AccessList != "" && !ValidAccessListID(m.AccessList) {
+		return os.ErrInvalid
+	}
 	if m.Created == "" {
 		m.Created = time.Now().UTC().Format(time.RFC3339Nano)
 	}
-	_, err := s.db.Exec(`INSERT INTO videos(id,title,description,category,created,original,hls,poster,status,error)
-		VALUES(?,?,?,?,?,?,?,?,?,?)
+	_, err := s.db.Exec(`INSERT INTO videos(id,title,description,category,created,original,hls,poster,status,error,access_list)
+		VALUES(?,?,?,?,?,?,?,?,?,?,?)
 		ON CONFLICT(id) DO UPDATE SET title=excluded.title,description=excluded.description,
 			category=excluded.category,created=excluded.created,original=excluded.original,
-			hls=excluded.hls,poster=excluded.poster,status=excluded.status,error=excluded.error`,
-		m.ID, m.Title, m.Desc, m.Category, m.Created, m.Original, m.HLS, m.Poster, m.Status, m.Error)
+			hls=excluded.hls,poster=excluded.poster,status=excluded.status,error=excluded.error,
+			access_list=excluded.access_list`,
+		m.ID, m.Title, m.Desc, m.Category, m.Created, m.Original, m.HLS, m.Poster, m.Status, m.Error, m.AccessList)
 	return err
 }
 
@@ -163,9 +180,9 @@ func (s *SQLite) Get(id string) (Meta, error) {
 	if !ValidID(id) {
 		return m, os.ErrInvalid
 	}
-	err := s.db.QueryRow(`SELECT id,title,description,category,created,original,hls,poster,status,error
+	err := s.db.QueryRow(`SELECT id,title,description,category,created,original,hls,poster,status,error,access_list
 		FROM videos WHERE id=?`, id).
-		Scan(&m.ID, &m.Title, &m.Desc, &m.Category, &m.Created, &m.Original, &m.HLS, &m.Poster, &m.Status, &m.Error)
+		Scan(&m.ID, &m.Title, &m.Desc, &m.Category, &m.Created, &m.Original, &m.HLS, &m.Poster, &m.Status, &m.Error, &m.AccessList)
 	if errors.Is(err, sql.ErrNoRows) {
 		return m, os.ErrNotExist
 	}
@@ -174,7 +191,7 @@ func (s *SQLite) Get(id string) (Meta, error) {
 
 func (s *SQLite) List(q string) ([]Meta, error) {
 	q = strings.ToLower(strings.TrimSpace(q))
-	rows, err := s.db.Query(`SELECT id,title,description,category,created,original,hls,poster,status,error FROM videos`)
+	rows, err := s.db.Query(`SELECT id,title,description,category,created,original,hls,poster,status,error,access_list FROM videos`)
 	if err != nil {
 		return nil, err
 	}
@@ -182,7 +199,7 @@ func (s *SQLite) List(q string) ([]Meta, error) {
 	var out []Meta
 	for rows.Next() {
 		var m Meta
-		if err := rows.Scan(&m.ID, &m.Title, &m.Desc, &m.Category, &m.Created, &m.Original, &m.HLS, &m.Poster, &m.Status, &m.Error); err != nil {
+		if err := rows.Scan(&m.ID, &m.Title, &m.Desc, &m.Category, &m.Created, &m.Original, &m.HLS, &m.Poster, &m.Status, &m.Error, &m.AccessList); err != nil {
 			return nil, err
 		}
 		// Go's Unicode case folding matches the FS backend, including Greek text.
@@ -204,9 +221,9 @@ func ImportFS(s *SQLite, root string) (int, error) {
 	}
 	n := 0
 	for _, m := range metas {
-		res, err := s.db.Exec(`INSERT INTO videos(id,title,description,category,created,original,hls,poster,status,error)
-			VALUES(?,?,?,?,?,?,?,?,?,?) ON CONFLICT(id) DO NOTHING`,
-			m.ID, m.Title, m.Desc, m.Category, m.Created, m.Original, m.HLS, m.Poster, m.Status, m.Error)
+		res, err := s.db.Exec(`INSERT INTO videos(id,title,description,category,created,original,hls,poster,status,error,access_list)
+			VALUES(?,?,?,?,?,?,?,?,?,?,?) ON CONFLICT(id) DO NOTHING`,
+			m.ID, m.Title, m.Desc, m.Category, m.Created, m.Original, m.HLS, m.Poster, m.Status, m.Error, m.AccessList)
 		if err != nil {
 			return n, err
 		}
@@ -455,4 +472,79 @@ func (s *SQLite) DeleteUserSessions(username string) error {
 func (s *SQLite) PruneSessions(now time.Time) error {
 	_, err := s.db.Exec(`DELETE FROM sessions WHERE expires_at <= ?`, now.UTC().Format(time.RFC3339Nano))
 	return err
+}
+
+func (s *SQLite) GetAccessList(id string) (AccessList, error) {
+	var l AccessList
+	if !ValidAccessListID(id) {
+		return l, os.ErrInvalid
+	}
+	err := s.db.QueryRow(`SELECT id,name,prefix,key_hash,created_at FROM access_lists WHERE id=?`, id).
+		Scan(&l.ID, &l.Name, &l.Prefix, &l.KeyHash, &l.CreatedAt)
+	if errors.Is(err, sql.ErrNoRows) {
+		return AccessList{}, os.ErrNotExist
+	}
+	return l, err
+}
+
+func (s *SQLite) GetAccessListByPrefix(prefix string) (AccessList, error) {
+	var l AccessList
+	if !ValidKeyPrefix(prefix) {
+		return l, os.ErrInvalid
+	}
+	err := s.db.QueryRow(`SELECT id,name,prefix,key_hash,created_at FROM access_lists WHERE prefix=?`, prefix).
+		Scan(&l.ID, &l.Name, &l.Prefix, &l.KeyHash, &l.CreatedAt)
+	if errors.Is(err, sql.ErrNoRows) {
+		return AccessList{}, os.ErrNotExist
+	}
+	return l, err
+}
+
+func (s *SQLite) ListAccessLists() ([]AccessList, error) {
+	rows, err := s.db.Query(`SELECT id,name,prefix,key_hash,created_at FROM access_lists ORDER BY name`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var out []AccessList
+	for rows.Next() {
+		var l AccessList
+		if err := rows.Scan(&l.ID, &l.Name, &l.Prefix, &l.KeyHash, &l.CreatedAt); err != nil {
+			return nil, err
+		}
+		out = append(out, l)
+	}
+	return out, rows.Err()
+}
+
+func (s *SQLite) PutAccessList(l AccessList) error {
+	if !ValidAccessListID(l.ID) || !ValidAccessListName(l.Name) ||
+		!ValidKeyPrefix(l.Prefix) || !validTokenHash(l.KeyHash) {
+		return os.ErrInvalid
+	}
+	l.Name = strings.TrimSpace(l.Name)
+	if l.CreatedAt == "" {
+		l.CreatedAt = time.Now().UTC().Format(time.RFC3339Nano)
+	}
+	_, err := s.db.Exec(`INSERT INTO access_lists(id,name,prefix,key_hash,created_at)
+		VALUES(?,?,?,?,?)
+		ON CONFLICT(id) DO UPDATE SET name=excluded.name,prefix=excluded.prefix,
+			key_hash=excluded.key_hash`,
+		l.ID, l.Name, l.Prefix, l.KeyHash, l.CreatedAt)
+	return err
+}
+
+func (s *SQLite) DeleteAccessList(id string) error {
+	if !ValidAccessListID(id) {
+		return os.ErrInvalid
+	}
+	res, err := s.db.Exec(`DELETE FROM access_lists WHERE id=?`, id)
+	if err != nil {
+		return err
+	}
+	aff, _ := res.RowsAffected()
+	if aff == 0 {
+		return os.ErrNotExist
+	}
+	return nil
 }

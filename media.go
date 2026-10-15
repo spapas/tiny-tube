@@ -69,6 +69,23 @@ func (a *application) serveVideo(w http.ResponseWriter, r *http.Request) {
 		http.NotFound(w, r)
 		return
 	}
+	// Locked videos are gated by list key even on guessed direct URLs.
+	// Metadata-less orphans keep the historical public behavior.
+	if id, _, _ := strings.Cut(name, "/"); id != "" {
+		if m, err := a.fs.Get(id); err == nil && m.AccessList != "" {
+			grants := a.resolveGrants(w, r)
+			u := currentUser(r)
+			if u == nil {
+				u = a.requestUserLazy(r)
+			}
+			if !canViewList(m, u, grants) {
+				http.NotFound(w, r)
+				return
+			}
+			// Private content must not linger in shared caches.
+			w.Header().Set("Cache-Control", "no-store")
+		}
+	}
 	root, err := os.OpenRoot(a.videoDir)
 	if err != nil {
 		a.serverError(w, "open media storage", err)

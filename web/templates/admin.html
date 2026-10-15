@@ -28,6 +28,7 @@
   <a class="filter-chip{{if eq .AdminSection "users"}} is-selected{{end}}" href="/admin/users"{{if eq .AdminSection "users"}} aria-current="true"{{end}}>Χρήστες</a>
   <a class="filter-chip{{if eq .AdminSection "user-new"}} is-selected{{end}}" href="/admin/users/new"{{if eq .AdminSection "user-new"}} aria-current="true"{{end}}>Νέος χρήστης</a>
   <a class="filter-chip{{if eq .AdminSection "keys"}} is-selected{{end}}" href="/admin/keys"{{if eq .AdminSection "keys"}} aria-current="true"{{end}}>Κλειδιά API</a>
+  <a class="filter-chip{{if eq .AdminSection "lists"}} is-selected{{end}}" href="/admin/lists"{{if eq .AdminSection "lists"}} aria-current="true"{{end}}>Κλειδωμένες λίστες</a>
 </nav>
 {{end}}
 
@@ -106,6 +107,57 @@
       <div class="form-field"><label for="new-role">Ρόλος</label><select id="new-role" name="role"><option value="viewer">viewer</option><option value="editor">editor</option><option value="admin">admin</option></select></div>
       <div class="form-field"><label for="new-password">Κωδικός</label><input id="new-password" name="password" type="password" required autocomplete="new-password"></div>
       <button class="button button-primary" type="submit">Δημιουργία</button>
+    </form>
+  </section>
+</main>
+{{template "footer" .}}
+</body></html>{{end}}
+
+{{define "admin-lists"}}<!doctype html>
+<html lang="el" data-theme="light"><head>{{template "head" .}}</head><body>
+{{template "header" .}}
+<main id="main" class="container">
+  <div class="page-heading"><span class="eyebrow muted">Διαχείριση</span><h1>Κλειδωμένες λίστες</h1><p>Ομάδες βίντεο ορατές μόνο με μακρύ σύνδεσμο (<code>/view_list?key=…</code>). Το πλήρες κλειδί φαίνεται μία μόνο φορά, κατά τη δημιουργία ή την αλλαγή. Η αλλαγή κλειδιού απενεργοποιεί αμέσως όλα τα παλιά αντίγραφα του συνδέσμου.</p></div>
+  {{template "admin-nav" .}}
+  {{if .Error}}<p class="notice notice-warning" role="alert">{{.Error}}</p>{{end}}
+  {{if .Notice}}<p class="notice notice-info" role="status">{{.Notice}}</p>{{end}}
+  <section aria-labelledby="lists-title">
+    <h2 id="lists-title" class="sr-only">Κλειδωμένες λίστες</h2>
+    {{if .NewListKey}}<p class="notice notice-warning" role="alert"><span><strong>Νέο κλειδί για «{{.NewListName}}» — αντιγράψτε το τώρα, δεν θα ξαναεμφανιστεί:</strong><br><code>/view_list?key={{.NewListKey}}</code></span></p>{{end}}
+    <div class="table-wrap"><table>
+      <thead><tr><th>Λίστα</th><th>Βίντεο</th><th>Μετονομασία</th><th>Ενέργειες</th></tr></thead>
+      <tbody>
+      {{range .AccessLists}}
+        <tr>
+          <td>{{.Name}}<br><span class="field-hint"><code>{{.ID}}</code></span></td>
+          <td>{{index $.ListVideoCounts .ID}}</td>
+          <td>
+            <form method="POST" action="/api/admin/lists/rename">
+              <input type="hidden" name="id" value="{{.ID}}">
+              <label class="sr-only" for="name-{{.ID}}">Όνομα λίστας</label>
+              <input id="name-{{.ID}}" name="name" type="text" required maxlength="100" value="{{.Name}}">
+              <button class="button button-quiet" type="submit">Μετονομασία</button>
+            </form>
+          </td>
+          <td>
+            <form method="POST" action="/api/admin/lists/rotate">
+              <input type="hidden" name="id" value="{{.ID}}">
+              <button class="button button-quiet" type="submit">Αλλαγή κλειδιού</button>
+            </form>
+            <form method="POST" action="/api/admin/lists/delete" data-delete-video>
+              <input type="hidden" name="id" value="{{.ID}}">
+              <button class="button button-danger" type="submit">Διαγραφή</button>
+            </form>
+          </td>
+        </tr>
+      {{else}}
+        <tr><td colspan="4">Δεν υπάρχουν κλειδωμένες λίστες.</td></tr>
+      {{end}}
+      </tbody>
+    </table></div>
+    <form method="POST" action="/api/admin/lists/create">
+      <div class="form-field"><label for="list-name">Όνομα νέας λίστας (π.χ. Έλεγχοι, Ασφάλεια)</label><input id="list-name" name="name" type="text" required maxlength="100"></div>
+      <button class="button button-primary" type="submit">Δημιουργία λίστας</button>
     </form>
   </section>
 </main>

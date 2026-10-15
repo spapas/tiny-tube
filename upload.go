@@ -73,6 +73,10 @@ func (a *application) handleUpload(w http.ResponseWriter, r *http.Request) {
 		writeAPIError(w, r, http.StatusBadRequest, "title required; maximum bytes: title 512, description 8192, category 256")
 		return
 	}
+	accessList, ok := a.resolveAccessList(w, r)
+	if !ok {
+		return
+	}
 	f, hdr, err := r.FormFile("file")
 	if err != nil {
 		writeAPIError(w, r, http.StatusBadRequest, "file required")
@@ -119,7 +123,7 @@ func (a *application) handleUpload(w http.ResponseWriter, r *http.Request) {
 		a.apiServerError(w, r, "save original", err)
 		return
 	}
-	m := store.Meta{ID: id, Title: title, Desc: desc, Category: category, Original: orig, Status: "ready", Created: time.Now().UTC().Format(time.RFC3339Nano)}
+	m := store.Meta{ID: id, Title: title, Desc: desc, Category: category, Original: orig, Status: "ready", Created: time.Now().UTC().Format(time.RFC3339Nano), AccessList: accessList}
 	if a.ffmpegBin != "" {
 		m.Status = "queued"
 	}
@@ -134,7 +138,7 @@ func (a *application) handleUpload(w http.ResponseWriter, r *http.Request) {
 	if wantsJSON(r) {
 		writeJSON(w, http.StatusCreated, map[string]any{
 			"id": id, "title": title, "desc": desc, "category": category,
-			"status": m.Status, "original": orig,
+			"status": m.Status, "original": orig, "access_list": accessList,
 			"watch_url": "/watch?id=" + id,
 			"video_url": "/videos/" + id + "/" + orig,
 			"api_url":   "/api/video?id=" + id,
