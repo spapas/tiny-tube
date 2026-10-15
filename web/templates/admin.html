@@ -63,6 +63,37 @@
       </tbody>
     </table></div>
   </section>
+  <section aria-labelledby="keys-title">
+    <h2 id="keys-title">Κλειδιά API</h2>
+    <p class="field-hint">Για αυτοματισμούς χωρίς cookies: στέλνεται ως <code>Authorization: Bearer …</code> και δίνει τα δικαιώματα του χρήστη. Το πλήρες κλειδί φαίνεται μία μόνο φορά, κατά τη δημιουργία.</p>
+    {{if .NewAPIKey}}<p class="notice notice-warning" role="alert"><span><strong>Νέο κλειδί για {{.NewAPIKeyUser}} — αντιγράψτε το τώρα, δεν θα ξαναεμφανιστεί:</strong><br><code>{{.NewAPIKey}}</code></span></p>{{end}}
+    <div class="table-wrap"><table>
+      <thead><tr><th>Πρόθεμα</th><th>Χρήστης</th><th>Όνομα</th><th>Τελευταία χρήση</th><th>Ενέργεια</th></tr></thead>
+      <tbody>
+      {{range .APIKeys}}
+        <tr>
+          <td><code>{{.Prefix}}</code></td>
+          <td>{{.Username}}</td>
+          <td>{{.Name}}</td>
+          <td>{{if .LastUsedAt}}{{.LastUsedAt}}{{else}}ποτέ{{end}}</td>
+          <td>
+            <form method="POST" action="/api/admin/users/keys/revoke">
+              <input type="hidden" name="prefix" value="{{.Prefix}}">
+              <button class="button button-danger" type="submit">Ανάκληση</button>
+            </form>
+          </td>
+        </tr>
+      {{else}}
+        <tr><td colspan="5">Δεν υπάρχουν κλειδιά API.</td></tr>
+      {{end}}
+      </tbody>
+    </table></div>
+    <form method="POST" action="/api/admin/users/keys/create">
+      <div class="form-field"><label for="key-username">Όνομα χρήστη</label><input id="key-username" name="username" type="text" required pattern="[A-Za-z0-9_.-]{1,64}"></div>
+      <div class="form-field"><label for="key-name">Όνομα κλειδιού (π.χ. script μεταφορτώσεων)</label><input id="key-name" name="name" type="text" required maxlength="100"></div>
+      <button class="button button-primary" type="submit">Δημιουργία κλειδιού</button>
+    </form>
+  </section>
   <section class="upload-card" aria-labelledby="create-title">
     <h2 id="create-title">Νέος τοπικός χρήστης</h2>
     <form method="POST" action="/api/admin/users/create">

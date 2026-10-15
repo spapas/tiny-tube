@@ -30,12 +30,17 @@ func (a *application) handleAdmin(w http.ResponseWriter, r *http.Request) {
 	}
 	storageOK := checkWritable(a.videoDir) == nil
 	_, metaErr := a.fs.List("")
+	keys, err := a.fs.ListAPIKeys()
+	if err != nil {
+		a.serverError(w, "list API keys", err)
+		return
+	}
 	a.renderPage(w, r, adminTmpl, map[string]any{
 		"Page": "admin", "Title": "Διαχείριση",
 		"Users": users, "VideoTotal": len(videos), "ByStatus": byStatus,
 		"StorageOK": storageOK, "MetadataOK": metaErr == nil,
 		"FFmpeg": a.ffmpegBin, "Error": r.URL.Query().Get("error"),
-		"Notice": r.URL.Query().Get("notice"),
+		"Notice": r.URL.Query().Get("notice"), "APIKeys": keys,
 	})
 }
 

@@ -1,6 +1,10 @@
 package store
 
 import (
+	"crypto/rand"
+	"crypto/sha256"
+	"encoding/base64"
+	"encoding/hex"
 	"encoding/json"
 	"os"
 	"path/filepath"
@@ -84,6 +88,69 @@ type AuthStore interface {
 	DeleteSession(tokenHash string) error
 	DeleteUserSessions(username string) error
 	PruneSessions(now time.Time) error
+	CreateAPIKey(k APIKey) error
+	GetAPIKey(prefix string) (APIKey, error)
+	ListAPIKeys() ([]APIKey, error)
+	DeleteAPIKey(prefix string) error
+	DeleteUserAPIKeys(username string) error
+	TouchAPIKey(prefix string, at time.Time) error
+}
+
+// APIKey is a long-lived automation credential. Only the SHA-256 of the full
+// key is persisted (Prefix identifies the row); the plaintext is shown once
+// at creation. Keys authorize like sessions but never expire.
+type APIKey struct {
+	Prefix     string `json:"prefix"`
+	Username   string `json:"username"`
+	Name       string `json:"name"`
+	KeyHash    string `json:"key_hash,omitempty"`
+	CreatedAt  string `json:"created_at"`
+	LastUsedAt string `json:"last_used_at,omitempty"`
+}
+
+var validKeyPrefix = regexp.MustCompile(`^[A-Za-z0-9_-]{12}$`)
+
+// ValidKeyPrefix accepts the 12-character public identifier embedded in the
+// plaintext key. The charset stays safe as an FS filename and URL segment.
+func ValidKeyPrefix(prefix string) bool { return validKeyPrefix.MatchString(prefix) }
+
+func validAPIKeyName(name string) bool {
+	name = strings.TrimSpace(name)
+	return name != "" && len(name) <= 100
+}
+
+// apiKeyTokenPrefix marks automation tokens. The body is 32 base64url
+// characters (24 random bytes); the leading 12 double as the public Prefix.
+const apiKeyTokenPrefix = "tt-"
+
+var validKeyBody = regexp.MustCompile(`^[A-Za-z0-9_-]{32}$`)
+
+// GenerateAPIKey mints a plaintext automation key. It returns the raw token
+// (shown once), its public prefix and the SHA-256 hash to persist.
+func GenerateAPIKey() (raw, prefix, hash string, err error) {
+	var entropy [24]byte
+	if _, err := rand.Read(entropy[:]); err != nil {
+		return "", "", "", err
+	}
+	body := base64.RawURLEncoding.EncodeToString(entropy[:])
+	raw = apiKeyTokenPrefix + body
+	return raw, body[:12], HashAPIKey(raw), nil
+}
+
+// HashAPIKey digests a plaintext key for storage, so a database leak does
+// not hand out automation access.
+func HashAPIKey(raw string) string {
+	sum := sha256.Sum256([]byte(raw))
+	return hex.EncodeToString(sum[:])
+}
+
+// SplitAPIKey extracts the public prefix from a presented token.
+func SplitAPIKey(raw string) (string, bool) {
+	body, ok := strings.CutPrefix(strings.TrimSpace(raw), apiKeyTokenPrefix)
+	if !ok || !validKeyBody.MatchString(body) {
+		return "", false
+	}
+	return body[:12], true
 }
 
 // FS auth records live under Root/.auth. The dot-leading directory is never
@@ -183,7 +250,165 @@ func (s *FS) DeleteUser(username string) error {
 	if os.IsNotExist(err) {
 		return os.ErrNotExist
 	}
+	if err != nil {
+		return err
+	}
+	return s.deleteUserAPIKeysLocked(username)
+}
+
+func (s *FS) apiKeysDir() string              { return filepath.Join(s.authDir(), "api_keys") }
+func (s *FS) apiKeyPath(prefix string) string { return filepath.Join(s.apiKeysDir(), prefix+".json") }
+
+func (s *FS) CreateAPIKey(k APIKey) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if !ValidKeyPrefix(k.Prefix) || !ValidUsername(k.Username) || !validAPIKeyName(k.Name) || !validTokenHash(k.KeyHash) {
+		return os.ErrInvalid
+	}
+	if k.CreatedAt == "" {
+		k.CreatedAt = time.Now().UTC().Format(time.RFC3339Nano)
+	}
+	return s.writeJSONFile(s.apiKeyPath(k.Prefix), k)
+}
+
+func (s *FS) GetAPIKey(prefix string) (APIKey, error) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	var k APIKey
+	if !ValidKeyPrefix(prefix) {
+		return k, os.ErrInvalid
+	}
+	b, err := os.ReadFile(s.apiKeyPath(prefix))
+	if err != nil {
+		return k, err
+	}
+	if err := json.Unmarshal(b, &k); err != nil {
+		return k, err
+	}
+	if k.Prefix != prefix {
+		return APIKey{}, os.ErrNotExist
+	}
+	return k, nil
+}
+
+func (s *FS) ListAPIKeys() ([]APIKey, error) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	entries, err := os.ReadDir(s.apiKeysDir())
+	if os.IsNotExist(err) {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	var out []APIKey
+	for _, e := range entries {
+		if e.IsDir() || !strings.HasSuffix(e.Name(), ".json") {
+			continue
+		}
+		prefix := strings.TrimSuffix(e.Name(), ".json")
+		if !ValidKeyPrefix(prefix) {
+			continue
+		}
+		b, err := os.ReadFile(filepath.Join(s.apiKeysDir(), e.Name()))
+		if err != nil {
+			if os.IsNotExist(err) {
+				continue
+			}
+			return nil, err
+		}
+		var k APIKey
+		if err := json.Unmarshal(b, &k); err != nil {
+			return nil, err
+		}
+		if k.Prefix != prefix {
+			continue
+		}
+		out = append(out, k)
+	}
+	sort.Slice(out, func(i, j int) bool {
+		if out[i].Username != out[j].Username {
+			return out[i].Username < out[j].Username
+		}
+		return out[i].Prefix < out[j].Prefix
+	})
+	return out, nil
+}
+
+func (s *FS) DeleteAPIKey(prefix string) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if !ValidKeyPrefix(prefix) {
+		return os.ErrInvalid
+	}
+	err := os.Remove(s.apiKeyPath(prefix))
+	if os.IsNotExist(err) {
+		return os.ErrNotExist
+	}
 	return err
+}
+
+func (s *FS) DeleteUserAPIKeys(username string) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if !ValidUsername(username) {
+		return os.ErrInvalid
+	}
+	return s.deleteUserAPIKeysLocked(username)
+}
+
+func (s *FS) deleteUserAPIKeysLocked(username string) error {
+	entries, err := os.ReadDir(s.apiKeysDir())
+	if os.IsNotExist(err) {
+		return nil
+	}
+	if err != nil {
+		return err
+	}
+	for _, e := range entries {
+		if e.IsDir() || !strings.HasSuffix(e.Name(), ".json") {
+			continue
+		}
+		path := filepath.Join(s.apiKeysDir(), e.Name())
+		b, err := os.ReadFile(path)
+		if err != nil {
+			if os.IsNotExist(err) {
+				continue
+			}
+			return err
+		}
+		var k APIKey
+		if err := json.Unmarshal(b, &k); err != nil {
+			return err
+		}
+		if k.Username == username {
+			if err := os.Remove(path); err != nil && !os.IsNotExist(err) {
+				return err
+			}
+		}
+	}
+	return nil
+}
+
+func (s *FS) TouchAPIKey(prefix string, at time.Time) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if !ValidKeyPrefix(prefix) {
+		return os.ErrInvalid
+	}
+	b, err := os.ReadFile(s.apiKeyPath(prefix))
+	if err != nil {
+		return err
+	}
+	var k APIKey
+	if err := json.Unmarshal(b, &k); err != nil {
+		return err
+	}
+	if k.Prefix != prefix {
+		return os.ErrNotExist
+	}
+	k.LastUsedAt = at.UTC().Format(time.RFC3339Nano)
+	return s.writeJSONFile(s.apiKeyPath(prefix), k)
 }
 
 func (s *FS) ListUsers() ([]User, error) {

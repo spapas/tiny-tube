@@ -45,6 +45,14 @@ CREATE TABLE IF NOT EXISTS sessions (
   token_hash TEXT PRIMARY KEY,
   username TEXT NOT NULL,
   expires_at TEXT NOT NULL DEFAULT ''
+);
+CREATE TABLE IF NOT EXISTS api_keys (
+  prefix TEXT PRIMARY KEY,
+  username TEXT NOT NULL,
+  name TEXT NOT NULL DEFAULT '',
+  key_hash TEXT NOT NULL DEFAULT '',
+  created_at TEXT NOT NULL DEFAULT '',
+  last_used_at TEXT NOT NULL DEFAULT ''
 )`
 
 func NewSQLite(root, path string) (*SQLite, error) {
@@ -262,6 +270,100 @@ func (s *SQLite) DeleteUser(username string) error {
 		return os.ErrInvalid
 	}
 	res, err := s.db.Exec(`DELETE FROM users WHERE username=?`, username)
+	if err != nil {
+		return err
+	}
+	aff, _ := res.RowsAffected()
+	if aff == 0 {
+		return os.ErrNotExist
+	}
+	_, err = s.db.Exec(`DELETE FROM api_keys WHERE username=?`, username)
+	return err
+}
+
+func (s *SQLite) CreateAPIKey(k APIKey) error {
+	if !ValidKeyPrefix(k.Prefix) || !ValidUsername(k.Username) || !validAPIKeyName(k.Name) || !validTokenHash(k.KeyHash) {
+		return os.ErrInvalid
+	}
+	if k.CreatedAt == "" {
+		k.CreatedAt = time.Now().UTC().Format(time.RFC3339Nano)
+	}
+	_, err := s.db.Exec(`INSERT INTO api_keys(prefix,username,name,key_hash,created_at,last_used_at)
+		VALUES(?,?,?,?,?,?)
+		ON CONFLICT(prefix) DO UPDATE SET username=excluded.username,name=excluded.name,key_hash=excluded.key_hash,
+			created_at=excluded.created_at,last_used_at=excluded.last_used_at`,
+		k.Prefix, k.Username, strings.TrimSpace(k.Name), k.KeyHash, k.CreatedAt, k.LastUsedAt)
+	return err
+}
+
+func scanAPIKey(row interface {
+	Scan(dest ...any) error
+}) (APIKey, error) {
+	var k APIKey
+	err := row.Scan(&k.Prefix, &k.Username, &k.Name, &k.KeyHash, &k.CreatedAt, &k.LastUsedAt)
+	return k, err
+}
+
+func (s *SQLite) GetAPIKey(prefix string) (APIKey, error) {
+	var k APIKey
+	if !ValidKeyPrefix(prefix) {
+		return k, os.ErrInvalid
+	}
+	k, err := scanAPIKey(s.db.QueryRow(`SELECT prefix,username,name,key_hash,created_at,last_used_at
+		FROM api_keys WHERE prefix=?`, prefix))
+	if errors.Is(err, sql.ErrNoRows) {
+		return APIKey{}, os.ErrNotExist
+	}
+	return k, err
+}
+
+func (s *SQLite) ListAPIKeys() ([]APIKey, error) {
+	rows, err := s.db.Query(`SELECT prefix,username,name,key_hash,created_at,last_used_at
+		FROM api_keys ORDER BY username,prefix`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var out []APIKey
+	for rows.Next() {
+		k, err := scanAPIKey(rows)
+		if err != nil {
+			return nil, err
+		}
+		out = append(out, k)
+	}
+	return out, rows.Err()
+}
+
+func (s *SQLite) DeleteAPIKey(prefix string) error {
+	if !ValidKeyPrefix(prefix) {
+		return os.ErrInvalid
+	}
+	res, err := s.db.Exec(`DELETE FROM api_keys WHERE prefix=?`, prefix)
+	if err != nil {
+		return err
+	}
+	aff, _ := res.RowsAffected()
+	if aff == 0 {
+		return os.ErrNotExist
+	}
+	return nil
+}
+
+func (s *SQLite) DeleteUserAPIKeys(username string) error {
+	if !ValidUsername(username) {
+		return os.ErrInvalid
+	}
+	_, err := s.db.Exec(`DELETE FROM api_keys WHERE username=?`, username)
+	return err
+}
+
+func (s *SQLite) TouchAPIKey(prefix string, at time.Time) error {
+	if !ValidKeyPrefix(prefix) {
+		return os.ErrInvalid
+	}
+	res, err := s.db.Exec(`UPDATE api_keys SET last_used_at=? WHERE prefix=?`,
+		at.UTC().Format(time.RFC3339Nano), prefix)
 	if err != nil {
 		return err
 	}

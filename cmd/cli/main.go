@@ -27,7 +27,13 @@ Users (same storage as the server: VIDEO_DIR/STORE/DB_PATH from .env or env):
   users list                                    # list username, role, active, source
   users set-role --username U --role R          # R is admin, editor or viewer
 
-Aliases: user-list, user-set-role (and the 'users <sub>' spelling above).
+API keys (automation without cookies; send as 'Authorization: Bearer <key>'):
+  users api-key --username U [--name N]         # create; prints the key once
+  users api-keys [--username U]                 # list prefix, user, name, last use
+  users api-key-revoke --prefix P               # revoke
+
+Aliases: user-list, user-set-role, user-api-key, user-api-keys, user-api-key-revoke
+(and the 'users <sub>' spelling above).
 Making someone admin: users set-role --username U --role admin`
 
 func main() {
@@ -52,6 +58,18 @@ func main() {
 		if err := cmdSetRole(commandArgs); err != nil {
 			fatal(err)
 		}
+	case "user-api-key":
+		if err := cmdCreateAPIKey(commandArgs); err != nil {
+			fatal(err)
+		}
+	case "user-api-keys":
+		if err := cmdListAPIKeys(commandArgs); err != nil {
+			fatal(err)
+		}
+	case "user-api-key-revoke":
+		if err := cmdRevokeAPIKey(commandArgs); err != nil {
+			fatal(err)
+		}
 	default:
 		fatal(fmt.Errorf("unknown command: %q\n%s", command, cliUsage))
 	}
@@ -65,7 +83,7 @@ func normalizeCLIArgs(args []string) (string, []string, error) {
 	}
 	if args[0] != "users" && args[0] != "user" {
 		switch args[0] {
-		case "user-list", "user-set-role":
+		case "user-list", "user-set-role", "user-api-key", "user-api-keys", "user-api-key-revoke":
 			return args[0], args[1:], nil
 		}
 		return "", nil, fmt.Errorf("unknown command: %q\n%s", args[0], cliUsage)
@@ -78,8 +96,14 @@ func normalizeCLIArgs(args []string) (string, []string, error) {
 		return "user-list", args[2:], nil
 	case "set-role":
 		return "user-set-role", args[2:], nil
+	case "api-key":
+		return "user-api-key", args[2:], nil
+	case "api-keys":
+		return "user-api-keys", args[2:], nil
+	case "api-key-revoke":
+		return "user-api-key-revoke", args[2:], nil
 	}
-	return "", nil, fmt.Errorf("users: unknown subcommand %q (want list or set-role)", args[1])
+	return "", nil, fmt.Errorf("users: unknown subcommand %q (want list, set-role, api-key, api-keys or api-key-revoke)", args[1])
 }
 
 func parseSetRoleArgs(args []string) (username, role string, err error) {
@@ -171,6 +195,98 @@ func cmdSetRole(args []string) error {
 		return err
 	}
 	fmt.Printf("role updated: %s -> %s (src=%s active=%v)\n", username, role, u.AuthSource, u.Active)
+	return nil
+}
+
+func cmdCreateAPIKey(args []string) error {
+	fs := flag.NewFlagSet("users api-key", flag.ContinueOnError)
+	u := fs.String("username", "", "login name (required)")
+	n := fs.String("name", "", "key label, e.g. upload script (default: username)")
+	if err := fs.Parse(args); err != nil {
+		return err
+	}
+	if *u == "" {
+		return errors.New("users api-key: --username required")
+	}
+	if !store.ValidUsername(*u) {
+		return fmt.Errorf("invalid username %q", *u)
+	}
+	name := *n
+	if name == "" {
+		name = *u
+	}
+	s, closeStore, err := openAuthStore()
+	if err != nil {
+		return err
+	}
+	defer closeStore()
+	if _, err := s.GetUser(*u); err != nil {
+		if os.IsNotExist(err) {
+			return fmt.Errorf("user not found: %q", *u)
+		}
+		return err
+	}
+	raw, prefix, hash, err := store.GenerateAPIKey()
+	if err != nil {
+		return err
+	}
+	if err := s.CreateAPIKey(store.APIKey{Prefix: prefix, Username: *u, Name: name, KeyHash: hash}); err != nil {
+		return err
+	}
+	// Plaintext is shown once; only its hash is stored.
+	fmt.Printf("api key for %s (%s), prefix %s:\n%s\n", *u, name, prefix, raw)
+	return nil
+}
+
+func cmdListAPIKeys(args []string) error {
+	fs := flag.NewFlagSet("users api-keys", flag.ContinueOnError)
+	u := fs.String("username", "", "only keys of this user (default: all)")
+	if err := fs.Parse(args); err != nil {
+		return err
+	}
+	s, closeStore, err := openAuthStore()
+	if err != nil {
+		return err
+	}
+	defer closeStore()
+	keys, err := s.ListAPIKeys()
+	if err != nil {
+		return err
+	}
+	for _, k := range keys {
+		if *u != "" && k.Username != *u {
+			continue
+		}
+		last := k.LastUsedAt
+		if last == "" {
+			last = "never"
+		}
+		fmt.Printf("%-14s %-20s %-30s last=%s\n", k.Prefix, k.Username, k.Name, last)
+	}
+	return nil
+}
+
+func cmdRevokeAPIKey(args []string) error {
+	fs := flag.NewFlagSet("users api-key-revoke", flag.ContinueOnError)
+	p := fs.String("prefix", "", "public key prefix shown by users api-keys (required)")
+	if err := fs.Parse(args); err != nil {
+		return err
+	}
+	if !store.ValidKeyPrefix(*p) {
+		return errors.New("users api-key-revoke: --prefix must be the 12-character public prefix")
+	}
+	s, closeStore, err := openAuthStore()
+	if err != nil {
+		return err
+	}
+	defer closeStore()
+	if err := s.DeleteAPIKey(*p); err != nil {
+		if os.IsNotExist(err) {
+			return fmt.Errorf("key not found: %q", *p)
+		}
+		return err
+	}
+	fmt.Printf("api key revoked: %s\n", *p)
 	return nil
 }
 

@@ -131,8 +131,9 @@ func (a *application) validateSession(r *http.Request) *store.User {
 func (a *application) withUser(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if u := a.validateSession(r); u != nil {
-			ctx := contextWithUser(r, u)
-			r = r.WithContext(ctx)
+			r = r.WithContext(contextWithUser(r, u))
+		} else if u := a.validateAPIKey(r); u != nil {
+			r = r.WithContext(contextWithUser(r, u))
 		}
 		next.ServeHTTP(w, r)
 	})

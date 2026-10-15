@@ -190,7 +190,14 @@ removes the original, HLS, poster and metadata. There is no undo.
 ### REST API for upload (automation / LLM clients)
 
 Programmatic clients log in with `POST /api/login` (`{"username", "password"}`)
-and reuse the session cookie, exactly like a browser. Uploads stay
+and reuse the session cookie, exactly like a browser. For scripts that should
+not juggle cookies, an administrator can issue a long-lived API key per user
+at `/admin` (section «Κλειδιά API») or with
+`cli.bat users api-key --username U --name N`, and the client sends it as
+`Authorization: Bearer tt-…`. Keys carry the user's role, never expire, and
+are revoked from `/admin` or with `users api-key-revoke --prefix P`; only
+their SHA-256 is stored and the plaintext is shown once at creation.
+Uploads stay
 `multipart/form-data`; only the response format changes. Send
 `Accept: application/json` (or `?format=json`) to get JSON instead of the
 browser `303` redirect. Error responses use the same HTTP status codes with a
@@ -219,6 +226,14 @@ curl -b session.txt -H "Accept: application/json" \
   -F title="Demo" -F desc="Recorded meeting" -F category="Meetings" \
   -F file=@demo.mp4 http://127.0.0.1:8081/api/upload
 curl "http://127.0.0.1:8081/api/video?id=<id>"
+```
+
+With an API key instead of the session cookie:
+
+```sh
+curl -H "Authorization: Bearer tt-..." -H "Accept: application/json" \
+  -F title="Demo" -F desc="Recorded meeting" -F category="Meetings" \
+  -F file=@demo.mp4 http://127.0.0.1:8081/api/upload
 ```
 
 ```python

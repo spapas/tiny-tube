@@ -13,8 +13,11 @@ func TestNormalizeCLIArgs(t *testing.T) {
 	}{
 		{[]string{"users", "list"}, "user-list"},
 		{[]string{"users", "set-role", "--username", "a"}, "user-set-role"},
+		{[]string{"users", "api-key", "--username", "a"}, "user-api-key"},
+		{[]string{"users", "api-keys"}, "user-api-keys"},
+		{[]string{"users", "api-key-revoke", "--prefix", "a2345678b901"}, "user-api-key-revoke"},
 		{[]string{"user-list"}, "user-list"},
-		{[]string{"user-set-role", "--username", "a"}, "user-set-role"},
+		{[]string{"user-api-keys"}, "user-api-keys"},
 	} {
 		command, _, err := normalizeCLIArgs(tc.args)
 		if err != nil || command != tc.command {

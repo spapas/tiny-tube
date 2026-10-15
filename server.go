@@ -168,6 +168,8 @@ func (a *application) routes() http.Handler {
 	mux.Handle("POST /api/admin/users/active", a.limited(a.withUser(a.requireAdmin(http.HandlerFunc(a.handleAdminSetActive)))))
 	mux.Handle("POST /api/admin/users/password", a.limited(a.withUser(a.requireAdmin(http.HandlerFunc(a.handleAdminSetPassword)))))
 	mux.Handle("POST /api/admin/users/delete", a.limited(a.withUser(a.requireAdmin(http.HandlerFunc(a.handleAdminDeleteUser)))))
+	mux.Handle("POST /api/admin/users/keys/create", a.limited(a.withUser(a.requireAdmin(http.HandlerFunc(a.handleAdminCreateKey)))))
+	mux.Handle("POST /api/admin/users/keys/revoke", a.limited(a.withUser(a.requireAdmin(http.HandlerFunc(a.handleAdminRevokeKey)))))
 	mux.HandleFunc("GET /api/videos", a.handleAPIVideos)
 	mux.HandleFunc("GET /api/video", a.handleAPIVideo)
 	mux.HandleFunc("GET /videos/", a.serveVideo)
