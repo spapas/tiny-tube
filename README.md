@@ -185,14 +185,21 @@ JavaScript, its standard multipart form still works. The watch page provides lin
 copying and access to the original file. The interface uses restrained colors and
 task-oriented wording for workplace use. Cards display an extracted poster when
 available and a neutral placeholder otherwise. The player offers speeds from
-0.5× to 2× and attempts playback with sound on load; where the browser blocks
+0.5× to 2× and attempts playback with sound; where the browser blocks
 it, the viewer presses play. The video is never muted.
 
 The watch page links to `/edit?id=<id>` and provides deletion with a confirmation
 prompt. `GET /edit` and `POST /api/edit` require an editor or administrator login;
-`POST /api/delete` and `/admin` require an administrator. Editing changes title/description/category while
+`POST /api/delete` and `/admin` require an administrator. The watch page shows
+management actions only to users holding the matching role. Editing changes title/description/category/visibility while
 preserving playback data. Deletion cancels and waits for active conversion, then
 removes the original, HLS, poster and metadata. There is no undo.
+
+Each authorized watch-page load counts one view, debounced to one per viewer
+address per video every 24 hours so refreshes do not inflate totals; denied
+requests never count. Totals appear on library cards and the watch page, and
+the library offers an optional «Δημοφιλή» sort next to the default recency
+order (`/?sort=views`, mirrored by `/api/videos?sort=views`).
 
 1. An authenticated `POST /api/upload` accepts multipart fields `title` (required),
    `desc`, `category`, and `file`.
@@ -243,8 +250,8 @@ requires the matching role.
 | `POST` | `/logout` | session | Revokes the session cookie. |
 | `POST` | `/api/upload` | editor | Multipart fields `title` (required), `desc`, `category`, `file`, `access_list` (empty for public, otherwise a locked-list id). JSON clients get `201` with `id`, `title`, `status`, `original`, `access_list`, `watch_url`, `video_url`, `api_url`. Browsers get `303` to `/watch?id=`. |
 | `GET` | `/view_list?key=…` | none | HTML page with exactly one locked list's videos; grants an unlock cookie. Without `key`, shows everything the cookie already unlocked. Unknown keys return 404. |
-| `GET` | `/api/videos?q=&category=` | none | JSON `{"total", "count", "q", "category", "items"}` with the same filtering as the library page. Locked videos are excluded unless `?key=…`, an unlock cookie, or an editor/administrator credential is presented; `total` counts only visible videos. |
-| `GET` | `/api/video?id=<id>` | none | JSON metadata for one video, including `status` (`queued`/`processing`/`ready`/`failed`) and `access_list`. `404` when missing or locked without access. |
+| `GET` | `/api/videos?q=&category=` | none | JSON `{"total", "count", "q", "category", "sort", "items"}` with the same filtering as the library page. Locked videos are excluded unless `?key=…`, an unlock cookie, or an editor/administrator credential is presented; `total` counts only visible videos. `sort=views` orders by view count, otherwise by recency. |
+| `GET` | `/api/video?id=<id>` | none | JSON metadata for one video, including `status` (`queued`/`processing`/`ready`/`failed`), `access_list` and `views`. `404` when missing or locked without access. |
 | `POST` | `/api/edit` | editor | Form fields `id`, `title`, `desc`, `category`, `access_list`. JSON clients get `200` with `id`, `title`, `watch_url`, `api_url`. |
 | `POST` | `/api/delete` | admin | Form field `id`. JSON clients get `200` with `{"id", "deleted": true}`. |
 

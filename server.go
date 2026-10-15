@@ -16,6 +16,7 @@ import (
 	"sort"
 	"strings"
 	"sync"
+	"time"
 
 	"tiny-tube/store"
 )
@@ -32,6 +33,8 @@ type application struct {
 	deleting            map[string]bool
 	authRequests        *authLimiter
 	listSignKey         [32]byte
+	viewMu              sync.Mutex
+	viewSeen            map[string]time.Time
 }
 
 type conversionJob struct {
@@ -64,7 +67,7 @@ func newApplication(cfg config) (*application, error) {
 	if err != nil {
 		return nil, err
 	}
-	a := &application{cfg: cfg, videoDir: root, ffmpegBin: bin, wake: make(chan struct{}, cfg.TranscodeWorkers), activeJobs: make(map[string]*conversionJob), deleting: make(map[string]bool)}
+	a := &application{cfg: cfg, videoDir: root, ffmpegBin: bin, wake: make(chan struct{}, cfg.TranscodeWorkers), activeJobs: make(map[string]*conversionJob), deleting: make(map[string]bool), viewSeen: make(map[string]time.Time)}
 	a.authRequests = newAuthLimiter(cfg.AuthRequestsPerMinute)
 	if _, err := rand.Read(a.listSignKey[:]); err != nil {
 		return nil, err
@@ -249,6 +252,7 @@ func (a *application) apiServerError(w http.ResponseWriter, r *http.Request, ope
 func (a *application) handleAPIVideos(w http.ResponseWriter, r *http.Request) {
 	q := r.URL.Query().Get("q")
 	category := r.URL.Query().Get("category")
+	sortParam := r.URL.Query().Get("sort")
 	all, err := a.fs.List("")
 	if err != nil {
 		a.apiServerError(w, r, "list videos", err)
@@ -256,6 +260,11 @@ func (a *application) handleAPIVideos(w http.ResponseWriter, r *http.Request) {
 	}
 	grants := a.resolveGrants(w, r)
 	visible := a.visibleVideos(all, r, grants)
+	if sortParam == "views" {
+		store.SortByViews(visible)
+	} else {
+		sortParam = "recent"
+	}
 	items := make([]store.Meta, 0, len(visible))
 	query := strings.ToLower(strings.TrimSpace(q))
 	for _, m := range visible {
@@ -269,7 +278,7 @@ func (a *application) handleAPIVideos(w http.ResponseWriter, r *http.Request) {
 	}
 	writeJSON(w, http.StatusOK, map[string]any{
 		"total": len(visible), "count": len(items),
-		"q": q, "category": category, "items": items,
+		"q": q, "category": category, "sort": sortParam, "items": items,
 	})
 }
 
@@ -295,6 +304,7 @@ func (a *application) handleAPIVideo(w http.ResponseWriter, r *http.Request) {
 func (a *application) handleList(w http.ResponseWriter, r *http.Request) {
 	q := r.URL.Query().Get("q")
 	category := r.URL.Query().Get("category")
+	sortParam := r.URL.Query().Get("sort")
 	all, err := a.fs.List("")
 	if err != nil {
 		a.serverError(w, "list videos", err)
@@ -303,6 +313,11 @@ func (a *application) handleList(w http.ResponseWriter, r *http.Request) {
 	// Category counts come from the visible set only, so locked videos do
 	// not leak titles or counts to outsiders.
 	visible := a.visibleVideos(all, r, a.resolveGrants(w, r))
+	if sortParam == "views" {
+		store.SortByViews(visible)
+	} else {
+		sortParam = "recent"
+	}
 	type categoryFilter struct {
 		Name     string
 		Count    int
@@ -328,7 +343,7 @@ func (a *application) handleList(w http.ResponseWriter, r *http.Request) {
 		categories = append(categories, categoryFilter{name, count, name == category})
 	}
 	sort.Slice(categories, func(i, j int) bool { return categories[i].Name < categories[j].Name })
-	a.renderPage(w, r, listTmpl, map[string]any{"Page": "list", "Title": "Βιβλιοθήκη", "Items": items, "Q": q, "Category": category, "Categories": categories, "Total": len(visible)})
+	a.renderPage(w, r, listTmpl, map[string]any{"Page": "list", "Title": "Βιβλιοθήκη", "Items": items, "Q": q, "Category": category, "Sort": sortParam, "Categories": categories, "Total": len(visible)})
 }
 
 func (a *application) handleWatch(w http.ResponseWriter, r *http.Request) {
@@ -346,6 +361,7 @@ func (a *application) handleWatch(w http.ResponseWriter, r *http.Request) {
 		http.NotFound(w, r)
 		return
 	}
+	m.Views = a.countView(r, m.ID, m.Views)
 	data := map[string]any{"Page": "watch", "Title": m.Title, "Video": m}
 	if m.AccessList != "" {
 		w.Header().Set("Cache-Control", "no-store")

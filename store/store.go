@@ -24,6 +24,7 @@ type Meta struct {
 	Status     string `json:"status"`
 	Error      string `json:"error,omitempty"`
 	AccessList string `json:"access_list,omitempty"`
+	Views      int64  `json:"views"`
 }
 
 var validID = regexp.MustCompile(`^[A-Za-z0-9_-]{1,64}$`)
@@ -36,6 +37,8 @@ type Store interface {
 	Put(m Meta) error
 	Delete(id string) error
 	Dir(id string) string
+	// IncrementViews atomically adds one view and returns the new total.
+	IncrementViews(id string) (int64, error)
 	AuthStore
 	AccessListStore
 }
@@ -73,6 +76,10 @@ func removeAllRetry(dir string) error {
 func (s *FS) Put(m Meta) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
+	return s.putLocked(m)
+}
+
+func (s *FS) putLocked(m Meta) error {
 	if !ValidID(m.ID) {
 		return os.ErrInvalid
 	}
@@ -117,6 +124,10 @@ func (s *FS) Put(m Meta) error {
 func (s *FS) Get(id string) (Meta, error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
+	return s.getLocked(id)
+}
+
+func (s *FS) getLocked(id string) (Meta, error) {
 	var m Meta
 	if !ValidID(id) {
 		return m, os.ErrInvalid
@@ -171,4 +182,36 @@ func sortMetadata(out []Meta) {
 		}
 		return ti.After(tj)
 	})
+}
+
+// SortByViews orders newest-first metadata by view count instead, keeping
+// chronological order as the tiebreak.
+func SortByViews(out []Meta) {
+	sort.Slice(out, func(i, j int) bool {
+		if out[i].Views != out[j].Views {
+			return out[i].Views > out[j].Views
+		}
+		ti, _ := time.Parse(time.RFC3339Nano, out[i].Created)
+		tj, _ := time.Parse(time.RFC3339Nano, out[j].Created)
+		if ti.Equal(tj) {
+			return out[i].ID > out[j].ID
+		}
+		return ti.After(tj)
+	})
+}
+
+// IncrementViews adds one view under the store lock so concurrent metadata
+// edits cannot lose counts.
+func (s *FS) IncrementViews(id string) (int64, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	m, err := s.getLocked(id)
+	if err != nil {
+		return 0, err
+	}
+	m.Views++
+	if err := s.putLocked(m); err != nil {
+		return 0, err
+	}
+	return m.Views, nil
 }

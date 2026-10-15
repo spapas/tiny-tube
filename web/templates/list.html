@@ -12,7 +12,7 @@
   </section>
 
   <section class="library-content" aria-labelledby="videos-title">
-    <div class="section-heading"><h2 id="videos-title">Βίντεο <span class="count-bubble">{{.Total}}</span></h2><span class="section-note">Ταξινόμηση: πιο πρόσφατα</span></div>
+    <div class="section-heading"><h2 id="videos-title">Βίντεο <span class="count-bubble">{{.Total}}</span></h2><span class="section-note">Ταξινόμηση: {{if eq .Sort "views"}}δημοφιλή{{else}}πιο πρόσφατα{{end}}</span></div>
     <div class="library-toolbar">
       <form class="search-form" method="GET" action="/" role="search">
         {{template "search"}}<label class="sr-only" for="search">Αναζήτηση βίντεο</label>
@@ -23,8 +23,12 @@
       <span class="result-count">{{videoCount (len .Items)}}</span>
     </div>
     <nav class="category-filters" aria-label="Φίλτρα κατηγορίας">
-      <a class="filter-chip{{if not .Category}} is-selected{{end}}" href="{{filterURL .Q ""}}" {{if not .Category}}aria-current="true"{{end}}>Όλα <span>{{.Total}}</span></a>
-      {{range .Categories}}<a class="filter-chip{{if .Selected}} is-selected{{end}}" href="{{filterURL $.Q .Name}}" {{if .Selected}}aria-current="true"{{end}}>{{.Name}} <span>{{.Count}}</span></a>{{end}}
+      <a class="filter-chip{{if not .Category}} is-selected{{end}}" href="{{sortURL .Q "" .Sort}}" {{if not .Category}}aria-current="true"{{end}}>Όλα <span>{{.Total}}</span></a>
+      {{range .Categories}}<a class="filter-chip{{if .Selected}} is-selected{{end}}" href="{{sortURL $.Q .Name $.Sort}}" {{if .Selected}}aria-current="true"{{end}}>{{.Name}} <span>{{.Count}}</span></a>{{end}}
+    </nav>
+    <nav class="category-filters" aria-label="Ταξινόμηση">
+      <a class="filter-chip{{if ne .Sort "views"}} is-selected{{end}}" href="{{sortURL .Q .Category ""}}" {{if ne .Sort "views"}}aria-current="true"{{end}}>Πιο πρόσφατα</a>
+      <a class="filter-chip{{if eq .Sort "views"}} is-selected{{end}}" href="{{sortURL .Q .Category "views"}}" {{if eq .Sort "views"}}aria-current="true"{{end}}>Δημοφιλή</a>
     </nav>
     {{if or .Q .Category}}<div class="active-search"><span>Αποτελέσματα{{if .Q}} για «{{.Q}}»{{end}}{{if .Category}} στην κατηγορία «{{.Category}}»{{end}}</span><a href="/">Καθαρισμός φίλτρων {{template "close"}}</a></div>{{end}}
     <div class="video-grid">
@@ -32,7 +36,7 @@
       <article class="video-card">
         <a class="video-card-link" href="/watch?id={{.ID}}">
           <div class="video-cover" aria-hidden="true">{{if .Poster}}<img class="video-poster" loading="lazy" src="/videos/{{.ID}}/{{.Poster}}" alt="">{{end}}<span class="cover-type">{{template "film"}} ΒΙΝΤΕΟ</span><span class="cover-play">{{template "play"}}</span></div>
-          <div class="card-body"><div class="card-topline"><span class="card-category">{{if .Category}}{{.Category}}{{else}}Χωρίς κατηγορία{{end}}{{if .AccessList}} · Κλειδωμένο{{end}}</span><span class="status-badge status-{{statusClass .Status}}"><span></span>{{statusLabel .Status}}</span></div><h3>{{.Title}}</h3><p class="card-description">{{if .Desc}}{{.Desc}}{{else}}Δεν έχει προστεθεί περιγραφή.{{end}}</p><div class="card-bottom"><span>{{template "clock"}} {{formatDate .Created}}</span><span class="card-open">Προβολή {{template "arrow"}}</span></div></div>
+          <div class="card-body"><div class="card-topline"><span class="card-category">{{if .Category}}{{.Category}}{{else}}Χωρίς κατηγορία{{end}}{{if .AccessList}} · Κλειδωμένο{{end}}</span><span class="status-badge status-{{statusClass .Status}}"><span></span>{{statusLabel .Status}}</span></div><h3>{{.Title}}</h3><p class="card-description">{{if .Desc}}{{.Desc}}{{else}}Δεν έχει προστεθεί περιγραφή.{{end}}</p><div class="card-bottom"><span>{{template "clock"}} {{formatDate .Created}}</span><span>{{viewCount .Views}}</span><span class="card-open">Προβολή {{template "arrow"}}</span></div></div>
         </a>
       </article>
       {{else}}

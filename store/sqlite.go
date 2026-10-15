@@ -30,7 +30,8 @@ const sqliteSchema = `CREATE TABLE IF NOT EXISTS videos (
   poster TEXT NOT NULL DEFAULT '',
   status TEXT NOT NULL DEFAULT '',
   error TEXT NOT NULL DEFAULT '',
-  access_list TEXT NOT NULL DEFAULT ''
+  access_list TEXT NOT NULL DEFAULT '',
+  views INTEGER NOT NULL DEFAULT 0
 );
 CREATE TABLE IF NOT EXISTS access_lists (
   id TEXT PRIMARY KEY,
@@ -128,6 +129,12 @@ func migrateSQLite(db *sql.DB) error {
 			return err
 		}
 	}
+	// Preserve databases created before view counts existed.
+	if !columns["views"] {
+		if _, err = db.Exec(`ALTER TABLE videos ADD COLUMN views INTEGER NOT NULL DEFAULT 0`); err != nil {
+			return err
+		}
+	}
 	// Preserve databases created before user display names were persisted.
 	if _, err = db.Exec(`ALTER TABLE users ADD COLUMN display_name TEXT NOT NULL DEFAULT ''`); err != nil {
 		if !strings.Contains(err.Error(), "duplicate column name") {
@@ -165,13 +172,13 @@ func (s *SQLite) Put(m Meta) error {
 	if m.Created == "" {
 		m.Created = time.Now().UTC().Format(time.RFC3339Nano)
 	}
-	_, err := s.db.Exec(`INSERT INTO videos(id,title,description,category,created,original,hls,poster,status,error,access_list)
-		VALUES(?,?,?,?,?,?,?,?,?,?,?)
+	_, err := s.db.Exec(`INSERT INTO videos(id,title,description,category,created,original,hls,poster,status,error,access_list,views)
+		VALUES(?,?,?,?,?,?,?,?,?,?,?,?)
 		ON CONFLICT(id) DO UPDATE SET title=excluded.title,description=excluded.description,
 			category=excluded.category,created=excluded.created,original=excluded.original,
 			hls=excluded.hls,poster=excluded.poster,status=excluded.status,error=excluded.error,
-			access_list=excluded.access_list`,
-		m.ID, m.Title, m.Desc, m.Category, m.Created, m.Original, m.HLS, m.Poster, m.Status, m.Error, m.AccessList)
+			access_list=excluded.access_list,views=excluded.views`,
+		m.ID, m.Title, m.Desc, m.Category, m.Created, m.Original, m.HLS, m.Poster, m.Status, m.Error, m.AccessList, m.Views)
 	return err
 }
 
@@ -180,9 +187,9 @@ func (s *SQLite) Get(id string) (Meta, error) {
 	if !ValidID(id) {
 		return m, os.ErrInvalid
 	}
-	err := s.db.QueryRow(`SELECT id,title,description,category,created,original,hls,poster,status,error,access_list
+	err := s.db.QueryRow(`SELECT id,title,description,category,created,original,hls,poster,status,error,access_list,views
 		FROM videos WHERE id=?`, id).
-		Scan(&m.ID, &m.Title, &m.Desc, &m.Category, &m.Created, &m.Original, &m.HLS, &m.Poster, &m.Status, &m.Error, &m.AccessList)
+		Scan(&m.ID, &m.Title, &m.Desc, &m.Category, &m.Created, &m.Original, &m.HLS, &m.Poster, &m.Status, &m.Error, &m.AccessList, &m.Views)
 	if errors.Is(err, sql.ErrNoRows) {
 		return m, os.ErrNotExist
 	}
@@ -191,7 +198,7 @@ func (s *SQLite) Get(id string) (Meta, error) {
 
 func (s *SQLite) List(q string) ([]Meta, error) {
 	q = strings.ToLower(strings.TrimSpace(q))
-	rows, err := s.db.Query(`SELECT id,title,description,category,created,original,hls,poster,status,error,access_list FROM videos`)
+	rows, err := s.db.Query(`SELECT id,title,description,category,created,original,hls,poster,status,error,access_list,views FROM videos`)
 	if err != nil {
 		return nil, err
 	}
@@ -199,7 +206,7 @@ func (s *SQLite) List(q string) ([]Meta, error) {
 	var out []Meta
 	for rows.Next() {
 		var m Meta
-		if err := rows.Scan(&m.ID, &m.Title, &m.Desc, &m.Category, &m.Created, &m.Original, &m.HLS, &m.Poster, &m.Status, &m.Error, &m.AccessList); err != nil {
+		if err := rows.Scan(&m.ID, &m.Title, &m.Desc, &m.Category, &m.Created, &m.Original, &m.HLS, &m.Poster, &m.Status, &m.Error, &m.AccessList, &m.Views); err != nil {
 			return nil, err
 		}
 		// Go's Unicode case folding matches the FS backend, including Greek text.
@@ -221,9 +228,9 @@ func ImportFS(s *SQLite, root string) (int, error) {
 	}
 	n := 0
 	for _, m := range metas {
-		res, err := s.db.Exec(`INSERT INTO videos(id,title,description,category,created,original,hls,poster,status,error,access_list)
-			VALUES(?,?,?,?,?,?,?,?,?,?,?) ON CONFLICT(id) DO NOTHING`,
-			m.ID, m.Title, m.Desc, m.Category, m.Created, m.Original, m.HLS, m.Poster, m.Status, m.Error, m.AccessList)
+		res, err := s.db.Exec(`INSERT INTO videos(id,title,description,category,created,original,hls,poster,status,error,access_list,views)
+			VALUES(?,?,?,?,?,?,?,?,?,?,?,?) ON CONFLICT(id) DO NOTHING`,
+			m.ID, m.Title, m.Desc, m.Category, m.Created, m.Original, m.HLS, m.Poster, m.Status, m.Error, m.AccessList, m.Views)
 		if err != nil {
 			return n, err
 		}
@@ -472,6 +479,26 @@ func (s *SQLite) DeleteUserSessions(username string) error {
 func (s *SQLite) PruneSessions(now time.Time) error {
 	_, err := s.db.Exec(`DELETE FROM sessions WHERE expires_at <= ?`, now.UTC().Format(time.RFC3339Nano))
 	return err
+}
+
+// IncrementViews atomically adds one view. The single connection serializes
+// concurrent increments without losing counts.
+func (s *SQLite) IncrementViews(id string) (int64, error) {
+	if !ValidID(id) {
+		return 0, os.ErrInvalid
+	}
+	res, err := s.db.Exec(`UPDATE videos SET views=views+1 WHERE id=?`, id)
+	if err != nil {
+		return 0, err
+	}
+	if aff, _ := res.RowsAffected(); aff == 0 {
+		return 0, os.ErrNotExist
+	}
+	var views int64
+	if err := s.db.QueryRow(`SELECT views FROM videos WHERE id=?`, id).Scan(&views); err != nil {
+		return 0, err
+	}
+	return views, nil
 }
 
 func (s *SQLite) GetAccessList(id string) (AccessList, error) {

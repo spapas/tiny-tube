@@ -181,12 +181,28 @@ func TestHandleDelete(t *testing.T) {
 func TestHandleWatchAdminButtons(t *testing.T) {
 	a := setupTestFS(t)
 	_ = a.fs.Put(store.Meta{ID: "a1", Title: "Adm", Status: "ready"})
+	// Anonymous visitors see no management actions.
 	r := httptest.NewRequest("GET", "/watch?id=a1", nil)
 	w := httptest.NewRecorder()
 	a.handleWatch(w, r)
 	body := w.Body.String()
+	if strings.Contains(body, "manage-card") {
+		t.Error("anonymous watch page should hide management actions")
+	}
+	// Editors get edit only; administrators get edit and delete.
+	ed := r.WithContext(contextWithUser(r, &store.User{Username: "ed", Role: store.RoleEditor, Active: true}))
+	w = httptest.NewRecorder()
+	a.handleWatch(w, ed)
+	body = w.Body.String()
+	if !strings.Contains(body, `href="/edit?id=a1"`) || strings.Contains(body, `action="/api/delete"`) {
+		t.Error("editor watch page should link edit but not delete")
+	}
+	admin := r.WithContext(contextWithUser(r, &store.User{Username: "admin", Role: store.RoleAdmin, Active: true}))
+	w = httptest.NewRecorder()
+	a.handleWatch(w, admin)
+	body = w.Body.String()
 	if !strings.Contains(body, `href="/edit?id=a1"`) || !strings.Contains(body, `action="/api/delete"`) {
-		t.Error("watch page should link edit + delete actions")
+		t.Error("admin watch page should link edit + delete actions")
 	}
 }
 

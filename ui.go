@@ -21,6 +21,12 @@ var pageTemplates = template.Must(template.New("pages").Funcs(template.FuncMap{
 	"statusLabel":  statusLabel,
 	"statusClass":  statusClass,
 	"videoCount":   func(n int) string { return fmt.Sprintf("%d βίντεο", n) },
+	"viewCount": func(n int64) string {
+		if n == 1 {
+			return "1 προβολή"
+		}
+		return fmt.Sprintf("%d προβολές", n)
+	},
 	"filterURL": func(q, category string) string {
 		values := url.Values{}
 		if q != "" {
@@ -28,6 +34,22 @@ var pageTemplates = template.Must(template.New("pages").Funcs(template.FuncMap{
 		}
 		if category != "" {
 			values.Set("category", category)
+		}
+		if len(values) == 0 {
+			return "/"
+		}
+		return "/?" + values.Encode()
+	},
+	"sortURL": func(q, category, sort string) string {
+		values := url.Values{}
+		if q != "" {
+			values.Set("q", q)
+		}
+		if category != "" {
+			values.Set("category", category)
+		}
+		if sort == "views" {
+			values.Set("sort", sort)
 		}
 		if len(values) == 0 {
 			return "/"
