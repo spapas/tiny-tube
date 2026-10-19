@@ -45,6 +45,36 @@ func TestIncrementViews(t *testing.T) {
 	}
 }
 
+// TestPutPreservesConcurrentViews reproduces a lost update: an edit that read
+// metadata before a view increment would otherwise write its stale count back
+// and revert the increment. Put must leave the views field to IncrementViews.
+func TestPutPreservesConcurrentViews(t *testing.T) {
+	for name, s := range testAccessListStores(t) {
+		t.Run(name, func(t *testing.T) {
+			if err := s.Put(Meta{ID: "vid", Title: "v", Original: "original.mp4", Status: "ready"}); err != nil {
+				t.Fatal(err)
+			}
+			stale, err := s.Get("vid")
+			if err != nil {
+				t.Fatal(err)
+			}
+			for i := 0; i < 2; i++ {
+				if _, err := s.IncrementViews("vid"); err != nil {
+					t.Fatal(err)
+				}
+			}
+			stale.Title = "edited after the increments"
+			if err := s.Put(stale); err != nil {
+				t.Fatal(err)
+			}
+			m, err := s.Get("vid")
+			if err != nil || m.Views != 2 || m.Title != "edited after the increments" {
+				t.Fatalf("stale Put reverted views: %+v %v", m, err)
+			}
+		})
+	}
+}
+
 func TestIncrementViewsConcurrent(t *testing.T) {
 	for name, s := range testAccessListStores(t) {
 		t.Run(name, func(t *testing.T) {

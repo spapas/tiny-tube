@@ -22,6 +22,10 @@ import (
 // creation. Keys never expire; revoke them when they leak or rotate staff.
 // Deactivating or deleting the user disables its keys as well.
 
+// apiKeyTouchInterval bounds last_used_at writes: a busy client must not cause
+// a metadata write on every authenticated request.
+const apiKeyTouchInterval = 5 * time.Minute
+
 // validateAPIKey resolves a Bearer token to its active user. Unknown,
 // mismatched or orphaned keys stay anonymous, like a stale session cookie.
 func (a *application) validateAPIKey(r *http.Request) *store.User {
@@ -44,8 +48,11 @@ func (a *application) validateAPIKey(r *http.Request) *store.User {
 	if err != nil || !u.Active {
 		return nil
 	}
-	if err := a.fs.TouchAPIKey(prefix, time.Now()); err != nil {
-		log.Printf("touch API key %q: %v", prefix, err)
+	now := time.Now()
+	if last, err := time.Parse(time.RFC3339Nano, k.LastUsedAt); err != nil || now.Sub(last) >= apiKeyTouchInterval {
+		if err := a.fs.TouchAPIKey(prefix, now); err != nil {
+			log.Printf("touch API key %q: %v", prefix, err)
+		}
 	}
 	return &u
 }

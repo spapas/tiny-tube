@@ -160,6 +160,7 @@ func TestShutdownRequeuesAndRestartResumes(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	t.Cleanup(func() { restarted.close() })
 	restarted.runFFmpeg = fakeHLS
 	startTestWorkers(t, restarted)
 	waitStatus(t, restarted, "interrupted", "ready")
@@ -188,6 +189,7 @@ func TestStartupReconcilesInterruptedJobs(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
+			t.Cleanup(func() { a.close() })
 			want := "failed"
 			if present {
 				want = "queued"
@@ -211,6 +213,7 @@ func TestRealFFmpegUploadAndHLS(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	t.Cleanup(func() { a.close() })
 	startTestWorkers(t, a)
 	server := httptest.NewServer(a.routes())
 	defer server.Close()

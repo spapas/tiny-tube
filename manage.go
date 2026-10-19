@@ -80,7 +80,7 @@ func (a *application) handleEdit(w http.ResponseWriter, r *http.Request) {
 	}
 	m.Title, m.Desc, m.Category = title, desc, category
 	m.AccessList = accessList
-	if err := a.fs.Put(m); err != nil {
+	if err := a.putMeta(m); err != nil {
 		a.apiServerError(w, r, "edit video", err)
 		return
 	}
@@ -120,7 +120,7 @@ func (a *application) handleDelete(w http.ResponseWriter, r *http.Request) {
 		if !deleted && a.activeJobs[id] == nil {
 			if m, err := a.fs.Get(id); err == nil && m.Status == "processing" {
 				m.Status = "queued"
-				if err := a.fs.Put(m); err != nil {
+				if err := a.putMeta(m); err != nil {
 					log.Printf("restore canceled job %s: %v", id, err)
 				}
 			}
@@ -143,7 +143,7 @@ func (a *application) handleDelete(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	a.claimMu.Lock()
-	err := a.fs.Delete(id)
+	err := a.deleteMeta(id)
 	a.claimMu.Unlock()
 	if err != nil {
 		a.apiServerError(w, r, "delete video", err)

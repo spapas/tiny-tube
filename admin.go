@@ -34,8 +34,8 @@ func (a *application) adminData(r *http.Request, section string) (map[string]any
 	return map[string]any{
 		"Page": "admin", "Title": "Διαχείριση", "AdminSection": section,
 		"Users": users, "VideoTotal": len(videos), "ByStatus": byStatus,
-		"StorageOK": checkWritable(a.videoDir) == nil,
-		"FFmpeg":    a.ffmpegBin, "Error": r.URL.Query().Get("error"),
+		"StorageOK": checkWritable(a.videoDir) == nil, "MetadataOK": true,
+		"FFmpeg": a.ffmpegBin, "Error": r.URL.Query().Get("error"),
 		"Notice": r.URL.Query().Get("notice"), "APIKeys": keys,
 	}, nil
 }
@@ -46,11 +46,7 @@ func (a *application) handleAdmin(w http.ResponseWriter, r *http.Request) {
 		a.serverError(w, "admin data", err)
 		return
 	}
-	if _, err := a.fs.List(""); err != nil {
-		data["MetadataOK"] = false
-	} else {
-		data["MetadataOK"] = true
-	}
+	// adminData already read metadata above; success means it is readable.
 	a.renderPage(w, r, adminTmpl, data)
 }
 

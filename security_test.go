@@ -232,10 +232,14 @@ func TestPublicMediaRejectsPrivateFilesAndUnsafePaths(t *testing.T) {
 	if err := os.WriteFile(filepath.Join(a.fs.Dir("check"), ".meta-private.json"), []byte("private"), 0o600); err != nil {
 		t.Fatal(err)
 	}
+	// Metadata JSON is not media: a non-dot .json file must not be public.
+	if err := os.WriteFile(filepath.Join(a.fs.Dir("check"), "meta.json"), []byte("private"), 0o600); err != nil {
+		t.Fatal(err)
+	}
 	if err := os.Mkdir(filepath.Join(a.fs.Dir("check"), "directory.mp4"), 0o755); err != nil {
 		t.Fatal(err)
 	}
-	for _, path := range []string{"/videos/check/.meta-private.json", "/videos/check/directory.mp4", "/videos/check/sub%5c..%5c..%5cprivate.mp4", "/videos/check/original.mp4:private", "/videos/check/staging/.hls/data.ts"} {
+	for _, path := range []string{"/videos/check/.meta-private.json", "/videos/check/meta.json", "/videos/check/directory.mp4", "/videos/check/sub%5c..%5c..%5cprivate.mp4", "/videos/check/original.mp4:private", "/videos/check/staging/.hls/data.ts"} {
 		w := httptest.NewRecorder()
 		h.ServeHTTP(w, httptest.NewRequest("GET", path, nil))
 		if w.Code != 404 {

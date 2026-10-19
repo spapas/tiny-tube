@@ -127,7 +127,7 @@ func (a *application) handleUpload(w http.ResponseWriter, r *http.Request) {
 	if a.ffmpegBin != "" {
 		m.Status = "queued"
 	}
-	if err = a.fs.Put(m); err != nil {
+	if err = a.putMeta(m); err != nil {
 		a.apiServerError(w, r, "save metadata", err)
 		return
 	}

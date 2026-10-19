@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"io/fs"
 	"net/http"
 	"os"
@@ -24,7 +25,7 @@ func publicMediaPath(name string) bool {
 		}
 	}
 	switch strings.ToLower(filepath.Ext(name)) {
-	case ".mp4", ".mov", ".mkv", ".webm", ".m3u8", ".ts", ".jpg", ".jpeg", ".png", ".json":
+	case ".mp4", ".mov", ".mkv", ".webm", ".m3u8", ".ts", ".jpg", ".jpeg", ".png":
 		return true
 	}
 	return false
@@ -32,7 +33,7 @@ func publicMediaPath(name string) bool {
 
 type publicMediaFS struct {
 	root         *os.Root
-	privatePaths []string
+	privatePaths func() []string
 }
 
 func (s publicMediaFS) Open(name string) (fs.File, error) {
@@ -54,7 +55,7 @@ func (s publicMediaFS) Open(name string) (fs.File, error) {
 		return nil, fs.ErrNotExist
 	}
 	// A DB hard link or in-tree symlink can carry an innocent media extension.
-	for _, privatePath := range s.privatePaths {
+	for _, privatePath := range s.privatePaths() {
 		if private, err := os.Stat(privatePath); err == nil && os.SameFile(info, private) {
 			f.Close()
 			return nil, fs.ErrNotExist
@@ -72,13 +73,13 @@ func (a *application) serveVideo(w http.ResponseWriter, r *http.Request) {
 	// Locked videos are gated by list key even on guessed direct URLs.
 	// Metadata-less orphans keep the historical public behavior.
 	if id, _, _ := strings.Cut(name, "/"); id != "" {
-		if m, err := a.fs.Get(id); err == nil && m.AccessList != "" {
+		if access, ok := a.mediaAccessList(id); ok && access != "" {
 			grants := a.resolveGrants(w, r)
 			u := currentUser(r)
 			if u == nil {
 				u = a.requestUserLazy(r)
 			}
-			if !canViewList(m, u, grants) {
+			if !canViewList(store.Meta{AccessList: access}, u, grants) {
 				http.NotFound(w, r)
 				return
 			}
@@ -86,18 +87,64 @@ func (a *application) serveVideo(w http.ResponseWriter, r *http.Request) {
 			w.Header().Set("Cache-Control", "no-store")
 		}
 	}
-	root, err := os.OpenRoot(a.videoDir)
+	a.mediaServer.ServeHTTP(w, r)
+}
+
+// mediaAccessList resolves a video's access-list id for media serving. It uses
+// a small in-process cache so each HLS segment, poster and Range request does
+// not hit metadata storage; putMeta/deleteMeta keep it in sync. Missing rows
+// keep the historical public-orphan behavior and are not cached, so guessed
+// ids cannot grow the map. Concurrent os.Root use is safe.
+func (a *application) mediaAccessList(id string) (string, bool) {
+	a.accessMu.RLock()
+	v, ok := a.accessCache[id]
+	a.accessMu.RUnlock()
+	if ok {
+		return v, true
+	}
+	m, err := a.fs.Get(id)
 	if err != nil {
-		a.serverError(w, "open media storage", err)
-		return
-	}
-	defer root.Close()
-	var privatePaths []string
-	if a.cfg.DBPath != "" {
-		for _, suffix := range []string{"", "-wal", "-shm", "-journal"} {
-			privatePaths = append(privatePaths, a.cfg.DBPath+suffix)
+		if errors.Is(err, os.ErrNotExist) || errors.Is(err, os.ErrInvalid) {
+			return "", true
 		}
+		return "", false
 	}
-	media := http.FileServer(http.FS(publicMediaFS{root: root, privatePaths: privatePaths}))
-	http.StripPrefix("/videos/", media).ServeHTTP(w, r)
+	a.accessMu.Lock()
+	a.accessCache[id] = m.AccessList
+	a.accessMu.Unlock()
+	return m.AccessList, true
+}
+
+// putMeta centralizes video metadata writes so a visibility change invalidates
+// the media access cache instead of leaving a stale public/locked decision.
+func (a *application) putMeta(m store.Meta) error {
+	if err := a.fs.Put(m); err != nil {
+		return err
+	}
+	a.accessMu.Lock()
+	a.accessCache[m.ID] = m.AccessList
+	a.accessMu.Unlock()
+	return nil
+}
+
+func (a *application) deleteMeta(id string) error {
+	if err := a.fs.Delete(id); err != nil {
+		return err
+	}
+	a.accessMu.Lock()
+	delete(a.accessCache, id)
+	a.accessMu.Unlock()
+	return nil
+}
+
+// privateMediaPaths lists the database files that must never be served as media.
+func privateMediaPaths(dbPath string) []string {
+	if dbPath == "" {
+		return nil
+	}
+	paths := make([]string, 0, 4)
+	for _, suffix := range []string{"", "-wal", "-shm", "-journal"} {
+		paths = append(paths, dbPath+suffix)
+	}
+	return paths
 }

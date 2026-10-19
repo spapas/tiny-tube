@@ -13,6 +13,22 @@ headers, slow-request/conversion deadlines and an outdated Go build toolchain.
 It passes 121 tests/subtests on Go 1.27.2. The newer JSON API is included; the
 historical merge verification below remains a record of that earlier snapshot.
 
+## Follow-up performance and correctness fixes — 2026-10-19
+
+- Metadata writes no longer revert a concurrent view increment: `Put` preserves
+  the stored `views` value and `IncrementViews` owns the column, in both
+  backends (regression test `TestPutPreservesConcurrentViews`).
+- Media serving no longer exposes `.json` files; only real media extensions are
+  public, so a legacy `meta.json` is not downloadable (`publicMediaPath`).
+- `/videos/` reuses one `os.Root` and a prebuilt file server instead of opening
+  the storage root per request, and a small in-process cache avoids a metadata
+  lookup for every HLS segment, poster and Range request. Metadata writes
+  (`putMeta`/`deleteMeta`) invalidate the cache; missing rows stay uncached.
+- Unlock grants resolve list prefixes with a single metadata read instead of one
+  lookup per unlocked prefix, and API-key `last_used_at` is written at most once
+  every five minutes instead of on every authenticated request.
+- The admin overview no longer reads the metadata list twice.
+
 ## Merge integration
 
 The professional responsive light/dark interface, upload validation, random IDs,

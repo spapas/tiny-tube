@@ -76,6 +76,12 @@ func removeAllRetry(dir string) error {
 func (s *FS) Put(m Meta) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
+	// A metadata edit must not revert a concurrent IncrementViews: keep the
+	// stored count and let IncrementViews own the views field. putLocked stays
+	// the raw writer that view increments use.
+	if existing, err := s.getLocked(m.ID); err == nil {
+		m.Views = existing.Views
+	}
 	return s.putLocked(m)
 }
 

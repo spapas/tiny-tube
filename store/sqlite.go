@@ -172,12 +172,15 @@ func (s *SQLite) Put(m Meta) error {
 	if m.Created == "" {
 		m.Created = time.Now().UTC().Format(time.RFC3339Nano)
 	}
+	// A metadata edit must not revert a concurrent IncrementViews: the views
+	// column is owned by IncrementViews (a dedicated atomic UPDATE) and is only
+	// seeded here when a row is first inserted.
 	_, err := s.db.Exec(`INSERT INTO videos(id,title,description,category,created,original,hls,poster,status,error,access_list,views)
 		VALUES(?,?,?,?,?,?,?,?,?,?,?,?)
 		ON CONFLICT(id) DO UPDATE SET title=excluded.title,description=excluded.description,
 			category=excluded.category,created=excluded.created,original=excluded.original,
 			hls=excluded.hls,poster=excluded.poster,status=excluded.status,error=excluded.error,
-			access_list=excluded.access_list,views=excluded.views`,
+			access_list=excluded.access_list`,
 		m.ID, m.Title, m.Desc, m.Category, m.Created, m.Original, m.HLS, m.Poster, m.Status, m.Error, m.AccessList, m.Views)
 	return err
 }

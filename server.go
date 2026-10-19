@@ -35,6 +35,10 @@ type application struct {
 	listSignKey         [32]byte
 	viewMu              sync.Mutex
 	viewSeen            map[string]time.Time
+	mediaRoot           *os.Root
+	mediaServer         http.Handler
+	accessMu            sync.RWMutex
+	accessCache         map[string]string
 }
 
 type conversionJob struct {
@@ -67,7 +71,7 @@ func newApplication(cfg config) (*application, error) {
 	if err != nil {
 		return nil, err
 	}
-	a := &application{cfg: cfg, videoDir: root, ffmpegBin: bin, wake: make(chan struct{}, cfg.TranscodeWorkers), activeJobs: make(map[string]*conversionJob), deleting: make(map[string]bool), viewSeen: make(map[string]time.Time)}
+	a := &application{cfg: cfg, videoDir: root, ffmpegBin: bin, wake: make(chan struct{}, cfg.TranscodeWorkers), activeJobs: make(map[string]*conversionJob), deleting: make(map[string]bool), viewSeen: make(map[string]time.Time), accessCache: make(map[string]string)}
 	a.authRequests = newAuthLimiter(cfg.AuthRequestsPerMinute)
 	if _, err := rand.Read(a.listSignKey[:]); err != nil {
 		return nil, err
@@ -107,6 +111,14 @@ func newApplication(cfg config) (*application, error) {
 	default:
 		return nil, fmt.Errorf("STORE must be sqlite or fs")
 	}
+	// Open the media root once and reuse the handler; os.Root is safe for
+	// concurrent use, so per-request opens are unnecessary.
+	a.mediaRoot, err = os.OpenRoot(root)
+	if err != nil {
+		a.close()
+		return nil, err
+	}
+	a.mediaServer = http.StripPrefix("/videos/", http.FileServer(http.FS(publicMediaFS{root: a.mediaRoot, privatePaths: func() []string { return privateMediaPaths(a.cfg.DBPath) }})))
 	a.runFFmpeg = func(ctx context.Context, bin string, args []string) error {
 		cmd := exec.CommandContext(ctx, bin, args...)
 		cmd.Stdout, cmd.Stderr = log.Writer(), log.Writer()
@@ -124,10 +136,14 @@ func newApplication(cfg config) (*application, error) {
 }
 
 func (a *application) close() error {
+	var err error
 	if closer, ok := a.fs.(interface{ Close() error }); ok {
-		return closer.Close()
+		err = closer.Close()
 	}
-	return nil
+	if a.mediaRoot != nil {
+		err = errors.Join(err, a.mediaRoot.Close())
+	}
+	return err
 }
 
 func checkWritable(root string) error {

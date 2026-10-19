@@ -91,7 +91,7 @@ func (a *application) recoverJobs() error {
 		} else {
 			m.Status = "queued"
 		}
-		if err = a.fs.Put(m); err != nil {
+		if err = a.putMeta(m); err != nil {
 			return fmt.Errorf("recover %s: %w", m.ID, err)
 		}
 	}
@@ -158,7 +158,7 @@ func (a *application) claimJob(ctx context.Context) (store.Meta, bool, error) {
 			continue
 		}
 		m.Status, m.Error = "processing", ""
-		if err := a.fs.Put(m); err != nil {
+		if err := a.putMeta(m); err != nil {
 			return m, false, err
 		}
 		jobCtx, cancel := context.WithTimeout(ctx, time.Duration(a.cfg.TranscodeTimeoutSeconds)*time.Second)
@@ -211,7 +211,7 @@ func (a *application) transcode(ctx context.Context, m store.Meta) {
 			m.Poster = poster
 		}
 	}
-	if putErr := a.fs.Put(m); putErr != nil {
+	if putErr := a.putMeta(m); putErr != nil {
 		log.Printf("save conversion status %s: %v", m.ID, putErr)
 		if hls != "" {
 			a.removePublishedHLS(m.ID, hls)

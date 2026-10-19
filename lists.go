@@ -148,12 +148,29 @@ func (a *application) resolveGrants(w http.ResponseWriter, r *http.Request) map[
 			}
 		}
 	}
+	byPrefix := a.grantedListIDs()
 	for _, p := range prefixes {
-		if l, err := a.fs.GetAccessListByPrefix(p); err == nil {
-			grants[l.ID] = true
+		if id, ok := byPrefix[p]; ok {
+			grants[id] = true
 		}
 	}
 	return grants
+}
+
+// grantedListIDs maps every list prefix to its id with a single metadata read,
+// instead of one lookup per unlocked prefix (up to maxListGrants per request).
+// A read error yields no grants, so locked videos fail closed.
+func (a *application) grantedListIDs() map[string]string {
+	byPrefix := map[string]string{}
+	lists, err := a.fs.ListAccessLists()
+	if err != nil {
+		log.Printf("resolve list grants: %v", err)
+		return byPrefix
+	}
+	for _, l := range lists {
+		byPrefix[l.Prefix] = l.ID
+	}
+	return byPrefix
 }
 
 // canViewList reports whether the request may see a video carrying the given
