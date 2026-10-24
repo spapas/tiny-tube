@@ -76,6 +76,16 @@ update the documentation when an issue is resolved.
 - Keep SQLite `Error`/`Poster` fields round-trippable and migrate existing schemas
   without losing rows. Startup JSON import must not overwrite SQLite edits.
   Both stores must agree on missing-record errors, Unicode search and date ordering.
+- Keep library/API pages bounded and apply visibility before counts or pagination.
+  SQLite browse queries must retain Go Unicode folding and nanosecond/timezone date
+  ordering. Legacy FS may scan JSON but must bound returned pages.
+- Session renewal must update a live token, never upsert a revoked one. Coalesce
+  refresh writes and renew the browser cookie too. LDAP must not adopt local
+  identities/roles. Local accounts in `both` mode must survive directory outages.
+  Login bookkeeping may only update its own fields.
+- Synchronize media policy cache fills with metadata changes. Missing/unreadable
+  metadata and failed visibility-picker loads fail closed. Omitted edit visibility
+  preserves the current policy; explicit empty visibility means public.
 - Public originals and metadata are public under the current design; videos
   assigned to a locked list (`store.Meta.AccessList`, `store.AccessList`)
   additionally require the list key or an editor/administrator session on every
@@ -103,6 +113,7 @@ gofmt -l <changed .go files>
 go test ./...
 go vet ./...
 go build ./...
+node --test tests/ui.test.cjs
 ```
 
 Changed Go files must be `gofmt`-clean before finishing; run `gofmt -w` on

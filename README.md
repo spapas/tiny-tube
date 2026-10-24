@@ -84,6 +84,13 @@ Existing videos stay public unless moved.
   silently become public.
 - The Nginx sample proxies every route through Go, so the same checks apply
   behind the proxy.
+- Missing/unreadable metadata never authorizes media access. Orphan files without
+  metadata return 404; recover their metadata before sharing them.
+- Visibility changes are synchronized with media authorization. Failed list-picker
+  loads block upload/edit forms. An API edit omitting `access_list` preserves
+  visibility; send an explicit empty value to make a video public.
+- Copy Link offers a locked-video URL only when its valid list key is present.
+  Otherwise the page explains that the original locked-list link is required.
 
 For scripts, pass the key as `?key=…` on `/api/videos`, `/api/video`,
 `/watch` and `/videos/…`, or reuse the unlock cookie from a link visit.
@@ -128,7 +135,7 @@ write there and find FFmpeg on its `PATH`.
 | `DB_PATH` | `<VIDEO_DIR>/tiny-tube.db` | SQLite metadata database in WAL mode. Relative paths use the working directory. |
 | `ADMIN_USER` | `admin` | First administrator, created on first boot when no users exist. Ignored afterwards. |
 | `ADMIN_PASS` | required on first boot | Password for the first administrator; startup rejects an unset/blank password or `changeme` when the user table is empty. |
-| `AUTH_MODE` | `local` | Login source: `local`, `ldap`, or `both` (LDAP first, local fallback). |
+| `AUTH_MODE` | `local` | Login source: `local`, `ldap`, or `both`. In `both`, existing local accounts use their local password directly; other identities use LDAP. LDAP never adopts same-named local accounts, roles or keys. |
 | `COOKIE_SECURE` | `false` | Set `true` behind HTTPS so session cookies carry the Secure flag. |
 | `LDAP_ADDR` | `ldap://localhost:389` | Directory address (`ldap://` or `ldaps://`). |
 | `LDAP_BASE_DN` | `dc=example,dc=com` | Fallback search base and direct-bind default. |
@@ -151,10 +158,17 @@ write there and find FFmpeg on its `PATH`.
 Empty optional values fall back to the defaults. For direct LAN access, set `HOST`
 explicitly (or set `ADDR=0.0.0.0:8081`) and configure the firewall. Session cookies
 need HTTPS when used over a network; the Go server itself serves HTTP. Video files
-and public metadata are public. Login sessions last 24 hours sliding; password resets,
+and public metadata are public. Login sessions last 24 hours sliding, with expiry
+and the browser cookie renewed at most once per five minutes of activity. Refresh
+only updates live sessions and cannot recreate a revoked token. Password resets,
 deactivation and user deletion revoke sessions. Unlock cookies are session
 cookies signed per process and die with the browser session or a restart;
 reopening the list link restores them.
+
+When upgrading an older build that automatically adopted local usernames into
+LDAP, review its existing LDAP role grants. The new login path prevents future
+adoption but preserves existing accounts/roles; it does not reconstruct their
+previous authentication source.
 
 Browser mutations must originate from this site. Cross-origin upload/edit/delete
 requests return 403, including JSON clients; command-line clients without browser
@@ -178,6 +192,10 @@ The interface defaults to light mode. The theme button switches between light an
 dark and remembers the selection in browser-local storage; it does not follow the
 operating system's theme automatically. Library, watch, and upload pages adapt to
 mobile, tablet, and desktop screens. Categories can be combined with text search.
+Library and locked-list pages show 24 videos by default, with Previous/Next
+navigation preserving search, category and sort. Long visibility labels fit narrow
+screens. Administrator deletion confirmations apply to every row and identify
+whether a video, user or list is being deleted.
 
 The upload page supports file selection or drag-and-drop, shows the chosen file,
 and reports upload progress and errors without discarding the form. Without
@@ -226,6 +244,18 @@ order (`/?sort=views`, mirrored by `/api/videos?sort=views`).
    cancelled and requeued. Failed jobs are not automatically retried.
 
 ### REST API for upload (automation / LLM clients)
+
+`GET /api/videos` is paginated: use `page` (starting at 1) and `page_size`
+(default 50, maximum 100; HTML defaults to 24). Responses include `total`
+(visible library size), `filtered` (matching visible videos), `count` (items on
+this page), `page`, `page_size`, `pages` and `items`. Clients that assumed one
+request returned every video must iterate through the pages. Out-of-range positive
+pages resolve to the last page; invalid/oversized parameters return 400.
+Authorization applies before counts, category totals or paging. SQLite filters
+and pages in queries, retaining Greek search and precise date ordering; legacy
+FS still scans JSON records. Readiness and conversion polling use lightweight
+SQLite queries. View debounce memory has a hard 8,192-entry cap; eviction can
+permit an extra view under heavy churn.
 
 Programmatic clients log in with `POST /api/login` (`{"username", "password"}`)
 and reuse the session cookie, exactly like a browser. For scripts that should
@@ -381,3 +411,7 @@ The post-merge security check and its deployment limitations are recorded in
 [docs/SECURITY.md](docs/SECURITY.md). Keep video/database storage writable only by
 the service account, run FFmpeg with minimal OS privileges, use HTTPS for network
 access, and rebuild existing binaries with the selected patched toolchain.
+
+The [2026-10-24 review and resolutions](docs/PROJECT-REVIEW-2026-10-24.md) records
+the additional fixes. Run `node --test tests/ui.test.cjs` for the client-behavior
+suite (Node is a test tool, not a runtime dependency).

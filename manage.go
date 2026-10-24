@@ -33,7 +33,24 @@ func (a *application) handleEditPage(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	a.renderPage(w, r, editTmpl, map[string]any{"Page": "edit", "Title": "Επεξεργασία βίντεο", "Video": m, "AccessLists": a.accessListsForForm()})
+	lists, ok := a.accessListsForForm(w, r)
+	if !ok {
+		return
+	}
+	if m.AccessList != "" {
+		found := false
+		for _, list := range lists {
+			if list.ID == m.AccessList {
+				found = true
+				break
+			}
+		}
+		if !found {
+			a.apiServerError(w, r, "read video visibility", errors.New("current access list unavailable"))
+			return
+		}
+	}
+	a.renderPage(w, r, editTmpl, map[string]any{"Page": "edit", "Title": "Επεξεργασία βίντεο", "Video": m, "AccessLists": lists})
 }
 
 func parseManagementForm(w http.ResponseWriter, r *http.Request) bool {
@@ -59,10 +76,6 @@ func (a *application) handleEdit(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	title, desc, category := strings.TrimSpace(r.PostForm.Get("title")), strings.TrimSpace(r.PostForm.Get("desc")), strings.TrimSpace(r.PostForm.Get("category"))
-	if title == "" || len(title) > 512 || len(desc) > 8192 || len(category) > 256 {
-		writeAPIError(w, r, http.StatusBadRequest, "title required; maximum bytes: title 512, description 8192, category 256")
-		return
-	}
 	a.claimMu.Lock()
 	defer a.claimMu.Unlock()
 	id := r.PostForm.Get("id")
@@ -74,9 +87,29 @@ func (a *application) handleEdit(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	accessList, ok := a.resolveAccessList(w, r)
-	if !ok {
+	if title == "" || len(title) > 512 || len(desc) > 8192 || len(category) > 256 {
+		if wantsJSON(r) {
+			writeAPIError(w, r, http.StatusBadRequest, "title required; maximum bytes: title 512, description 8192, category 256")
+		} else {
+			lists, ok := a.accessListsForForm(w, r)
+			if !ok {
+				return
+			}
+			m.Title, m.Desc, m.Category = title, desc, category
+			w.Header().Set("Content-Type", "text/html; charset=utf-8")
+			w.WriteHeader(http.StatusBadRequest)
+			a.renderPage(w, r, editTmpl, map[string]any{"Page": "edit", "Title": "Επεξεργασία βίντεο", "Video": m, "AccessLists": lists, "Error": "Συμπληρώστε τίτλο και συντομεύστε τα μεγάλα πεδία. Οι ελληνικοί χαρακτήρες μπορεί να καταλαμβάνουν περισσότερα bytes."})
+		}
 		return
+	}
+	// Omitted visibility preserves the existing policy for older API clients.
+	accessList := m.AccessList
+	if _, present := r.PostForm["access_list"]; present {
+		var ok bool
+		accessList, ok = a.resolveAccessList(w, r)
+		if !ok {
+			return
+		}
 	}
 	m.Title, m.Desc, m.Category = title, desc, category
 	m.AccessList = accessList

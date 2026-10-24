@@ -1,6 +1,7 @@
 package main
 
 import (
+	"crypto/sha256"
 	"log"
 	"net"
 	"net/http"
@@ -18,8 +19,13 @@ import (
 // viewDebounceTTL is how long one viewer IP counts once per video.
 const viewDebounceTTL = 24 * time.Hour
 
-// maxViewDebounce bounds debounce memory; the oldest entries are swept first.
+// maxViewDebounce is a hard cap; the oldest ring slot is evicted in O(1).
 const maxViewDebounce = 8192
+
+type viewEntry struct {
+	key string
+	at  time.Time
+}
 
 // clientIP extracts the connection source IP. Forwarding headers are
 // untrusted and ignored, mirroring the auth limiter.
@@ -33,21 +39,24 @@ func clientIP(remoteAddr string) string {
 
 // countView records one debounced view and returns the total to display.
 func (a *application) countView(r *http.Request, id string, current int64) int64 {
-	key := id + "\x00" + clientIP(r.RemoteAddr)
+	digest := sha256.Sum256([]byte(id + "\x00" + clientIP(r.RemoteAddr)))
+	key := string(digest[:])
 	now := time.Now()
 	a.viewMu.Lock()
 	if last, ok := a.viewSeen[key]; ok && now.Sub(last) < viewDebounceTTL {
 		a.viewMu.Unlock()
 		return current
 	}
-	a.viewSeen[key] = now
-	if len(a.viewSeen) > maxViewDebounce {
-		for k, last := range a.viewSeen {
-			if now.Sub(last) >= viewDebounceTTL {
-				delete(a.viewSeen, k)
-			}
-		}
+	if len(a.viewOrder) == 0 {
+		a.viewOrder = make([]viewEntry, maxViewDebounce)
 	}
+	old := a.viewOrder[a.viewNext]
+	if last, ok := a.viewSeen[old.key]; ok && last.Equal(old.at) {
+		delete(a.viewSeen, old.key)
+	}
+	a.viewOrder[a.viewNext] = viewEntry{key, now}
+	a.viewNext = (a.viewNext + 1) % maxViewDebounce
+	a.viewSeen[key] = now
 	a.viewMu.Unlock()
 	total, err := a.fs.IncrementViews(id)
 	if err != nil {

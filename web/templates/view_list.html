@@ -26,6 +26,7 @@
       <div class="empty-state"><span class="empty-icon">{{template "film"}}</span><h3>Δεν υπάρχουν βίντεο σε αυτή τη λίστα</h3><p>Αναθέστε βίντεο στη λίστα από τη σελίδα επεξεργασίας τους.</p><a class="button button-primary" href="/">Όλα τα βίντεο {{template "arrow"}}</a></div>
       {{end}}
     </div>
+    {{template "pagination" .}}
   </section>
 </main>
 {{template "footer" .}}

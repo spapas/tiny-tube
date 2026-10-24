@@ -4,8 +4,8 @@
 <meta name="color-scheme" content="light dark">
 <title>{{.Title}} · Tiny Tube</title>
 <script src="/assets/theme.js?v=1"></script>
-<link rel="stylesheet" href="/assets/app.css?v=5">
-<script src="/assets/app.js?v=4" defer></script>
+<link rel="stylesheet" href="/assets/app.css?v=6">
+<script src="/assets/app.js?v=5" defer></script>
 {{end}}
 
 {{define "header"}}
@@ -37,6 +37,8 @@
 {{define "footer"}}
 <footer class="site-footer container"><span class="footer-brand">Tiny Tube</span><span>Βιβλιοθήκη βίντεο για ομάδες.</span></footer>
 {{end}}
+
+{{define "pagination"}}{{if .PageCount}}{{if gt .PageCount 1}}<nav class="pagination" aria-label="Σελίδες βίντεο">{{if .PreviousPage}}<a class="button button-secondary" href="{{.PreviousPage}}">Προηγούμενη</a>{{end}}<span>Σελίδα {{.PageNumber}} από {{.PageCount}}</span>{{if .NextPage}}<a class="button button-secondary" href="{{.NextPage}}">Επόμενη</a>{{end}}</nav>{{end}}{{end}}{{end}}
 
 {{define "play"}}<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5.5a1 1 0 0 1 1.5-.86l10 6a1.6 1.6 0 0 1 0 2.72l-10 6A1 1 0 0 1 8 18.5z"/></svg>{{end}}
 {{define "grid"}}<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="2"/><rect x="14" y="3" width="7" height="7" rx="2"/><rect x="3" y="14" width="7" height="7" rx="2"/><rect x="14" y="14" width="7" height="7" rx="2"/></svg>{{end}}

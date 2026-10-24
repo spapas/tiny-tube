@@ -13,7 +13,6 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"sort"
 	"strings"
 	"sync"
 	"time"
@@ -35,10 +34,13 @@ type application struct {
 	listSignKey         [32]byte
 	viewMu              sync.Mutex
 	viewSeen            map[string]time.Time
+	viewOrder           []viewEntry
+	viewNext            int
 	mediaRoot           *os.Root
 	mediaServer         http.Handler
 	accessMu            sync.RWMutex
 	accessCache         map[string]string
+	userMu              sync.Mutex
 }
 
 type conversionJob struct {
@@ -166,7 +168,7 @@ func (a *application) routes() http.Handler {
 			http.Error(w, "storage unavailable", http.StatusServiceUnavailable)
 			return
 		}
-		if _, err := a.fs.List(""); err != nil {
+		if err := store.CheckMetadata(a.fs); err != nil {
 			log.Printf("metadata readiness: %v", err)
 			http.Error(w, "metadata unavailable", http.StatusServiceUnavailable)
 			return
@@ -177,7 +179,11 @@ func (a *application) routes() http.Handler {
 	mux.Handle("GET /watch", a.withUser(http.HandlerFunc(a.handleWatch)))
 	mux.Handle("GET /view_list", a.withUser(http.HandlerFunc(a.handleViewList)))
 	mux.Handle("GET /upload", a.limited(a.withUser(a.requireEditor(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		a.renderPage(w, r, uploadTmpl, map[string]any{"Page": "upload", "Title": "Ανέβασμα βίντεο", "MaxUploadBytes": a.cfg.MaxUploadBytes, "AccessLists": a.accessListsForForm()})
+		lists, ok := a.accessListsForForm(w, r)
+		if !ok {
+			return
+		}
+		a.renderPage(w, r, uploadTmpl, map[string]any{"Page": "upload", "Title": "Ανέβασμα βίντεο", "MaxUploadBytes": a.cfg.MaxUploadBytes, "AccessLists": lists})
 	})))))
 	mux.Handle("POST /api/upload", a.limited(a.withUser(a.requireEditor(http.HandlerFunc(a.handleUpload)))))
 	mux.Handle("GET /edit", a.limited(a.withUser(a.requireEditor(http.HandlerFunc(a.handleEditPage)))))
@@ -266,35 +272,14 @@ func (a *application) apiServerError(w http.ResponseWriter, r *http.Request, ope
 // Locked videos stay invisible without their list key (?key=lt-...) or an
 // unlock cookie; editors and administrators (session or API key) see all.
 func (a *application) handleAPIVideos(w http.ResponseWriter, r *http.Request) {
-	q := r.URL.Query().Get("q")
-	category := r.URL.Query().Get("category")
-	sortParam := r.URL.Query().Get("sort")
-	all, err := a.fs.List("")
-	if err != nil {
-		a.apiServerError(w, r, "list videos", err)
+	p, ok := a.queryLibrary(w, r, true, false)
+	if !ok {
 		return
 	}
-	grants := a.resolveGrants(w, r)
-	visible := a.visibleVideos(all, r, grants)
-	if sortParam == "views" {
-		store.SortByViews(visible)
-	} else {
-		sortParam = "recent"
-	}
-	items := make([]store.Meta, 0, len(visible))
-	query := strings.ToLower(strings.TrimSpace(q))
-	for _, m := range visible {
-		if category != "" && m.Category != category {
-			continue
-		}
-		if query != "" && !strings.Contains(strings.ToLower(m.Title+" "+m.Desc+" "+m.Category), query) {
-			continue
-		}
-		items = append(items, m)
-	}
 	writeJSON(w, http.StatusOK, map[string]any{
-		"total": len(visible), "count": len(items),
-		"q": q, "category": category, "sort": sortParam, "items": items,
+		"total": p.Total, "count": len(p.Items), "filtered": p.Matches,
+		"page": p.Page, "page_size": p.PageSize, "pages": max(1, (p.Matches+p.PageSize-1)/p.PageSize),
+		"q": r.URL.Query().Get("q"), "category": r.URL.Query().Get("category"), "sort": librarySort(r), "items": p.Items,
 	})
 }
 
@@ -318,48 +303,10 @@ func (a *application) handleAPIVideo(w http.ResponseWriter, r *http.Request) {
 }
 
 func (a *application) handleList(w http.ResponseWriter, r *http.Request) {
-	q := r.URL.Query().Get("q")
-	category := r.URL.Query().Get("category")
-	sortParam := r.URL.Query().Get("sort")
-	all, err := a.fs.List("")
-	if err != nil {
-		a.serverError(w, "list videos", err)
-		return
+	p, ok := a.queryLibrary(w, r, false, false)
+	if ok {
+		a.renderLibrary(w, r, p)
 	}
-	// Category counts come from the visible set only, so locked videos do
-	// not leak titles or counts to outsiders.
-	visible := a.visibleVideos(all, r, a.resolveGrants(w, r))
-	if sortParam == "views" {
-		store.SortByViews(visible)
-	} else {
-		sortParam = "recent"
-	}
-	type categoryFilter struct {
-		Name     string
-		Count    int
-		Selected bool
-	}
-	counts := make(map[string]int)
-	items := make([]store.Meta, 0, len(visible))
-	query := strings.ToLower(strings.TrimSpace(q))
-	for _, m := range visible {
-		if m.Category != "" {
-			counts[m.Category]++
-		}
-		if category != "" && m.Category != category {
-			continue
-		}
-		if query != "" && !strings.Contains(strings.ToLower(m.Title+" "+m.Desc+" "+m.Category), query) {
-			continue
-		}
-		items = append(items, m)
-	}
-	categories := make([]categoryFilter, 0, len(counts))
-	for name, count := range counts {
-		categories = append(categories, categoryFilter{name, count, name == category})
-	}
-	sort.Slice(categories, func(i, j int) bool { return categories[i].Name < categories[j].Name })
-	a.renderPage(w, r, listTmpl, map[string]any{"Page": "list", "Title": "Βιβλιοθήκη", "Items": items, "Q": q, "Category": category, "Sort": sortParam, "Categories": categories, "Total": len(visible)})
 }
 
 func (a *application) handleWatch(w http.ResponseWriter, r *http.Request) {

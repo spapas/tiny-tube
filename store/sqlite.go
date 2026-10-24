@@ -93,6 +93,10 @@ func NewSQLite(root, path string) (*SQLite, error) {
 		db.Close()
 		return nil, err
 	}
+	if _, err := db.Exec(`CREATE INDEX IF NOT EXISTS idx_videos_status ON videos(status); CREATE INDEX IF NOT EXISTS idx_videos_access ON videos(access_list)`); err != nil {
+		db.Close()
+		return nil, err
+	}
 	return &SQLite{Root: root, db: db}, nil
 }
 

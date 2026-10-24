@@ -114,6 +114,8 @@ func (a *application) lastAdminStanding(except string) (bool, error) {
 }
 
 func (a *application) handleAdminCreateUser(w http.ResponseWriter, r *http.Request) {
+	a.userMu.Lock()
+	defer a.userMu.Unlock()
 	if !a.parseAdminForm(w, r) {
 		return
 	}
@@ -156,6 +158,8 @@ func (a *application) handleAdminCreateUser(w http.ResponseWriter, r *http.Reque
 }
 
 func (a *application) handleAdminSetRole(w http.ResponseWriter, r *http.Request) {
+	a.userMu.Lock()
+	defer a.userMu.Unlock()
 	if !a.parseAdminForm(w, r) {
 		return
 	}
@@ -197,6 +201,8 @@ func (a *application) handleAdminSetRole(w http.ResponseWriter, r *http.Request)
 }
 
 func (a *application) handleAdminSetActive(w http.ResponseWriter, r *http.Request) {
+	a.userMu.Lock()
+	defer a.userMu.Unlock()
 	if !a.parseAdminForm(w, r) {
 		return
 	}
@@ -238,6 +244,8 @@ func (a *application) handleAdminSetActive(w http.ResponseWriter, r *http.Reques
 }
 
 func (a *application) handleAdminSetPassword(w http.ResponseWriter, r *http.Request) {
+	a.userMu.Lock()
+	defer a.userMu.Unlock()
 	if !a.parseAdminForm(w, r) {
 		return
 	}
@@ -275,6 +283,8 @@ func (a *application) handleAdminSetPassword(w http.ResponseWriter, r *http.Requ
 }
 
 func (a *application) handleAdminDeleteUser(w http.ResponseWriter, r *http.Request) {
+	a.userMu.Lock()
+	defer a.userMu.Unlock()
 	if !a.parseAdminForm(w, r) {
 		return
 	}

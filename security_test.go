@@ -209,6 +209,9 @@ func TestSecurityHeadersApplyToPagesAssetsJSONAndErrors(t *testing.T) {
 
 func TestPublicMediaRejectsPrivateFilesAndUnsafePaths(t *testing.T) {
 	a := testApplication(t)
+	if err := a.putMeta(store.Meta{ID: "check", Title: "Media path checks", Original: "original.mp4", Status: "ready"}); err != nil {
+		t.Fatal(err)
+	}
 	a.cfg.DBPath = filepath.Join(t.TempDir(), "external.db")
 	if err := os.MkdirAll(a.fs.Dir("check"), 0o755); err != nil {
 		t.Fatal(err)

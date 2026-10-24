@@ -27,6 +27,7 @@ import (
 const sessionCookieName = "tiny_tube_session"
 
 const sessionTTL = 24 * time.Hour
+const sessionRefreshInterval = 5 * time.Minute
 
 type contextKey int
 
@@ -107,6 +108,10 @@ func clearSessionCookie(w http.ResponseWriter, secure bool) {
 // its expiry. Stale sessions for missing, inactive or renamed users are
 // revoked and treated as anonymous.
 func (a *application) validateSession(r *http.Request) *store.User {
+	return a.validateSessionResponse(nil, r)
+}
+
+func (a *application) validateSessionResponse(w http.ResponseWriter, r *http.Request) *store.User {
 	cookie, err := r.Cookie(sessionCookieName)
 	if err != nil || cookie.Value == "" {
 		return nil
@@ -121,16 +126,23 @@ func (a *application) validateSession(r *http.Request) *store.User {
 		_ = a.fs.DeleteSession(tokenHash)
 		return nil
 	}
-	sess.ExpiresAt = time.Now().Add(sessionTTL).UTC().Format(time.RFC3339Nano)
-	if err := a.fs.CreateSession(sess); err != nil {
-		log.Printf("slide session: %v", err)
+	now := time.Now()
+	expires, _ := time.Parse(time.RFC3339Nano, sess.ExpiresAt)
+	if expires.Sub(now) <= sessionTTL-sessionRefreshInterval {
+		if err := a.fs.RefreshSession(sess, now.Add(sessionTTL).UTC().Format(time.RFC3339Nano)); err != nil {
+			return nil
+		}
+		if w != nil {
+			http.SetCookie(w, &http.Cookie{Name: sessionCookieName, Value: cookie.Value, Path: "/",
+				MaxAge: int(sessionTTL.Seconds()), HttpOnly: true, SameSite: http.SameSiteLaxMode, Secure: a.cfg.CookieSecure})
+		}
 	}
 	return &u
 }
 
 func (a *application) withUser(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if u := a.validateSession(r); u != nil {
+		if u := a.validateSessionResponse(w, r); u != nil {
 			r = r.WithContext(contextWithUser(r, u))
 		} else if u := a.validateAPIKey(r); u != nil {
 			r = r.WithContext(contextWithUser(r, u))
@@ -203,12 +215,13 @@ func (a *application) authenticate(username, password string) (store.User, error
 	case "ldap":
 		return a.viaLDAP(username, password)
 	case "both":
-		if u, err := a.viaLDAP(username, password); err == nil {
-			return u, nil
-		} else if !errors.Is(err, errInvalidCredentials) {
+		// Local identities never enter the LDAP domain, including during outages.
+		if u, err := a.fs.GetUser(username); err == nil && u.AuthSource == store.AuthLocal {
+			return a.viaLocal(username, password)
+		} else if err != nil && !os.IsNotExist(err) && !errors.Is(err, os.ErrInvalid) {
 			return empty, err
 		}
-		return a.viaLocal(username, password)
+		return a.viaLDAP(username, password)
 	default:
 		return a.viaLocal(username, password)
 	}
@@ -261,6 +274,8 @@ func (a *application) viaLDAP(username, password string) (store.User, error) {
 // upsertLDAPUser provisions the LDAP identity locally. Roles stay local:
 // new users arrive as viewers and an administrator grants editor/admin.
 func (a *application) upsertLDAPUser(found ldapUser) (store.User, error) {
+	a.userMu.Lock()
+	defer a.userMu.Unlock()
 	var empty store.User
 	u, err := a.fs.GetUser(found.Username)
 	if err != nil && !os.IsNotExist(err) {
@@ -268,8 +283,10 @@ func (a *application) upsertLDAPUser(found ldapUser) (store.User, error) {
 	}
 	if os.IsNotExist(err) {
 		u = store.User{Username: found.Username, Role: store.RoleViewer, Active: true}
-	} else if a.cfg.LDAPAlwaysUpdate || u.AuthSource != store.AuthLDAP {
-		// Adopt same-named local rows: the local password stops working.
+	} else if u.AuthSource != store.AuthLDAP {
+		// Account linking must be explicit; never adopt local roles or keys.
+		return empty, errInvalidCredentials
+	} else if a.cfg.LDAPAlwaysUpdate {
 	} else {
 		return u, nil
 	}
@@ -287,8 +304,7 @@ func (a *application) upsertLDAPUser(found ldapUser) (store.User, error) {
 }
 
 func (a *application) touchLogin(u store.User) {
-	u.LastLoginAt = time.Now().UTC().Format(time.RFC3339Nano)
-	if err := a.fs.PutUser(u); err != nil {
+	if err := a.fs.TouchUserLogin(u.Username, time.Now()); err != nil {
 		log.Printf("record login for %q: %v", u.Username, err)
 	}
 }

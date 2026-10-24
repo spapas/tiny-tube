@@ -80,10 +80,12 @@ func (s Session) SessionExpired(now time.Time) bool {
 type AuthStore interface {
 	GetUser(username string) (User, error)
 	PutUser(u User) error
+	TouchUserLogin(username string, at time.Time) error
 	DeleteUser(username string) error
 	ListUsers() ([]User, error)
 	UserCount() (int, error)
 	CreateSession(s Session) error
+	RefreshSession(previous Session, expiresAt string) error
 	GetSession(tokenHash string) (Session, error)
 	DeleteSession(tokenHash string) error
 	DeleteUserSessions(username string) error

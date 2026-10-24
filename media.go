@@ -71,13 +71,21 @@ func (a *application) serveVideo(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	// Locked videos are gated by list key even on guessed direct URLs.
-	// Metadata-less orphans keep the historical public behavior.
 	if id, _, _ := strings.Cut(name, "/"); id != "" {
-		if access, ok := a.mediaAccessList(id); ok && access != "" {
+		access, err := a.mediaAccessList(id)
+		if err != nil {
+			if errors.Is(err, os.ErrNotExist) || errors.Is(err, os.ErrInvalid) {
+				http.NotFound(w, r)
+			} else {
+				writeAPIError(w, r, http.StatusServiceUnavailable, "media authorization unavailable")
+			}
+			return
+		}
+		if access != "" {
 			grants := a.resolveGrants(w, r)
 			u := currentUser(r)
 			if u == nil {
-				u = a.requestUserLazy(r)
+				u = a.requestUserLazy(w, r)
 			}
 			if !canViewList(store.Meta{AccessList: access}, u, grants) {
 				http.NotFound(w, r)
@@ -92,48 +100,47 @@ func (a *application) serveVideo(w http.ResponseWriter, r *http.Request) {
 
 // mediaAccessList resolves a video's access-list id for media serving. It uses
 // a small in-process cache so each HLS segment, poster and Range request does
-// not hit metadata storage; putMeta/deleteMeta keep it in sync. Missing rows
-// keep the historical public-orphan behavior and are not cached, so guessed
-// ids cannot grow the map. Concurrent os.Root use is safe.
-func (a *application) mediaAccessList(id string) (string, bool) {
+// not hit metadata storage. Fills and writes share a lock so older reads cannot
+// replace newer authorization policies. Metadata-less orphans fail closed.
+func (a *application) mediaAccessList(id string) (string, error) {
 	a.accessMu.RLock()
 	v, ok := a.accessCache[id]
 	a.accessMu.RUnlock()
 	if ok {
-		return v, true
+		return v, nil
+	}
+	a.accessMu.Lock()
+	defer a.accessMu.Unlock()
+	if v, ok := a.accessCache[id]; ok {
+		return v, nil
 	}
 	m, err := a.fs.Get(id)
 	if err != nil {
-		if errors.Is(err, os.ErrNotExist) || errors.Is(err, os.ErrInvalid) {
-			return "", true
-		}
-		return "", false
+		return "", err
 	}
-	a.accessMu.Lock()
 	a.accessCache[id] = m.AccessList
-	a.accessMu.Unlock()
-	return m.AccessList, true
+	return m.AccessList, nil
 }
 
 // putMeta centralizes video metadata writes so a visibility change invalidates
 // the media access cache instead of leaving a stale public/locked decision.
 func (a *application) putMeta(m store.Meta) error {
+	a.accessMu.Lock()
+	defer a.accessMu.Unlock()
 	if err := a.fs.Put(m); err != nil {
 		return err
 	}
-	a.accessMu.Lock()
 	a.accessCache[m.ID] = m.AccessList
-	a.accessMu.Unlock()
 	return nil
 }
 
 func (a *application) deleteMeta(id string) error {
+	a.accessMu.Lock()
+	defer a.accessMu.Unlock()
 	if err := a.fs.Delete(id); err != nil {
 		return err
 	}
-	a.accessMu.Lock()
 	delete(a.accessCache, id)
-	a.accessMu.Unlock()
 	return nil
 }
 

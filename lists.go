@@ -204,8 +204,8 @@ func (a *application) visibleVideos(all []store.Meta, r *http.Request, grants ma
 
 // requestUserLazy resolves the session/API key only when locked content
 // requires it, keeping public media serving free of session writes.
-func (a *application) requestUserLazy(r *http.Request) *store.User {
-	if u := a.validateSession(r); u != nil {
+func (a *application) requestUserLazy(w http.ResponseWriter, r *http.Request) *store.User {
+	if u := a.validateSessionResponse(w, r); u != nil {
 		return u
 	}
 	return a.validateAPIKey(r)
@@ -215,43 +215,27 @@ func (a *application) requestUserLazy(r *http.Request) *store.User {
 // /view_list?key=lt-... Without a key it shows everything the unlock cookie
 // already opened. Unknown keys get 404 so existence stays unconfirmed.
 func (a *application) handleViewList(w http.ResponseWriter, r *http.Request) {
-	grants := a.resolveGrants(w, r)
-	all, err := a.fs.List("")
-	if err != nil {
-		a.serverError(w, "list videos", err)
+	p, ok := a.queryLibrary(w, r, false, true)
+	if !ok {
 		return
 	}
+	data := paginationData(r, p)
+	data["Page"] = "view-list"
+	data["Items"] = p.Items
+	data["Total"] = p.Total
+	data["ListKey"] = ""
+	data["ListName"] = ""
+	data["Title"] = "Κλειδωμένα βίντεο"
 	if raw := r.URL.Query().Get("key"); raw != "" {
 		l, ok := a.findListByKey(raw)
 		if !ok {
 			http.NotFound(w, r)
 			return
 		}
-		items := make([]store.Meta, 0)
-		for _, m := range all {
-			if m.AccessList == l.ID {
-				items = append(items, m)
-			}
-		}
-		w.Header().Set("Cache-Control", "no-store")
-		a.renderPage(w, r, viewListTmpl, map[string]any{
-			"Page": "view-list", "Title": l.Name, "ListName": l.Name,
-			"Items": items, "Total": len(items), "ListKey": raw,
-		})
-		return
-	}
-	u := currentUser(r)
-	items := make([]store.Meta, 0)
-	for _, m := range all {
-		if m.AccessList != "" && canViewList(m, u, grants) {
-			items = append(items, m)
-		}
+		data["Title"], data["ListName"], data["ListKey"] = l.Name, l.Name, raw
 	}
 	w.Header().Set("Cache-Control", "no-store")
-	a.renderPage(w, r, viewListTmpl, map[string]any{
-		"Page": "view-list", "Title": "Κλειδωμένα βίντεο", "ListName": "",
-		"Items": items, "Total": len(items), "ListKey": "",
-	})
+	a.renderPage(w, r, viewListTmpl, data)
 }
 
 // resolveAccessList validates an upload/edit access_list field: empty means
@@ -277,13 +261,13 @@ func (a *application) resolveAccessList(w http.ResponseWriter, r *http.Request) 
 }
 
 // accessListsForForm lists existing locked lists for the upload/edit picker.
-func (a *application) accessListsForForm() []store.AccessList {
+func (a *application) accessListsForForm(w http.ResponseWriter, r *http.Request) ([]store.AccessList, bool) {
 	lists, err := a.fs.ListAccessLists()
 	if err != nil {
-		log.Printf("list access lists: %v", err)
-		return nil
+		a.apiServerError(w, r, "list access lists", err)
+		return nil, false
 	}
-	return lists
+	return lists, true
 }
 
 // handleAdminLists shows the locked-list dashboard with per-list video counts.

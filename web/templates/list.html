@@ -18,9 +18,10 @@
         {{template "search"}}<label class="sr-only" for="search">Αναζήτηση βίντεο</label>
         <input id="search" type="search" name="q" placeholder="Αναζήτηση με τίτλο, περιγραφή ή κατηγορία…" value="{{.Q}}">
         {{if .Category}}<input type="hidden" name="category" value="{{.Category}}">{{end}}
+        {{if eq .Sort "views"}}<input type="hidden" name="sort" value="views">{{end}}
         <button type="submit" class="search-submit" aria-label="Αναζήτηση">{{template "arrow"}}</button>
       </form>
-      <span class="result-count">{{videoCount (len .Items)}}</span>
+      <span class="result-count">{{if .FilteredTotal}}{{videoCount .FilteredTotal}}{{else}}{{videoCount (len .Items)}}{{end}}</span>
     </div>
     <nav class="category-filters" aria-label="Φίλτρα κατηγορίας">
       <a class="filter-chip{{if not .Category}} is-selected{{end}}" href="{{sortURL .Q "" .Sort}}" {{if not .Category}}aria-current="true"{{end}}>Όλα <span>{{.Total}}</span></a>
@@ -43,6 +44,7 @@
       <div class="empty-state"><span class="empty-icon">{{template "film"}}</span>{{if or .Q .Category}}<h3>Δεν βρέθηκαν βίντεο</h3><p>Αλλάξτε τους όρους αναζήτησης ή αφαιρέστε τα φίλτρα.</p><a class="button button-primary" href="/">Όλα τα βίντεο {{template "arrow"}}</a>{{else}}<h3>Δεν υπάρχουν ακόμη βίντεο</h3><p>Προσθέστε το πρώτο βίντεο στη βιβλιοθήκη της ομάδας.</p>{{if $.CurrentUser}}{{if $.CurrentUser.CanEdit}}<a class="button button-primary" href="/upload">{{template "upload-icon"}} Ανέβασμα βίντεο</a>{{end}}{{end}}{{end}}</div>
       {{end}}
     </div>
+    {{template "pagination" .}}
   </section>
 </main>
 {{template "footer" .}}

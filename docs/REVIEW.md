@@ -1,5 +1,17 @@
 # Project review and fixes — 2026-10-14
 
+## Additional fixes — 2026-10-24
+
+The [new review](PROJECT-REVIEW-2026-10-24.md) has been followed by fixes for
+all five high-priority findings: fail-closed media authorization, synchronized
+visibility caching, revocation-safe session refresh, local/LDAP identity isolation,
+and fail-closed visibility forms. Additional changes cover local-login availability
+during LDAP outages, private cache policies, bounded view bookkeeping, bounded
+HTML/API pages, SQLite filtering and lightweight readiness/queue reads.
+Every administrator deletion receives a matching confirmation, locked-video sharing
+requires a usable capability link, and Greek edit errors preserve the form.
+Historical checks below retain their original versions/dates.
+
 The pilot keeps media on disk and public viewing. Session login with local or
 LDAP users and admin/editor/viewer roles replaced the former single-account
 Basic Auth on 2026-10-15; see [SECURITY.md](SECURITY.md).

@@ -77,7 +77,7 @@ func unwrapFFmpegShim(bin string) (string, error) {
 }
 
 func (a *application) recoverJobs() error {
-	items, err := a.fs.List("")
+	items, err := store.PendingVideos(a.fs, true)
 	if err != nil {
 		return err
 	}
@@ -147,7 +147,7 @@ func (a *application) startWorkers(ctx context.Context) {
 func (a *application) claimJob(ctx context.Context) (store.Meta, bool, error) {
 	a.claimMu.Lock()
 	defer a.claimMu.Unlock()
-	items, err := a.fs.List("")
+	items, err := store.PendingVideos(a.fs, false)
 	if err != nil {
 		return store.Meta{}, false, err
 	}

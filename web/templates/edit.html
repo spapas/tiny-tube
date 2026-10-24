@@ -5,7 +5,8 @@
   {{with .Video}}
   <a class="back-link" href="/watch?id={{.ID}}">{{template "back"}} Πίσω στο βίντεο</a>
   <div class="page-heading"><span class="eyebrow muted">ΔΙΑΧΕΙΡΙΣΗ ΥΛΙΚΟΥ</span><h1>Επεξεργασία βίντεο</h1><p>Ενημερώστε τα στοιχεία του βίντεο στη βιβλιοθήκη.</p></div>
-  <form class="upload-card edit-card" method="POST" action="/api/edit">
+  <form class="upload-card edit-card" method="POST" action="/api/edit" data-metadata-form>
+    <div id="edit-error" class="notice notice-warning" role="alert"{{if not $.Error}} hidden{{end}}>{{$.Error}}</div>
     <input type="hidden" name="id" value="{{.ID}}">
     <div class="form-field"><label for="title">Τίτλος <span class="required-mark">*</span></label><input id="title" name="title" type="text" maxlength="512" value="{{.Title}}" required></div>
     <div class="form-field"><label for="desc">Περιγραφή <span class="optional-label">προαιρετικό</span></label><textarea id="desc" name="desc" rows="6" maxlength="8192">{{.Desc}}</textarea></div>

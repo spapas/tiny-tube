@@ -325,7 +325,7 @@ func TestLockedListAdminRotationAndDelete(t *testing.T) {
 			}
 
 			// Moving the video back to public unblocks deletion.
-			edit := url.Values{"id": {lockedID}, "title": {"Audit clip"}, "desc": {""}, "category": {"Cat"}}
+			edit := url.Values{"id": {lockedID}, "title": {"Audit clip"}, "desc": {""}, "category": {"Cat"}, "access_list": {""}}
 			r := httptest.NewRequest(http.MethodPost, "/api/edit", strings.NewReader(edit.Encode()))
 			r.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 			r.AddCookie(testSession(t, a, "tester"))
