@@ -40,6 +40,8 @@ update the documentation when an issue is resolved.
   Go/module/UI checks and Linux/Windows vulnerability scans. Pin action SHAs.
 - `.github/scripts/check-gofmt.cjs`: check changed Go files, leaving untouched
   legacy formatting alone. Keep this consistent with the scoped-formatting rule.
+- `.github/actions/setup-go/action.yml`: explicitly read `toolchain` from go.mod
+  (including CRLF checkouts), install that exact version and verify GOVERSION.
 - `*_test.go` and `store/store_test.go`: regression and HTTP/FFmpeg integration tests.
 
 ## Implementation guidance
@@ -100,7 +102,7 @@ update the documentation when an issue is resolved.
 - Proxy media through Go in the Nginx sample so private file/link checks are not
   bypassed. `os.Root` prevents symlink/junction escapes; compare file identities
   to reject database hard links regardless of the URL's extension.
-- Build with patched Go (1.26.9 or 1.27.2+); `go.mod` selects 1.27.2. Preserve
+- Build with patched Go (1.26.10 or 1.27.3+); `go.mod` selects 1.27.3. Preserve
   startup rejection of unpatched builds. Use the real FFmpeg executable; known
   Scoop launchers are resolved to their target for reliable cancellation.
 - Run one server process per video directory. Metadata and job claiming are

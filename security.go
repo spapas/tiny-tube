@@ -15,11 +15,11 @@ import (
 const hlsScriptURL = "/assets/hls.min.js?v=1.6.19"
 
 func requirePatchedGo(buildVersion string) error {
-	if version.IsValid(buildVersion) && (version.Compare(buildVersion, "go1.27.2") >= 0 ||
-		(version.Lang(buildVersion) == "go1.26" && version.Compare(buildVersion, "go1.26.9") >= 0)) {
+	if version.IsValid(buildVersion) && (version.Compare(buildVersion, "go1.27.3") >= 0 ||
+		(version.Lang(buildVersion) == "go1.26" && version.Compare(buildVersion, "go1.26.10") >= 0)) {
 		return nil
 	}
-	return fmt.Errorf("rebuild with Go 1.26.9 or Go 1.27.2+ security patches; current build: %s", buildVersion)
+	return fmt.Errorf("rebuild with Go 1.26.10 or Go 1.27.3+ security patches; current build: %s", buildVersion)
 }
 
 func secureHTTP(next http.Handler) http.Handler {

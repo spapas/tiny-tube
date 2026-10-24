@@ -20,7 +20,7 @@ and bounded conversion workers are covered by regression tests. See the
 
 ## Requirements
 
-- A patched Go release: 1.26.9 or 1.27.2 and newer. The module selects Go 1.27.2
+- A patched Go release: 1.26.10 or 1.27.3 and newer. The module selects Go 1.27.3
   automatically; startup rejects builds from older/unverified toolchains.
 - A writable video directory, with space for both originals and generated HLS files.
 - Optional FFmpeg on `PATH`, with the `libx264` and AAC encoders, for HLS conversion.

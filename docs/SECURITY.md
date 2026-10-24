@@ -2,6 +2,12 @@
 
 ## Current follow-up — 2026-10-24
 
+CI now includes live vulnerability scans. Its first run exposed an incorrect
+hosted toolchain selection; setup now explicitly reads and verifies `toolchain`.
+The module selects Go 1.27.3 and startup requires Go 1.26.10 or 1.27.3+, covering
+the [October 19 x509 security fixes](https://go.dev/doc/devel/release#go1.27.3).
+Historical local scan/toolchain statements below retain their original context.
+
 The [project review](PROJECT-REVIEW-2026-10-24.md) records fixes and regression
 coverage for its findings. Media authorization fails closed on missing/unreadable
 metadata, including orphan files. Cache fills and visibility writes are synchronized.

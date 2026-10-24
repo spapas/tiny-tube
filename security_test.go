@@ -352,12 +352,12 @@ func TestSlowUploadIsTerminatedAndCleaned(t *testing.T) {
 }
 
 func TestStartupRejectsUnpatchedGoBuilds(t *testing.T) {
-	for _, version := range []string{"go1.26.0", "go1.26.8", "go1.27.1", "devel", "unknown"} {
+	for _, version := range []string{"go1.26.0", "go1.26.8", "go1.26.9", "go1.27.1", "go1.27.2", "devel", "unknown"} {
 		if err := requirePatchedGo(version); err == nil {
 			t.Error("accepted unpatched or unverified build", version)
 		}
 	}
-	for _, version := range []string{"go1.26.9", "go1.27.2", "go1.28.0"} {
+	for _, version := range []string{"go1.26.10", "go1.27.3", "go1.28.0"} {
 		if err := requirePatchedGo(version); err != nil {
 			t.Error("rejected patched build", version, err)
 		}

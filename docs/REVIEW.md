@@ -2,6 +2,11 @@
 
 ## Continuous integration — 2026-10-24
 
+The hosted setup now reads the exact `toolchain` directive explicitly and verifies
+`go env GOVERSION`; relying on `go-version-file` selected the older language
+minimum in the first run. The module now selects Go 1.27.3 and startup rejects
+builds older than Go 1.26.10/1.27.3, covering the October 19 x509 security patch.
+
 GitHub Actions now defines Linux/Windows tests with installed FFmpeg, Linux race
 detection, coverage reports, builds without CGO, scoped formatting checks, vet,
 module integrity/tidy checks, Node UI tests and live vulnerability scans for both
