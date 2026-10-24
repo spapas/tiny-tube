@@ -1,5 +1,7 @@
 # Tiny Tube
 
+[![CI](https://github.com/spapas/tiny-tube/actions/workflows/ci.yml/badge.svg)](https://github.com/spapas/tiny-tube/actions/workflows/ci.yml)
+
 A small video-sharing server written in Go, with media on disk, SQLite metadata,
 and optional FFmpeg conversion to HLS with preview posters. Viewing is public;
 uploading and editing require login with an editor or administrator account,
@@ -378,6 +380,23 @@ Capacity has not been measured. Validate the edited configuration with `nginx -t
 on the deployment machine, then check a real authenticated upload and playback.
 
 ## Development
+
+GitHub Actions runs [CI](.github/workflows/ci.yml) for every push and pull request,
+and can also be started manually from the Actions tab:
+
+- Go tests on Linux and Windows, with real FFmpeg installed so HLS/poster tests run.
+- Linux race detection, shuffled uncached tests, coverage reports retained for
+  seven days, and CGO-free builds on both platforms.
+- `gofmt` for changed Go files (matching the scoped-formatting policy), `go vet`,
+  module checksum verification and `go mod tidy -diff`.
+- The Node UI behavior suite and syntax checks for embedded JavaScript.
+- Pinned `govulncheck` scans for Linux and Windows using the live vulnerability
+  database. Database/tool failures fail the job; they are not treated as a pass.
+
+Actions are pinned to commit SHAs, repository permissions are read-only, jobs
+have time limits, and superseded branch runs are cancelled. CI uses the Go
+toolchain selected in `go.mod`. It does not deploy the application. Branch
+protection/required checks must be configured separately in repository settings.
 
 ```sh
 go test ./...

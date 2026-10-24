@@ -36,6 +36,10 @@ update the documentation when an issue is resolved.
 - `nginx.sample.conf`: optional reverse-proxy example, not a validated deployment.
 - `testdata/sample.mp4`: tracked test fixture; runtime `videos/` is ignored.
 - `dev.bat`: Windows development watcher; rebuilds embedded assets as well as Go code.
+- `.github/workflows/ci.yml`: Linux/Windows tests/builds, Linux races, coverage,
+  Go/module/UI checks and Linux/Windows vulnerability scans. Pin action SHAs.
+- `.github/scripts/check-gofmt.cjs`: check changed Go files, leaving untouched
+  legacy formatting alone. Keep this consistent with the scoped-formatting rule.
 - `*_test.go` and `store/store_test.go`: regression and HTTP/FFmpeg integration tests.
 
 ## Implementation guidance

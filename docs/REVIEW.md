@@ -1,5 +1,14 @@
 # Project review and fixes — 2026-10-14
 
+## Continuous integration — 2026-10-24
+
+GitHub Actions now defines Linux/Windows tests with installed FFmpeg, Linux race
+detection, coverage reports, builds without CGO, scoped formatting checks, vet,
+module integrity/tidy checks, Node UI tests and live vulnerability scans for both
+platforms. Run results are linked from the README badge. Earlier statements about
+unavailable local race detection/scans describe their original local environment;
+only successful CI jobs establish the corresponding hosted-runner results.
+
 ## Additional fixes — 2026-10-24
 
 The [new review](PROJECT-REVIEW-2026-10-24.md) has been followed by fixes for
