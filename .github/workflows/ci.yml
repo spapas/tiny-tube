@@ -125,3 +125,78 @@ jobs:
           GOARCH: amd64
           CGO_ENABLED: '0'
         run: govulncheck ./...
+      - name: Scan macOS code against the vulnerability database
+        env:
+          GOOS: darwin
+          GOARCH: arm64
+          CGO_ENABLED: '0'
+        run: govulncheck ./...
+
+  binaries:
+    name: Package ${{ matrix.goos }}/${{ matrix.goarch }}
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+    needs: [quality, test, security]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        goos: [linux, windows, darwin]
+        goarch: [amd64, arm64]
+    env:
+      CGO_ENABLED: '0'
+      GOOS: ${{ matrix.goos }}
+      GOARCH: ${{ matrix.goarch }}
+      RELEASE_TAG: ${{ github.ref_name }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/setup-go
+      - name: Build and package release binaries
+        run: bash .github/scripts/package-release.sh
+      - name: Save release archive
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: release-${{ matrix.goos }}-${{ matrix.goarch }}
+          path: |
+            dist/*.zip
+            dist/*.tar.gz
+          if-no-files-found: error
+          retention-days: 7
+          compression-level: 0
+
+  release:
+    name: Publish GitHub release
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+    needs: [binaries]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          pattern: release-*
+          path: dist
+          merge-multiple: true
+      - name: Verify archives and create checksums
+        working-directory: dist
+        run: |
+          shopt -s nullglob
+          archives=(tiny-tube-*.zip tiny-tube-*.tar.gz)
+          if [[ ${#archives[@]} -ne 6 ]]; then
+            echo 'Expected all six platform archives before publishing.' >&2
+            exit 1
+          fi
+          sha256sum "${archives[@]}" > SHA256SUMS
+          sha256sum --check SHA256SUMS
+      - name: Publish the verified tag and its downloads
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: |
+          gh release create "$RELEASE_TAG" dist/*.zip dist/*.tar.gz dist/SHA256SUMS \
+            --verify-tag --title "Tiny Tube $RELEASE_TAG" --generate-notes \
+            --notes 'Ready-to-run server and operator CLI for Linux, Windows and macOS (amd64/arm64). UI assets and SQLite are embedded; Go is not required. Extract the matching archive, copy .env.example to .env and set ADMIN_PASS before starting. FFmpeg is optional and installed separately. SHA256SUMS covers all six archives. Binaries are unsigned; macOS/Windows may show platform security prompts.'

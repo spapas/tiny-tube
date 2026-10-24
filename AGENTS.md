@@ -37,7 +37,11 @@ update the documentation when an issue is resolved.
 - `testdata/sample.mp4`: tracked test fixture; runtime `videos/` is ignored.
 - `dev.bat`: Windows development watcher; rebuilds embedded assets as well as Go code.
 - `.github/workflows/ci.yml`: Linux/Windows tests/builds, Linux races, coverage,
-  Go/module/UI checks and Linux/Windows vulnerability scans. Pin action SHAs.
+  Go/module/UI checks and Linux/Windows/macOS vulnerability scans. Version tags
+  additionally build six platform archives and publish a release after checks pass.
+  Pin action SHAs; only the final release job may write repository contents.
+- `.github/scripts/package-release.sh`: CGO-free server/CLI cross-builds, explicitly
+  allowlisted documentation/configuration, archive validation and build provenance.
 - `.github/scripts/check-gofmt.cjs`: check changed Go files, leaving untouched
   legacy formatting alone. Keep this consistent with the scoped-formatting rule.
 - `.github/actions/setup-go/action.yml`: explicitly read `toolchain` from go.mod

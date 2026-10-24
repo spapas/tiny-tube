@@ -28,6 +28,27 @@ and bounded conversion workers are covered by regression tests. See the
   browser's support for its container and codecs.
 - Native HLS playback and original-file playback do not require that script.
 
+## Download a release
+
+Download the matching archive from [GitHub Releases](https://github.com/spapas/tiny-tube/releases).
+Releases provide Linux, Windows and macOS binaries for `amd64` (Intel/AMD) and
+`arm64` (including Apple Silicon). Windows packages use `.zip`; Linux/macOS use
+`.tar.gz`. Extract the archive, copy `.env.example` to `.env`, set `ADMIN_PASS`,
+then run `tiny-tube.exe` on Windows or `./tiny-tube` on Linux/macOS. Go is only
+needed to build from source. UI assets and SQLite are embedded; FFmpeg is optional
+and installed separately. Binaries are unsigned; Windows/macOS may show platform
+security prompts.
+
+Each archive includes `tiny-tube`, `tiny-tube-cli` (with `.exe` on Windows),
+configuration examples, documentation, the vendored player license and
+`VERSION.txt` recording the tag, source commit and toolchain. Use the CLI in place
+of `go run ./cmd/cli` in the operator examples below.
+
+Verify the downloaded archive against the release's `SHA256SUMS`: use
+`Get-FileHash .\tiny-tube-v1.0-windows-amd64.zip -Algorithm SHA256` in PowerShell,
+`sha256sum` on Linux, or `shasum -a 256` on macOS. Compare its hash with the entry
+for that exact filename.
+
 ## Run on Windows (PowerShell)
 
 From the repository directory:
@@ -390,12 +411,20 @@ and can also be started manually from the Actions tab:
 - `gofmt` for changed Go files (matching the scoped-formatting policy), `go vet`,
   module checksum verification and `go mod tidy -diff`.
 - The Node UI behavior suite and syntax checks for embedded JavaScript.
-- Pinned `govulncheck` scans for Linux and Windows using the live vulnerability
+- Pinned `govulncheck` scans for Linux, Windows and macOS using the live vulnerability
   database. Database/tool failures fail the job; they are not treated as a pass.
 
-Actions are pinned to commit SHAs, repository permissions are read-only, jobs
+Pushing a version tag such as `v1.0` or `v1.0.1` runs these same checks first,
+then cross-builds six CGO-free platform packages and publishes a GitHub Release
+with all archives and `SHA256SUMS`. A failed check or platform build blocks release
+publication. Linux/Windows tests execute natively; macOS and ARM packages are
+cross-compiled, without native runtime tests for every target. Ordinary branch
+pushes and pull requests do not publish releases.
+
+Actions are pinned to commit SHAs, repository permissions default to read-only, jobs
 have time limits, and superseded branch runs are cancelled. CI uses the Go
-toolchain selected in `go.mod`. It does not deploy the application. Branch
+toolchain selected in `go.mod`. Only the final release job has permission to
+publish downloads. It does not deploy the application. Branch
 protection/required checks must be configured separately in repository settings.
 
 ```sh

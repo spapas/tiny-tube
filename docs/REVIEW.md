@@ -2,6 +2,14 @@
 
 ## Continuous integration — 2026-10-24
 
+Version tags (`v1.0`, `v1.0.1`, etc.) now gate release packaging on the same full
+CI checks. Linux/Windows/macOS amd64 and arm64 archives contain the server, operator
+CLI, example configuration and documentation; all six builds must succeed before
+publication with SHA-256 checksums. Go/UI/SQLite are included; FFmpeg is separate.
+Packages are unsigned and cross-built; native runtime coverage remains Linux/Windows
+amd64 rather than every release platform. Only the publication job can write
+repository contents. Branch pushes and pull requests cannot publish releases.
+
 The hosted setup now reads the exact `toolchain` directive explicitly and verifies
 `go env GOVERSION`; relying on `go-version-file` selected the older language
 minimum in the first run. The module now selects Go 1.27.3 and startup rejects
