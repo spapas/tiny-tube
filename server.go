@@ -161,6 +161,8 @@ func checkWritable(root string) error {
 
 func (a *application) routes() http.Handler {
 	mux := http.NewServeMux()
+	mux.HandleFunc("POST /language", a.handleLanguage)
+	mux.HandleFunc("GET /assets/i18n/{language}", serveTranslations)
 	mux.HandleFunc("GET /healthz", func(w http.ResponseWriter, r *http.Request) { w.Write([]byte("ok")) })
 	mux.HandleFunc("GET /readyz", func(w http.ResponseWriter, r *http.Request) {
 		if err := checkWritable(a.videoDir); err != nil {
@@ -213,14 +215,14 @@ func (a *application) routes() http.Handler {
 	mux.Handle("GET /api/video", a.withUser(http.HandlerFunc(a.handleAPIVideo)))
 	mux.HandleFunc("GET /videos/", a.serveVideo)
 	mux.Handle("GET /assets/", http.StripPrefix("/assets/", http.FileServer(http.FS(staticFiles()))))
-	return secureHTTP(mux)
+	return secureHTTP(localizedHTTP(mux))
 }
 
 func render(w http.ResponseWriter, tmpl *template.Template, data any) {
 	var buf bytes.Buffer
 	if err := tmpl.Execute(&buf, data); err != nil {
 		log.Printf("render %s: %v", tmpl.Name(), err)
-		http.Error(w, "page rendering failed", http.StatusInternalServerError)
+		http.Error(w, translate(w.Header().Get("Content-Language"), "page rendering failed"), http.StatusInternalServerError)
 		return
 	}
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
@@ -231,7 +233,7 @@ func render(w http.ResponseWriter, tmpl *template.Template, data any) {
 
 func (a *application) serverError(w http.ResponseWriter, operation string, err error) {
 	log.Printf("%s: %v", operation, err)
-	http.Error(w, "internal server error", http.StatusInternalServerError)
+	http.Error(w, translate(w.Header().Get("Content-Language"), "internal server error"), http.StatusInternalServerError)
 }
 
 // wantsJSON reports whether the client prefers a JSON REST response over the
@@ -247,6 +249,9 @@ func wantsJSON(r *http.Request) bool {
 
 func writeJSON(w http.ResponseWriter, code int, v any) {
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	// JSON errors/identifiers keep their existing language; metadata may contain
+	// user text in any language, independent of the interface preference.
+	w.Header().Del("Content-Language")
 	w.WriteHeader(code)
 	if err := json.NewEncoder(w).Encode(v); err != nil {
 		log.Printf("write JSON: %v", err)
@@ -259,7 +264,7 @@ func writeAPIError(w http.ResponseWriter, r *http.Request, code int, msg string)
 		writeJSON(w, code, map[string]string{"error": msg})
 		return
 	}
-	http.Error(w, msg, code)
+	http.Error(w, translate(requestLanguage(r), msg), code)
 }
 
 func (a *application) apiServerError(w http.ResponseWriter, r *http.Request, operation string, err error) {

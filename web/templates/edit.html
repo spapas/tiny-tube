@@ -1,18 +1,18 @@
 {{define "edit"}}<!doctype html>
-<html lang="el" data-theme="light"><head>{{template "head" .}}</head><body>
+<html lang="{{.Lang}}" data-theme="light"><head>{{template "head" .}}</head><body>
 {{template "header" .}}
 <main id="main" class="container upload-main">
   {{with .Video}}
-  <a class="back-link" href="/watch?id={{.ID}}">{{template "back"}} Πίσω στο βίντεο</a>
-  <div class="page-heading"><span class="eyebrow muted">ΔΙΑΧΕΙΡΙΣΗ ΥΛΙΚΟΥ</span><h1>Επεξεργασία βίντεο</h1><p>Ενημερώστε τα στοιχεία του βίντεο στη βιβλιοθήκη.</p></div>
+  <a class="back-link" href="/watch?id={{.ID}}">{{template "back"}} {{t "Πίσω στο βίντεο"}}</a>
+  <div class="page-heading"><span class="eyebrow muted">{{t "ΔΙΑΧΕΙΡΙΣΗ ΥΛΙΚΟΥ"}}</span><h1>{{t "Επεξεργασία βίντεο"}}</h1><p>{{t "Ενημερώστε τα στοιχεία του βίντεο στη βιβλιοθήκη."}}</p></div>
   <form class="upload-card edit-card" method="POST" action="/api/edit" data-metadata-form>
     <div id="edit-error" class="notice notice-warning" role="alert"{{if not $.Error}} hidden{{end}}>{{$.Error}}</div>
     <input type="hidden" name="id" value="{{.ID}}">
-    <div class="form-field"><label for="title">Τίτλος <span class="required-mark">*</span></label><input id="title" name="title" type="text" maxlength="512" value="{{.Title}}" required></div>
-    <div class="form-field"><label for="desc">Περιγραφή <span class="optional-label">προαιρετικό</span></label><textarea id="desc" name="desc" rows="6" maxlength="8192">{{.Desc}}</textarea></div>
-    <div class="form-field"><label for="category">Κατηγορία <span class="optional-label">προαιρετικό</span></label><input id="category" name="category" type="text" maxlength="256" value="{{.Category}}"></div>
-    <div class="form-field"><label for="access_list">Ορατότητα</label><select id="access_list" name="access_list"><option value="">Δημόσιο — το βλέπουν όλοι</option>{{range $.AccessLists}}<option value="{{.ID}}"{{if eq $.Video.AccessList .ID}} selected{{end}}>Κλειδωμένο — {{.Name}}</option>{{end}}</select><p class="field-hint">Τα κλειδωμένα βίντεο φαίνονται μόνο με τον σύνδεσμο της λίστας τους.</p></div>
-    <div class="form-actions"><a class="text-link" href="/watch?id={{.ID}}">Ακύρωση</a><button class="button button-primary" type="submit">Αποθήκευση αλλαγών</button></div>
+    <div class="form-field"><label for="title">{{t "Τίτλος"}} <span class="required-mark">*</span></label><input id="title" name="title" type="text" maxlength="512" value="{{.Title}}" required></div>
+    <div class="form-field"><label for="desc">{{t "Περιγραφή"}} <span class="optional-label">{{t "προαιρετικό"}}</span></label><textarea id="desc" name="desc" rows="6" maxlength="8192">{{.Desc}}</textarea></div>
+    <div class="form-field"><label for="category">{{t "Κατηγορία"}} <span class="optional-label">{{t "προαιρετικό"}}</span></label><input id="category" name="category" type="text" maxlength="256" value="{{.Category}}"></div>
+    <div class="form-field"><label for="access_list">{{t "Ορατότητα"}}</label><select id="access_list" name="access_list"><option value="">{{t "Δημόσιο — το βλέπουν όλοι"}}</option>{{range $.AccessLists}}<option value="{{.ID}}"{{if eq $.Video.AccessList .ID}} selected{{end}}>{{t "Κλειδωμένο — %s" .Name}}</option>{{end}}</select><p class="field-hint">{{t "Τα κλειδωμένα βίντεο φαίνονται μόνο με τον σύνδεσμο της λίστας τους."}}</p></div>
+    <div class="form-actions"><a class="text-link" href="/watch?id={{.ID}}">{{t "Ακύρωση"}}</a><button class="button button-primary" type="submit">{{t "Αποθήκευση αλλαγών"}}</button></div>
   </form>
   {{end}}
 </main>

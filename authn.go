@@ -71,7 +71,30 @@ func contextWithUser(r *http.Request, u *store.User) context.Context {
 // renderPage renders with the current user attached for navigation/role UI.
 func (a *application) renderPage(w http.ResponseWriter, r *http.Request, tmpl *template.Template, data map[string]any) {
 	data["CurrentUser"] = currentUser(r)
-	render(w, tmpl, data)
+	lang := requestLanguage(r)
+	data["Lang"] = lang
+	data["LanguageReturn"] = r.URL.RequestURI()
+	// A mutation may render a page (e.g. a newly issued API/list key). The
+	// language form must return to the corresponding GET page, never that POST.
+	if r.Method != http.MethodGet {
+		switch tmpl.Name() {
+		case "admin-lists":
+			data["LanguageReturn"] = "/admin/lists"
+		case "admin-keys":
+			data["LanguageReturn"] = "/admin/keys"
+		case "edit":
+			data["LanguageReturn"] = "/edit?id=" + url.QueryEscape(r.FormValue("id"))
+		default:
+			data["LanguageReturn"] = "/login?next=" + url.QueryEscape(r.FormValue("next"))
+		}
+	}
+	for _, key := range []string{"Error", "Notice"} {
+		if value, ok := data[key].(string); ok {
+			data[key] = translate(lang, value)
+		}
+	}
+	w.Header().Set("Content-Language", lang)
+	render(w, languageTemplates[lang].Lookup(tmpl.Name()), data)
 }
 
 // issueSession creates a sliding session and writes the cookie.

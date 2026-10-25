@@ -1,47 +1,47 @@
 {{define "list"}}<!doctype html>
-<html lang="el" data-theme="light"><head>{{template "head" .}}</head><body>
+<html lang="{{.Lang}}" data-theme="light"><head>{{template "head" .}}</head><body>
 {{template "header" .}}
 <main id="main" class="container library-main">
   <section class="library-hero" aria-labelledby="library-title">
     <div class="hero-copy">
-      <span class="eyebrow muted">ΠΕΡΙΕΧΟΜΕΝΟ ΟΜΑΔΑΣ</span>
-      <h1 id="library-title">Βιβλιοθήκη βίντεο</h1>
-      <p class="hero-description">Εκπαιδεύσεις, παρουσιάσεις και καταγεγραμμένες συναντήσεις,<br class="desktop-break"> οργανωμένες σε ένα σημείο.</p>
+      <span class="eyebrow muted">{{t "ΠΕΡΙΕΧΟΜΕΝΟ ΟΜΑΔΑΣ"}}</span>
+      <h1 id="library-title">{{t "Βιβλιοθήκη βίντεο"}}</h1>
+      <p class="hero-description">{{t "Εκπαιδεύσεις, παρουσιάσεις και καταγεγραμμένες συναντήσεις, οργανωμένες σε ένα σημείο."}}</p>
     </div>
-    {{if .CurrentUser}}{{if .CurrentUser.CanEdit}}<a class="button button-primary library-upload" href="/upload">{{template "upload-icon"}} Ανέβασμα βίντεο</a>{{end}}{{end}}
+    {{if .CurrentUser}}{{if .CurrentUser.CanEdit}}<a class="button button-primary library-upload" href="/upload">{{template "upload-icon"}} {{t "Ανέβασμα βίντεο"}}</a>{{end}}{{end}}
   </section>
 
   <section class="library-content" aria-labelledby="videos-title">
-    <div class="section-heading"><h2 id="videos-title">Βίντεο <span class="count-bubble">{{.Total}}</span></h2><span class="section-note">Ταξινόμηση: {{if eq .Sort "views"}}δημοφιλή{{else}}πιο πρόσφατα{{end}}</span></div>
+    <div class="section-heading"><h2 id="videos-title">{{t "Βίντεο"}} <span class="count-bubble">{{.Total}}</span></h2><span class="section-note">{{t "Ταξινόμηση:"}} {{if eq .Sort "views"}}{{t "δημοφιλή"}}{{else}}{{t "πιο πρόσφατα"}}{{end}}</span></div>
     <div class="library-toolbar">
       <form class="search-form" method="GET" action="/" role="search">
-        {{template "search"}}<label class="sr-only" for="search">Αναζήτηση βίντεο</label>
-        <input id="search" type="search" name="q" placeholder="Αναζήτηση με τίτλο, περιγραφή ή κατηγορία…" value="{{.Q}}">
+        {{template "search"}}<label class="sr-only" for="search">{{t "Αναζήτηση βίντεο"}}</label>
+        <input id="search" type="search" name="q" placeholder="{{t "Αναζήτηση με τίτλο, περιγραφή ή κατηγορία…"}}" value="{{.Q}}">
         {{if .Category}}<input type="hidden" name="category" value="{{.Category}}">{{end}}
         {{if eq .Sort "views"}}<input type="hidden" name="sort" value="views">{{end}}
-        <button type="submit" class="search-submit" aria-label="Αναζήτηση">{{template "arrow"}}</button>
+        <button type="submit" class="search-submit" aria-label="{{t "Αναζήτηση"}}">{{template "arrow"}}</button>
       </form>
       <span class="result-count">{{if .FilteredTotal}}{{videoCount .FilteredTotal}}{{else}}{{videoCount (len .Items)}}{{end}}</span>
     </div>
-    <nav class="category-filters" aria-label="Φίλτρα κατηγορίας">
-      <a class="filter-chip{{if not .Category}} is-selected{{end}}" href="{{sortURL .Q "" .Sort}}" {{if not .Category}}aria-current="true"{{end}}>Όλα <span>{{.Total}}</span></a>
+    <nav class="category-filters" aria-label="{{t "Φίλτρα κατηγορίας"}}">
+      <a class="filter-chip{{if not .Category}} is-selected{{end}}" href="{{sortURL .Q "" .Sort}}" {{if not .Category}}aria-current="true"{{end}}>{{t "Όλα"}} <span>{{.Total}}</span></a>
       {{range .Categories}}<a class="filter-chip{{if .Selected}} is-selected{{end}}" href="{{sortURL $.Q .Name $.Sort}}" {{if .Selected}}aria-current="true"{{end}}>{{.Name}} <span>{{.Count}}</span></a>{{end}}
     </nav>
-    <nav class="category-filters" aria-label="Ταξινόμηση">
-      <a class="filter-chip{{if ne .Sort "views"}} is-selected{{end}}" href="{{sortURL .Q .Category ""}}" {{if ne .Sort "views"}}aria-current="true"{{end}}>Πιο πρόσφατα</a>
-      <a class="filter-chip{{if eq .Sort "views"}} is-selected{{end}}" href="{{sortURL .Q .Category "views"}}" {{if eq .Sort "views"}}aria-current="true"{{end}}>Δημοφιλή</a>
+    <nav class="category-filters" aria-label="{{t "Ταξινόμηση"}}">
+      <a class="filter-chip{{if ne .Sort "views"}} is-selected{{end}}" href="{{sortURL .Q .Category ""}}" {{if ne .Sort "views"}}aria-current="true"{{end}}>{{t "Πιο πρόσφατα"}}</a>
+      <a class="filter-chip{{if eq .Sort "views"}} is-selected{{end}}" href="{{sortURL .Q .Category "views"}}" {{if eq .Sort "views"}}aria-current="true"{{end}}>{{t "Δημοφιλή"}}</a>
     </nav>
-    {{if or .Q .Category}}<div class="active-search"><span>Αποτελέσματα{{if .Q}} για «{{.Q}}»{{end}}{{if .Category}} στην κατηγορία «{{.Category}}»{{end}}</span><a href="/">Καθαρισμός φίλτρων {{template "close"}}</a></div>{{end}}
+    {{if or .Q .Category}}<div class="active-search"><span>{{t "Αποτελέσματα"}}{{if .Q}}{{t " για «%s»" .Q}}{{end}}{{if .Category}}{{t " στην κατηγορία «%s»" .Category}}{{end}}</span><a href="/">{{t "Καθαρισμός φίλτρων"}} {{template "close"}}</a></div>{{end}}
     <div class="video-grid">
       {{range .Items}}
       <article class="video-card">
         <a class="video-card-link" href="/watch?id={{.ID}}">
-          <div class="video-cover" aria-hidden="true">{{if .Poster}}<img class="video-poster" loading="lazy" src="/videos/{{.ID}}/{{.Poster}}" alt="">{{end}}<span class="cover-type">{{template "film"}} ΒΙΝΤΕΟ</span><span class="cover-play">{{template "play"}}</span></div>
-          <div class="card-body"><div class="card-topline"><span class="card-category">{{if .Category}}{{.Category}}{{else}}Χωρίς κατηγορία{{end}}{{if .AccessList}} · Κλειδωμένο{{end}}</span>{{if $.CurrentUser}}{{if $.CurrentUser.CanEdit}}<span class="status-badge status-{{statusClass .Status}}"><span></span>{{statusLabel .Status}}</span>{{end}}{{end}}</div><h3>{{.Title}}</h3><p class="card-description">{{if .Desc}}{{.Desc}}{{else}}Δεν έχει προστεθεί περιγραφή.{{end}}</p><div class="card-bottom"><span>{{template "clock"}} {{formatDate .Created}}</span><span>{{viewCount .Views}}</span><span class="card-open">Προβολή {{template "arrow"}}</span></div></div>
+          <div class="video-cover" aria-hidden="true">{{if .Poster}}<img class="video-poster" loading="lazy" src="/videos/{{.ID}}/{{.Poster}}" alt="">{{end}}<span class="cover-type">{{template "film"}} {{t "ΒΙΝΤΕΟ"}}</span><span class="cover-play">{{template "play"}}</span></div>
+          <div class="card-body"><div class="card-topline"><span class="card-category">{{if .Category}}{{.Category}}{{else}}{{t "Χωρίς κατηγορία"}}{{end}}{{if .AccessList}} {{t "· Κλειδωμένο"}}{{end}}</span>{{if $.CurrentUser}}{{if $.CurrentUser.CanEdit}}<span class="status-badge status-{{statusClass .Status}}"><span></span>{{statusLabel .Status}}</span>{{end}}{{end}}</div><h3>{{.Title}}</h3><p class="card-description">{{if .Desc}}{{.Desc}}{{else}}{{t "Δεν έχει προστεθεί περιγραφή."}}{{end}}</p><div class="card-bottom"><span>{{template "clock"}} {{formatDate .Created}}</span><span>{{viewCount .Views}}</span><span class="card-open">{{t "Προβολή"}} {{template "arrow"}}</span></div></div>
         </a>
       </article>
       {{else}}
-      <div class="empty-state"><span class="empty-icon">{{template "film"}}</span>{{if or .Q .Category}}<h3>Δεν βρέθηκαν βίντεο</h3><p>Αλλάξτε τους όρους αναζήτησης ή αφαιρέστε τα φίλτρα.</p><a class="button button-primary" href="/">Όλα τα βίντεο {{template "arrow"}}</a>{{else}}<h3>Δεν υπάρχουν ακόμη βίντεο</h3><p>Προσθέστε το πρώτο βίντεο στη βιβλιοθήκη της ομάδας.</p>{{if $.CurrentUser}}{{if $.CurrentUser.CanEdit}}<a class="button button-primary" href="/upload">{{template "upload-icon"}} Ανέβασμα βίντεο</a>{{end}}{{end}}{{end}}</div>
+      <div class="empty-state"><span class="empty-icon">{{template "film"}}</span>{{if or .Q .Category}}<h3>{{t "Δεν βρέθηκαν βίντεο"}}</h3><p>{{t "Αλλάξτε τους όρους αναζήτησης ή αφαιρέστε τα φίλτρα."}}</p><a class="button button-primary" href="/">{{t "Όλα τα βίντεο"}} {{template "arrow"}}</a>{{else}}<h3>{{t "Δεν υπάρχουν ακόμη βίντεο"}}</h3><p>{{t "Προσθέστε το πρώτο βίντεο στη βιβλιοθήκη της ομάδας."}}</p>{{if $.CurrentUser}}{{if $.CurrentUser.CanEdit}}<a class="button button-primary" href="/upload">{{template "upload-icon"}} {{t "Ανέβασμα βίντεο"}}</a>{{end}}{{end}}{{end}}</div>
       {{end}}
     </div>
     {{template "pagination" .}}

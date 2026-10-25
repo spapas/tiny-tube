@@ -22,6 +22,7 @@ func TestSnapshotSkipsRuntimeAndBuildDirectories(t *testing.T) {
 	writeWatchFile(t, "store/store.go", "package store")
 	writeWatchFile(t, filepath.Join("web", "templates", "list.html"), "<main>List</main>")
 	writeWatchFile(t, filepath.Join("web", "static", "app.css"), "body {}")
+	writeWatchFile(t, filepath.Join("web", "locales", "en.json"), `{"Title":"Title"}`)
 	writeWatchFile(t, "go.mod", "module tiny-tube")
 	writeWatchFile(t, ".env", "UPLOAD_PASS=secret")
 	for _, directory := range []string{".git", "tmp", "videos", "vendor", "bin", "dist", "node_modules"} {
@@ -33,7 +34,7 @@ func TestSnapshotSkipsRuntimeAndBuildDirectories(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(files) != 6 {
+	if len(files) != 7 {
 		t.Fatalf("watched files = %v, want only server sources, web assets, go.mod and .env", files)
 	}
 	for _, path := range []string{
@@ -41,6 +42,7 @@ func TestSnapshotSkipsRuntimeAndBuildDirectories(t *testing.T) {
 		filepath.Join("store", "store.go"),
 		filepath.Join("web", "templates", "list.html"),
 		filepath.Join("web", "static", "app.css"),
+		filepath.Join("web", "locales", "en.json"),
 		"go.mod",
 		".env",
 	} {
@@ -64,6 +66,7 @@ func TestSnapshotDetectsSourceAndAssetChanges(t *testing.T) {
 		"server.go",
 		filepath.Join("web", "templates", "list.html"),
 		filepath.Join("web", "static", "app.css"),
+		filepath.Join("web", "locales", "en.json"),
 		".env",
 	} {
 		t.Run(path, func(t *testing.T) {

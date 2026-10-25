@@ -11,10 +11,11 @@ import (
 	"time"
 )
 
-//go:embed web/templates/*.html web/static/*
+//go:embed web/templates/*.html web/static/* web/locales/*.json
 var webFiles embed.FS
 
 var pageTemplates = template.Must(template.New("pages").Funcs(template.FuncMap{
+	"t":            func(message string, args ...any) string { return translate("el", message, args...) },
 	"hlsScriptURL": func() string { return hlsScriptURL },
 	"formatDate":   formatDate,
 	"formatBytes":  formatBytes,
@@ -57,6 +58,8 @@ var pageTemplates = template.Must(template.New("pages").Funcs(template.FuncMap{
 		return "/?" + values.Encode()
 	},
 }).ParseFS(webFiles, "web/templates/*.html"))
+
+var languageTemplates = localizedTemplates(pageTemplates)
 
 var (
 	listTmpl         = pageTemplates.Lookup("list")

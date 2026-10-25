@@ -196,6 +196,9 @@ func watchedFile(path string) bool {
 	if strings.HasPrefix(slash, "web/static/") {
 		return true
 	}
+	if strings.HasPrefix(slash, "web/locales/") && strings.HasSuffix(path, ".json") {
+		return true
+	}
 	return path == "go.mod" || path == "go.sum" || path == ".env"
 }
 

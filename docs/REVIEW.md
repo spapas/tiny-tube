@@ -1,5 +1,27 @@
 # Project review and fixes — 2026-10-14
 
+## Greek and English interface — 2026-10-25
+
+All public, login, editing and administrator pages now share embedded Greek and
+English message catalogs. The header language form works without JavaScript,
+remembers the choice for a year and preserves local page/query context. Browser
+language negotiation applies until a choice is saved, with Greek as fallback.
+User content, stored metadata, API identifiers/errors and CLI/log messages retain
+their existing representation. Server templates use separate immutable function
+maps per language so concurrent requests cannot change one another's translations.
+Upload/player/theme/share/confirmation messages use the same catalogs through an
+external script; CSP requires no new exceptions. Dates, sizes and counts are
+localized, and the development watcher rebuilds on translation changes.
+Regression tests cover page coverage, catalog/placeholder completeness,
+cookie preference, redirects, same-origin protection and concurrent rendering.
+
+Verification on Windows/amd64 with Go 1.27.3: Go tests (including real FFmpeg),
+vet, build, scoped formatting and the six Node UI tests pass. Manual checks with
+temporary SQLite storage cover both languages, login/protected routes, multipart
+upload, HLS/poster publication, original Range/206, editing and browser playback.
+The local race detector is unavailable because CGO is disabled and no C compiler
+was found on PATH; the concurrent-language regression runs without it.
+
 ## Continuous integration — 2026-10-24
 
 Version tags (`v1.0`, `v1.0.1`, etc.) now gate release packaging on the same full

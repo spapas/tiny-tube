@@ -1,4 +1,5 @@
 (() => {
+  const t = window.tinyTubeTranslate;
   const video = document.getElementById('v');
   if (!video) return;
   const { id, hls, original } = video.dataset;
@@ -17,12 +18,12 @@
   const showMessage = text => { message.textContent = text; message.hidden = false; };
   function fallback() {
     if (usingOriginal) {
-      showMessage('Ο browser δεν μπορεί να αναπαράγει αυτό το αρχείο. Δοκίμασε άλλο browser ή κατέβασε το αρχικό βίντεο.');
+      showMessage(t('Ο browser δεν μπορεί να αναπαράγει αυτό το αρχείο. Δοκίμασε άλλο browser ή κατέβασε το αρχικό βίντεο.'));
       return;
     }
     usingOriginal = true;
     if (player) { player.destroy(); player = null; }
-    if (hls) showMessage('Η προεπισκόπηση δεν είναι διαθέσιμη. Δοκιμάζουμε το αρχικό βίντεο.');
+    if (hls) showMessage(t('Η προεπισκόπηση δεν είναι διαθέσιμη. Δοκιμάζουμε το αρχικό βίντεο.'));
     video.src = base + original;
     video.load();
   }

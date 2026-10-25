@@ -1,4 +1,5 @@
 (() => {
+  const t = window.tinyTubeTranslate;
   const root = document.documentElement;
   document.querySelectorAll('.video-poster').forEach(image => {
     image.addEventListener('error', () => { image.hidden = true; });
@@ -6,11 +7,11 @@
   });
   document.querySelectorAll('[data-delete-video]').forEach(form => form.addEventListener('submit', event => {
     const messages = {
-      '/api/admin/users/delete': 'Να διαγραφεί οριστικά αυτός ο χρήστης και να ανακληθεί η πρόσβασή του;',
-      '/api/admin/lists/delete': 'Να διαγραφεί οριστικά αυτή η κλειδωμένη λίστα;'
+      '/api/admin/users/delete': t('Να διαγραφεί οριστικά αυτός ο χρήστης και να ανακληθεί η πρόσβασή του;'),
+      '/api/admin/lists/delete': t('Να διαγραφεί οριστικά αυτή η κλειδωμένη λίστα;')
     };
     const path = new URL(form.action, window.location.href).pathname;
-    if (!window.confirm(messages[path] || 'Να διαγραφεί οριστικά το βίντεο και όλα τα αρχεία του;')) event.preventDefault();
+    if (!window.confirm(messages[path] || t('Να διαγραφεί οριστικά το βίντεο και όλα τα αρχεία του;'))) event.preventDefault();
   }));
   document.querySelector('[data-metadata-form]')?.addEventListener('submit', event => {
     const form = event.currentTarget;
@@ -18,7 +19,7 @@
     for (const [name, maximum] of [['title',512],['desc',8192],['category',256]]) {
       if (new TextEncoder().encode(form.elements[name].value.trim()).length > maximum) {
         event.preventDefault(); error.hidden = false;
-        error.textContent = 'Το πεδίο «' + ({title:'Τίτλος',desc:'Περιγραφή',category:'Κατηγορία'})[name] + ' είναι πολύ μεγάλο. Χρησιμοποιήστε λιγότερους χαρακτήρες.';
+        error.textContent = t('Το πεδίο «%s» είναι πολύ μεγάλο. Χρησιμοποιήστε λιγότερους χαρακτήρες.', t(({title:'Τίτλος',desc:'Περιγραφή',category:'Κατηγορία'})[name]));
         form.elements[name].focus(); return;
       }
     }
@@ -27,10 +28,10 @@
   const syncTheme = () => {
     const dark = root.dataset.theme === 'dark';
     toggle?.setAttribute('aria-pressed', String(dark));
-    toggle?.setAttribute('aria-label', dark ? 'Ενεργοποίηση ανοιχτού θέματος' : 'Ενεργοποίηση σκοτεινού θέματος');
+    toggle?.setAttribute('aria-label', dark ? t('Ενεργοποίηση ανοιχτού θέματος') : t('Ενεργοποίηση σκοτεινού θέματος'));
     if (toggle) toggle.title = toggle.getAttribute('aria-label');
     const label = document.querySelector('[data-theme-label]');
-    if (label) label.textContent = dark ? 'Σκούρο' : 'Ανοιχτό';
+    if (label) label.textContent = dark ? t('Σκούρο') : t('Ανοιχτό');
   };
   syncTheme();
   toggle?.addEventListener('click', () => {
@@ -54,11 +55,11 @@
     const status = document.querySelector('[data-share-status]');
     try {
       await navigator.clipboard.writeText(shareInput.value);
-      status.textContent = 'Ο σύνδεσμος αντιγράφηκε.';
+      status.textContent = t('Ο σύνδεσμος αντιγράφηκε.');
     } catch (_) {
       shareInput.focus();
       shareInput.select();
-      status.textContent = 'Ο σύνδεσμος επιλέχθηκε. Αντιγράψτε τον από το πεδίο.';
+      status.textContent = t('Ο σύνδεσμος επιλέχθηκε. Αντιγράψτε τον από το πεδίο.');
     }
   });
 })();
