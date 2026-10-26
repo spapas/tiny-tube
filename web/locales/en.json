@@ -1,287 +1,887 @@
 {
-  "Διαχείριση": "Administration",
-  "Επισκόπηση": "Overview",
-  "Κατάσταση υπηρεσίας και συντομεύσεις διαχείρισης.": "Service status and administration shortcuts.",
-  "Κατάσταση": "Status",
-  "Βίντεο": "Videos",
-  "Χρήστες": "Users",
-  "Κλειδιά API": "API keys",
-  "Αποθηκευτικός χώρος": "Storage",
-  "Εντάξει": "OK",
-  "Μη διαθέσιμος": "Unavailable",
-  "Μεταδεδομένα": "Metadata",
-  "Μη διαθέσιμα": "Unavailable",
-  "Δεν βρέθηκε — προβολή αρχικών": "Not found — original playback",
-  "Τεχνικός έλεγχος:": "Service checks:",
-  "Ενότητες διαχείρισης": "Administration sections",
-  "Νέος χρήστης": "New user",
-  "Κλειδωμένες λίστες": "Locked lists",
-  "Ρόλοι και κατάσταση λογαριασμών. Οι editors ανεβάζουν και επεξεργάζονται βίντεο. Οι διαχειριστές διαγράφουν επίσης βίντεο και διαχειρίζονται χρήστες. Οι χρήστες LDAP δημιουργούνται στην πρώτη σύνδεση και παίρνουν δικαιώματα εδώ.": "Account roles and status. Editors upload and edit videos. Administrators also delete videos and manage users. LDAP users are created on first login and receive permissions here.",
-  "Χρήστης": "User",
-  "Πηγή": "Source",
-  "Ρόλος": "Role",
-  "Ενεργός": "Active",
-  "Ενέργειες": "Actions",
-  "Ρόλος του %s": "Role for %s",
-  "Αλλαγή": "Update",
-  "Απενεργοποίηση": "Deactivate",
-  "Ενεργοποίηση": "Activate",
-  "Νέος κωδικός για %s": "New password for %s",
-  "Νέος κωδικός": "New password",
-  "Διαγραφή": "Delete",
-  "Νέος τοπικός χρήστης": "New local user",
-  "Δημιουργία λογαριασμού με κωδικό. Οι χρήστες LDAP δεν χρειάζονται εγγραφή — δημιουργούνται στην πρώτη σύνδεση.": "Create an account with a password. LDAP users are created on first login and do not need registration.",
-  "Όνομα χρήστη": "Username",
-  "Εμφανιζόμενο όνομα (προαιρετικό)": "Display name (optional)",
-  "Κωδικός": "Password",
-  "Δημιουργία": "Create",
-  "Ομάδες βίντεο ορατές μόνο με μακρύ σύνδεσμο (%s). Το πλήρες κλειδί φαίνεται μία μόνο φορά, κατά τη δημιουργία ή την αλλαγή. Η αλλαγή κλειδιού απενεργοποιεί αμέσως όλα τα παλιά αντίγραφα του συνδέσμου.": "Groups of videos visible only through a long link (%s). The full key is shown only once, when created or rotated. Rotating the key immediately invalidates every old copy of the link.",
-  "Νέο κλειδί για «%s» — αντιγράψτε το τώρα, δεν θα ξαναεμφανιστεί:": "New key for “%s” — copy it now; it will not be shown again:",
-  "Λίστα": "List",
-  "Μετονομασία": "Rename",
-  "Όνομα λίστας": "List name",
-  "Αλλαγή κλειδιού": "Rotate key",
-  "Δεν υπάρχουν κλειδωμένες λίστες.": "There are no locked lists.",
-  "Όνομα νέας λίστας (π.χ. Έλεγχοι, Ασφάλεια)": "New list name (e.g. Audits, Security)",
-  "Δημιουργία λίστας": "Create list",
-  "Για αυτοματισμούς χωρίς cookies: στέλνεται ως %s και δίνει τα δικαιώματα του χρήστη. Το πλήρες κλειδί φαίνεται μία μόνο φορά, κατά τη δημιουργία.": "For automation without cookies: send as %s to use the user's permissions. The full key is shown only once, when created.",
-  "Νέο κλειδί για %s — αντιγράψτε το τώρα, δεν θα ξαναεμφανιστεί:": "New key for %s — copy it now; it will not be shown again:",
-  "Πρόθεμα": "Prefix",
-  "Όνομα": "Name",
-  "Τελευταία χρήση": "Last used",
-  "Ενέργεια": "Action",
-  "ποτέ": "never",
-  "Ανάκληση": "Revoke",
-  "Δεν υπάρχουν κλειδιά API.": "There are no API keys.",
-  "Όνομα κλειδιού (π.χ. script μεταφορτώσεων)": "Key name (e.g. upload script)",
-  "Δημιουργία κλειδιού": "Create key",
-  "Πίσω στο βίντεο": "Back to video",
-  "ΔΙΑΧΕΙΡΙΣΗ ΥΛΙΚΟΥ": "MANAGE CONTENT",
-  "Επεξεργασία βίντεο": "Edit video",
-  "Ενημερώστε τα στοιχεία του βίντεο στη βιβλιοθήκη.": "Update the video details in the library.",
-  "Τίτλος": "Title",
-  "Περιγραφή": "Description",
-  "προαιρετικό": "optional",
-  "Κατηγορία": "Category",
-  "Ορατότητα": "Visibility",
-  "Δημόσιο — το βλέπουν όλοι": "Public — visible to everyone",
-  "Κλειδωμένο — %s": "Locked — %s",
-  "Τα κλειδωμένα βίντεο φαίνονται μόνο με τον σύνδεσμο της λίστας τους.": "Locked videos are visible only through their list link.",
-  "Ακύρωση": "Cancel",
-  "Αποθήκευση αλλαγών": "Save changes",
-  "ΠΕΡΙΕΧΟΜΕΝΟ ΟΜΑΔΑΣ": "TEAM CONTENT",
-  "Βιβλιοθήκη βίντεο": "Video library",
-  "Εκπαιδεύσεις, παρουσιάσεις και καταγεγραμμένες συναντήσεις, οργανωμένες σε ένα σημείο.": "Training, presentations and recorded meetings, organized in one place.",
-  "Ανέβασμα βίντεο": "Upload video",
-  "Ταξινόμηση:": "Sort:",
-  "δημοφιλή": "most viewed",
-  "πιο πρόσφατα": "most recent",
-  "Αναζήτηση βίντεο": "Search videos",
-  "Αναζήτηση με τίτλο, περιγραφή ή κατηγορία…": "Search by title, description or category…",
-  "Αναζήτηση": "Search",
-  "Φίλτρα κατηγορίας": "Category filters",
-  "Όλα": "All",
-  "Ταξινόμηση": "Sort order",
-  "Πιο πρόσφατα": "Most recent",
-  "Δημοφιλή": "Most viewed",
-  "Αποτελέσματα": "Results",
-  " για «%s»": " for “%s”",
-  " στην κατηγορία «%s»": " in category “%s”",
-  "Καθαρισμός φίλτρων": "Clear filters",
-  "ΒΙΝΤΕΟ": "VIDEO",
-  "Χωρίς κατηγορία": "Uncategorized",
-  "· Κλειδωμένο": "· Locked",
-  "Δεν έχει προστεθεί περιγραφή.": "No description has been added.",
-  "Προβολή": "Watch",
-  "Δεν βρέθηκαν βίντεο": "No videos found",
-  "Αλλάξτε τους όρους αναζήτησης ή αφαιρέστε τα φίλτρα.": "Try different search terms or remove the filters.",
-  "Όλα τα βίντεο": "All videos",
-  "Δεν υπάρχουν ακόμη βίντεο": "No videos yet",
-  "Προσθέστε το πρώτο βίντεο στη βιβλιοθήκη της ομάδας.": "Add the first video to your team's library.",
-  "Σύνδεση": "Log in",
-  "Συνδεθείτε για ανέβασμα και διαχείριση βίντεο. Η προβολή παραμένει ανοιχτή χωρίς σύνδεση.": "Log in to upload and manage videos. Public videos can be watched without logging in.",
-  "Στοιχεία σύνδεσης": "Login details",
-  "Μετάβαση στο περιεχόμενο": "Skip to content",
-  "Tiny Tube — Αρχική": "Tiny Tube — Home",
-  "Κύρια πλοήγηση": "Main navigation",
-  "Βιβλιοθήκη": "Library",
-  "Αποσύνδεση": "Log out",
-  "Ενεργοποίηση σκοτεινού θέματος": "Switch to dark theme",
-  "Ενεργοποίηση ανοιχτού θέματος": "Switch to light theme",
-  "Σκούρο": "Dark",
-  "Ανοιχτό": "Light",
-  "Βιβλιοθήκη βίντεο για ομάδες.": "A video library for teams.",
-  "Σελίδες βίντεο": "Video pages",
-  "Προηγούμενη": "Previous",
-  "Σελίδα %d από %d": "Page %d of %d",
-  "Επόμενη": "Next",
-  "Πίσω στη βιβλιοθήκη": "Back to library",
-  "ΠΡΟΣΘΗΚΗ ΥΛΙΚΟΥ": "ADD CONTENT",
-  "Προσθέστε ένα αρχείο στη βιβλιοθήκη, μαζί με τίτλο, περιγραφή και κατηγορία.": "Add a file to the library with a title, description and category.",
-  "Αρχείο βίντεο": "Video file",
-  "Επιλογή αρχείου από τη συσκευή σας.": "Choose a file from your device.",
-  "Επιλογή αρχείου βίντεο": "Choose a video file",
-  "Σύρετε το αρχείο εδώ": "Drop the file here",
-  "ή χρησιμοποιήστε την επιλογή αρχείου": "or use the file picker",
-  "Επιλογή αρχείου": "Choose file",
-  "MP4, MOV, MKV ή WEBM · Συνολικό όριο %s, μαζί με τα στοιχεία.": "MP4, MOV, MKV or WEBM · Total limit %s, including the details.",
-  "Αφαίρεση επιλεγμένου αρχείου": "Remove selected file",
-  "Στοιχεία βίντεο": "Video details",
-  "Πληροφορίες για την αναζήτηση και την οργάνωση του υλικού.": "Details to help find and organize the content.",
-  "π.χ. Εκπαίδευση νέων συνεργατών": "e.g. New staff training",
-  "Χρησιμοποιήστε έναν σύντομο, περιγραφικό τίτλο.": "Use a short, descriptive title.",
-  "π.χ. Εκπαίδευση": "e.g. Training",
-  "Θέμα, περιεχόμενο και χρήσιμες πληροφορίες για το βίντεο.": "Topic, content and useful details about the video.",
-  "Ανέβασμα βίντεο…": "Uploading video…",
-  "Αποθήκευση βίντεο…": "Saving video…",
-  "Πρόοδος ανεβάσματος": "Upload progress",
-  "Διατηρήστε τη σελίδα ανοιχτή μέχρι την ολοκλήρωση.": "Keep this page open until the upload is complete.",
-  "Επιστροφή στη βιβλιοθήκη": "Return to library",
-  "Οδηγίες ανεβάσματος": "Upload guidance",
-  "Οδηγίες καταχώρισης": "Adding a video",
-  "Ο σαφής τίτλος και η σωστή κατηγορία βοηθούν την ομάδα να εντοπίζει το υλικό.": "A clear title and the right category help your team find the content.",
-  "Ελέγξτε τη μορφή και το μέγεθος του βίντεο.": "Check the video format and size.",
-  "Συμπλήρωση στοιχείων": "Add details",
-  "Προσθέστε θέμα, περιγραφή και κατηγορία.": "Add a topic, description and category.",
-  "Κοινοποίηση συνδέσμου": "Share the link",
-  "Ο σύνδεσμος είναι διαθέσιμος στη σελίδα προβολής.": "The link is available on the watch page.",
-  "Τα δημόσια βίντεο αυτής της βιβλιοθήκης τα βλέπουν όλοι. Για ευαίσθητο υλικό επιλέξτε κλειδωμένη λίστα και κοινοποιήστε μόνο τον σύνδεσμό της.": "Everyone can watch this library's public videos. For sensitive content, choose a locked list and share only its link.",
-  "ΚΛΕΙΔΩΜΕΝΗ ΛΙΣΤΑ": "LOCKED LIST",
-  "Κλειδωμένα βίντεο": "Locked videos",
-  "Βίντεο ορατά μόνο με τον σύνδεσμο αυτής της λίστας.": "Videos visible only through this list's link.",
-  "Ταξινόμηση: πιο πρόσφατα": "Sort: most recent",
-  "Σύνδεσμος λίστας": "List link",
-  "Όποιος έχει αυτόν τον σύνδεσμο βλέπει αυτά τα βίντεο. Κοινοποιήστε τον μόνο από ασφαλές κανάλι.": "Anyone with this link can watch these videos. Share it only through a secure channel.",
-  "Δεν υπάρχουν βίντεο σε αυτή τη λίστα": "There are no videos in this list",
-  "Αναθέστε βίντεο στη λίστα από τη σελίδα επεξεργασίας τους.": "Assign videos to the list from their edit page.",
-  "Ταχύτητα αναπαραγωγής": "Playback speed",
-  "Ταχύτητα": "Speed",
-  "Το βίντεο περιμένει προετοιμασία": "The video is queued for preparation",
-  "Το βίντεο ετοιμάζεται": "The video is being prepared",
-  "Μπορείς να δοκιμάσεις το αρχικό αρχείο ή να ανανεώσεις τη σελίδα σε λίγο.": "Try the original file or refresh this page shortly.",
-  "Ανανέωση": "Refresh",
-  "Η προετοιμασία δεν ολοκληρώθηκε": "Preparation did not complete",
-  "Δοκίμασε την προβολή του αρχικού αρχείου ή ενημέρωσε τον διαχειριστή.": "Try watching the original file or contact your administrator.",
-  "ΑΠΟ ΤΗ ΒΙΒΛΙΟΘΗΚΗ": "FROM THE LIBRARY",
-  "Περιγραφή βίντεο": "Video description",
-  "Δεν έχει προστεθεί περιγραφή για αυτό το βίντεο.": "No description has been added for this video.",
-  "Κοινοποίηση": "Share",
-  "Σύνδεσμος βίντεο": "Video link",
-  "Αντιγραφή": "Copy",
-  "Για κοινοποίηση χρειάζεται ο αρχικός σύνδεσμος της κλειδωμένης λίστας. Ανοίξτε το βίντεο μέσω εκείνου του συνδέσμου ή ζητήστε τον από τον διαχειριστή.": "Sharing requires the original locked-list link. Open the video through that link or ask your administrator for it.",
-  "Αρχικό αρχείο": "Original file",
-  "Πληροφορίες βίντεο": "Video information",
-  "Προστέθηκε": "Added",
-  "Προβολές": "Views",
-  "Αυτό το βίντεο είναι κλειδωμένο": "This video is locked",
-  " (λίστα «%s»)": " (list “%s”)",
-  "— ορατό μόνο με τον σύνδεσμο της λίστας.": "— visible only through the list link.",
-  "Αυτό το βίντεο είναι δημόσιο.": "This video is public.",
-  "Διαχείριση βίντεο": "Manage video",
-  "Επεξεργασία και διαγραφή.": "Edit and delete.",
-  "Επεξεργασία στοιχείων": "Edit details",
-  "Διαγραφή βίντεο": "Delete video",
-  "Επεξεργασία στοιχείων.": "Edit details.",
-  "Περισσότερο υλικό": "More content",
-  "Αναζητήστε εκπαιδεύσεις, παρουσιάσεις και συναντήσεις στη βιβλιοθήκη.": "Find training, presentations and meetings in the library.",
-  "Γλώσσα": "Language",
-  "Χωρίς ημερομηνία": "No date",
-  "Έτοιμο": "Ready",
-  "Στην ουρά": "Queued",
-  "Ετοιμάζεται": "Processing",
-  "Χρειάζεται έλεγχο": "Needs attention",
-  "Άγνωστη": "Unknown",
-  "%d βίντεο": "%d videos",
-  "1 βίντεο": "1 video",
-  "1 προβολή": "1 view",
-  "%d προβολές": "%d views",
-  "Μη έγκυρη φόρμα.": "Invalid form.",
-  "Λάθος στοιχεία. Προσπαθήστε ξανά.": "Incorrect credentials. Please try again.",
-  "Συμπληρώστε τίτλο και συντομεύστε τα μεγάλα πεδία. Οι ελληνικοί χαρακτήρες μπορεί να καταλαμβάνουν περισσότερα bytes.": "Enter a title and shorten long fields. Some characters use more than one byte.",
-  "Να διαγραφεί οριστικά αυτός ο χρήστης και να ανακληθεί η πρόσβασή του;": "Permanently delete this user and revoke their access?",
-  "Να διαγραφεί οριστικά αυτή η κλειδωμένη λίστα;": "Permanently delete this locked list?",
-  "Να διαγραφεί οριστικά το βίντεο και όλα τα αρχεία του;": "Permanently delete this video and all its files?",
-  "Το πεδίο «%s» είναι πολύ μεγάλο. Χρησιμοποιήστε λιγότερους χαρακτήρες.": "The “%s” field is too long. Use fewer characters.",
-  "Ο σύνδεσμος αντιγράφηκε.": "Link copied.",
-  "Ο σύνδεσμος επιλέχθηκε. Αντιγράψτε τον από το πεδίο.": "Link selected. Copy it from the field.",
-  "Επιλέξτε ένα βίντεο σε μορφή MP4, MOV, MKV ή WEBM.": "Choose a video in MP4, MOV, MKV or WEBM format.",
-  "Το αρχείο πρέπει να έχει περιεχόμενο και να είναι μικρότερο από %s.": "The file must not be empty and must be smaller than %s.",
-  "Χρησιμοποιήστε την επιλογή αρχείου για να προσθέσεις το βίντεο.": "Use the file picker to add the video.",
-  "Επιλέξτε πρώτα ένα βίντεο.": "Choose a video first.",
-  "Ο τίτλος είναι πολύ μεγάλος.": "The title is too long.",
-  "Η περιγραφή είναι πολύ μεγάλη.": "The description is too long.",
-  "Η κατηγορία είναι πολύ μεγάλη.": "The category is too long.",
-  "Χρησιμοποιήστε λιγότερους χαρακτήρες.": "Use fewer characters.",
-  "Ελέγξτε τον τίτλο και τα στοιχεία του βίντεο.": "Check the title and video details.",
-  "Η σύνδεση έληξε. Ανανεώστε τη σελίδα και συνδεθείτε ξανά.": "Your session has expired. Refresh the page and log in again.",
-  "Η αποστολή δεν επιτρέπεται. Ανοίξτε ξανά τη σελίδα ανεβάσματος από τη βιβλιοθήκη.": "Upload is not allowed. Reopen the upload page from the library.",
-  "Η αποστολή ξεπέρασε το διαθέσιμο χρονικό όριο. Ελέγξτε τη σύνδεσή σας και δοκιμάστε ξανά.": "The upload timed out. Check your connection and try again.",
-  "Το συνολικό μέγεθος ξεπερνά το όριο των %s.": "The total size exceeds the %s limit.",
-  "Το αρχείο δεν αναγνωρίζεται ως υποστηριζόμενο βίντεο.": "The file is not recognized as a supported video.",
-  "Έγιναν πολλές προσπάθειες σε μικρό διάστημα. Περιμένετε ένα λεπτό και δοκιμάστε ξανά.": "Too many attempts. Wait a minute and try again.",
-  "Το βίντεο δεν αποθηκεύτηκε. Δοκιμάστε ξανά σε λίγο.": "The video was not saved. Try again shortly.",
-  "Η σύνδεση διακόπηκε. Ελέγξτε τη βιβλιοθήκη πριν επαναλάβετε την αποστολή.": "The connection was interrupted. Check the library before uploading again.",
-  "Το ανέβασμα διακόπηκε.": "The upload was cancelled.",
-  "Δεν ήταν δυνατή η αποστολή. Δοκιμάστε ξανά.": "The upload could not be sent. Please try again.",
-  "Ο browser δεν μπορεί να αναπαράγει αυτό το αρχείο. Δοκίμασε άλλο browser ή κατέβασε το αρχικό βίντεο.": "Your browser cannot play this file. Try another browser or download the original video.",
-  "Η προεπισκόπηση δεν είναι διαθέσιμη. Δοκιμάζουμε το αρχικό βίντεο.": "The preview is unavailable. Trying the original video.",
-  "invalid form": "invalid form",
-  "invalid username": "invalid username",
-  "invalid key": "invalid key",
-  "too many authentication requests; retry later": "too many authentication requests; retry later",
-  "editor role required": "editor role required",
-  "administrator role required": "administrator role required",
-  "invalid pagination": "invalid pagination",
-  "unknown access list": "unknown access list",
-  "form too large": "form too large",
-  "id required": "id required",
-  "video deletion in progress": "video deletion in progress",
-  "title required; maximum bytes: title 512, description 8192, category 256": "title required; maximum bytes: title 512, description 8192, category 256",
-  "conversion did not stop; retry deletion": "conversion did not stop; retry deletion",
-  "media authorization unavailable": "media authorization unavailable",
-  "cross-origin mutation forbidden": "cross-origin mutation forbidden",
-  "internal server error": "internal server error",
-  "page rendering failed": "page rendering failed",
-  "upload exceeds MAX_UPLOAD_BYTES": "upload exceeds MAX_UPLOAD_BYTES",
-  "upload timed out": "upload timed out",
-  "invalid multipart upload": "invalid multipart upload",
-  "file required": "file required",
-  "supported formats: mp4, mov, mkv, webm": "supported formats: mp4, mov, mkv, webm",
-  "file does not have a supported media header": "file does not have a supported media header",
-  "unsupported language": "unsupported language",
-  "unknown role": "unknown role",
-  "password required": "password required",
-  "user already exists": "user already exists",
-  "user created": "user created",
-  "cannot remove your own administrator role": "cannot remove your own administrator role",
-  "user not found": "user not found",
-  "at least one active administrator is required": "at least one active administrator is required",
-  "role updated": "role updated",
-  "cannot deactivate your own account": "cannot deactivate your own account",
-  "user updated": "user updated",
-  "LDAP users authenticate at the directory": "LDAP users authenticate at the directory",
-  "password reset; user sessions revoked": "password reset; user sessions revoked",
-  "cannot delete your own account": "cannot delete your own account",
-  "user deleted": "user deleted",
-  "list name required (up to 100 characters)": "list name required (up to 100 characters)",
-  "invalid list or name": "invalid list or name",
-  "list not found": "list not found",
-  "list renamed": "list renamed",
-  "invalid list": "invalid list",
-  "list still holds videos; move them to another list or public first": "list still holds videos; move them to another list or public first",
-  "list deleted": "list deleted",
-  "key name required (up to 100 characters)": "key name required (up to 100 characters)",
-  "key not found": "key not found",
-  "API key revoked": "API key revoked",
-  "viewer": "Viewer",
-  "editor": "Editor",
-  "admin": "Administrator",
-  "local": "Local",
-  "ldap": "ldap",
-  "Reset": "Reset password",
-  "0,5×": "0.5×",
-  "0,75×": "0.75×",
-  "1,25×": "1.25×",
-  "1,5×": "1.5×",
-  "1,75×": "1.75×"
+  "language.name": {
+    "other": "English"
+  },
+  "admin.title": {
+    "other": "Administration"
+  },
+  "admin.overview": {
+    "other": "Overview"
+  },
+  "admin.overviewDescription": {
+    "other": "Service status and administration shortcuts."
+  },
+  "common.status": {
+    "other": "Status"
+  },
+  "common.videos": {
+    "other": "Videos"
+  },
+  "admin.users": {
+    "other": "Users"
+  },
+  "admin.apiKeys": {
+    "other": "API keys"
+  },
+  "admin.storage": {
+    "other": "Storage"
+  },
+  "common.ok": {
+    "other": "OK"
+  },
+  "common.unavailable": {
+    "other": "Unavailable"
+  },
+  "admin.metadata": {
+    "other": "Metadata"
+  },
+  "admin.metadataUnavailable": {
+    "other": "Unavailable"
+  },
+  "admin.ffmpegMissing": {
+    "other": "Not found — original playback"
+  },
+  "admin.serviceChecks": {
+    "other": "Service checks:"
+  },
+  "admin.navigation": {
+    "other": "Administration sections"
+  },
+  "admin.newUser": {
+    "other": "New user"
+  },
+  "admin.lockedLists": {
+    "other": "Locked lists"
+  },
+  "admin.usersDescription": {
+    "other": "Account roles and status. Editors upload and edit videos. Administrators also delete videos and manage users. LDAP users are created on first login and receive permissions here."
+  },
+  "common.user": {
+    "other": "User"
+  },
+  "admin.source": {
+    "other": "Source"
+  },
+  "admin.role": {
+    "other": "Role"
+  },
+  "admin.active": {
+    "other": "Active"
+  },
+  "common.actions": {
+    "other": "Actions"
+  },
+  "admin.userRole": {
+    "other": "Role for {{.Username}}"
+  },
+  "common.update": {
+    "other": "Update"
+  },
+  "admin.deactivate": {
+    "other": "Deactivate"
+  },
+  "admin.activate": {
+    "other": "Activate"
+  },
+  "admin.userNewPassword": {
+    "other": "New password for {{.Username}}"
+  },
+  "admin.newPassword": {
+    "other": "New password"
+  },
+  "common.delete": {
+    "other": "Delete"
+  },
+  "admin.newLocalUser": {
+    "other": "New local user"
+  },
+  "admin.newUserDescription": {
+    "other": "Create an account with a password. LDAP users are created on first login and do not need registration."
+  },
+  "auth.username": {
+    "other": "Username"
+  },
+  "admin.displayName": {
+    "other": "Display name (optional)"
+  },
+  "auth.password": {
+    "other": "Password"
+  },
+  "common.create": {
+    "other": "Create"
+  },
+  "admin.listsDescription": {
+    "other": "Groups of videos visible only through a long link ({{.Link}}). The full key is shown only once, when created or rotated. Rotating the key immediately invalidates every old copy of the link."
+  },
+  "admin.newListKey": {
+    "other": "New key for “{{.Name}}” — copy it now; it will not be shown again:"
+  },
+  "common.list": {
+    "other": "List"
+  },
+  "common.rename": {
+    "other": "Rename"
+  },
+  "admin.listName": {
+    "other": "List name"
+  },
+  "admin.rotateKey": {
+    "other": "Rotate key"
+  },
+  "admin.noLists": {
+    "other": "There are no locked lists."
+  },
+  "admin.newListName": {
+    "other": "New list name (e.g. Audits, Security)"
+  },
+  "admin.createList": {
+    "other": "Create list"
+  },
+  "admin.keysDescription": {
+    "other": "For automation without cookies: send as {{.Header}} to use the user's permissions. The full key is shown only once, when created."
+  },
+  "admin.newUserKey": {
+    "other": "New key for {{.Username}} — copy it now; it will not be shown again:"
+  },
+  "admin.keyPrefix": {
+    "other": "Prefix"
+  },
+  "common.name": {
+    "other": "Name"
+  },
+  "admin.lastUsed": {
+    "other": "Last used"
+  },
+  "common.action": {
+    "other": "Action"
+  },
+  "common.never": {
+    "other": "never"
+  },
+  "admin.revoke": {
+    "other": "Revoke"
+  },
+  "admin.noKeys": {
+    "other": "There are no API keys."
+  },
+  "admin.keyName": {
+    "other": "Key name (e.g. upload script)"
+  },
+  "admin.createKey": {
+    "other": "Create key"
+  },
+  "nav.backToVideo": {
+    "other": "Back to video"
+  },
+  "edit.eyebrow": {
+    "other": "MANAGE CONTENT"
+  },
+  "edit.title": {
+    "other": "Edit video"
+  },
+  "edit.description": {
+    "other": "Update the video details in the library."
+  },
+  "field.title": {
+    "other": "Title"
+  },
+  "field.description": {
+    "other": "Description"
+  },
+  "field.optional": {
+    "other": "optional"
+  },
+  "field.category": {
+    "other": "Category"
+  },
+  "field.visibility": {
+    "other": "Visibility"
+  },
+  "visibility.public": {
+    "other": "Public — visible to everyone"
+  },
+  "visibility.locked": {
+    "other": "Locked — {{.Name}}"
+  },
+  "visibility.hint": {
+    "other": "Locked videos are visible only through their list link."
+  },
+  "common.cancel": {
+    "other": "Cancel"
+  },
+  "edit.save": {
+    "other": "Save changes"
+  },
+  "library.eyebrow": {
+    "other": "TEAM CONTENT"
+  },
+  "library.title": {
+    "other": "Video library"
+  },
+  "library.description": {
+    "other": "Training, presentations and recorded meetings, organized in one place."
+  },
+  "upload.title": {
+    "other": "Upload video"
+  },
+  "library.sortLabel": {
+    "other": "Sort:"
+  },
+  "library.sortPopularNote": {
+    "other": "most viewed"
+  },
+  "library.sortRecentNote": {
+    "other": "most recent"
+  },
+  "search.videos": {
+    "other": "Search videos"
+  },
+  "search.placeholder": {
+    "other": "Search by title, description or category…"
+  },
+  "search.submit": {
+    "other": "Search"
+  },
+  "search.categoryFilters": {
+    "other": "Category filters"
+  },
+  "search.all": {
+    "other": "All"
+  },
+  "search.sortOrder": {
+    "other": "Sort order"
+  },
+  "search.sortRecent": {
+    "other": "Most recent"
+  },
+  "search.sortPopular": {
+    "other": "Most viewed"
+  },
+  "search.clear": {
+    "other": "Clear filters"
+  },
+  "video.coverLabel": {
+    "other": "VIDEO"
+  },
+  "video.uncategorized": {
+    "other": "Uncategorized"
+  },
+  "video.locked": {
+    "other": "· Locked"
+  },
+  "video.noDescription": {
+    "other": "No description has been added."
+  },
+  "video.watch": {
+    "other": "Watch"
+  },
+  "search.noResults": {
+    "other": "No videos found"
+  },
+  "search.noResultsHint": {
+    "other": "Try different search terms or remove the filters."
+  },
+  "library.allVideos": {
+    "other": "All videos"
+  },
+  "library.empty": {
+    "other": "No videos yet"
+  },
+  "library.emptyHint": {
+    "other": "Add the first video to your team's library."
+  },
+  "auth.login": {
+    "other": "Log in"
+  },
+  "auth.loginDescription": {
+    "other": "Log in to upload and manage videos. Public videos can be watched without logging in."
+  },
+  "auth.loginDetails": {
+    "other": "Login details"
+  },
+  "nav.skipContent": {
+    "other": "Skip to content"
+  },
+  "nav.home": {
+    "other": "Tiny Tube — Home"
+  },
+  "nav.main": {
+    "other": "Main navigation"
+  },
+  "nav.library": {
+    "other": "Library"
+  },
+  "auth.logout": {
+    "other": "Log out"
+  },
+  "theme.enableDark": {
+    "other": "Switch to dark theme"
+  },
+  "theme.enableLight": {
+    "other": "Switch to light theme"
+  },
+  "theme.dark": {
+    "other": "Dark"
+  },
+  "theme.light": {
+    "other": "Light"
+  },
+  "footer.description": {
+    "other": "A video library for teams."
+  },
+  "pagination.label": {
+    "other": "Video pages"
+  },
+  "pagination.previous": {
+    "other": "Previous"
+  },
+  "pagination.page": {
+    "other": "Page {{.Page}} of {{.Pages}}"
+  },
+  "pagination.next": {
+    "other": "Next"
+  },
+  "nav.backToLibrary": {
+    "other": "Back to library"
+  },
+  "upload.eyebrow": {
+    "other": "ADD CONTENT"
+  },
+  "upload.description": {
+    "other": "Add a file to the library with a title, description and category."
+  },
+  "upload.file": {
+    "other": "Video file"
+  },
+  "upload.chooseHint": {
+    "other": "Choose a file from your device."
+  },
+  "upload.chooseVideo": {
+    "other": "Choose a video file"
+  },
+  "upload.dropHere": {
+    "other": "Drop the file here"
+  },
+  "upload.pickerHint": {
+    "other": "or use the file picker"
+  },
+  "upload.chooseFile": {
+    "other": "Choose file"
+  },
+  "upload.limit": {
+    "other": "MP4, MOV, MKV or WEBM · Total limit {{.Limit}}, including the details."
+  },
+  "upload.removeFile": {
+    "other": "Remove selected file"
+  },
+  "video.details": {
+    "other": "Video details"
+  },
+  "upload.detailsHint": {
+    "other": "Details to help find and organize the content."
+  },
+  "upload.titleExample": {
+    "other": "e.g. New staff training"
+  },
+  "upload.titleHint": {
+    "other": "Use a short, descriptive title."
+  },
+  "upload.categoryExample": {
+    "other": "e.g. Training"
+  },
+  "upload.descriptionHint": {
+    "other": "Topic, content and useful details about the video."
+  },
+  "upload.uploading": {
+    "other": "Uploading video…"
+  },
+  "upload.saving": {
+    "other": "Saving video…"
+  },
+  "upload.progress": {
+    "other": "Upload progress"
+  },
+  "upload.keepOpen": {
+    "other": "Keep this page open until the upload is complete."
+  },
+  "nav.returnToLibrary": {
+    "other": "Return to library"
+  },
+  "upload.guidance": {
+    "other": "Upload guidance"
+  },
+  "upload.instructions": {
+    "other": "Adding a video"
+  },
+  "upload.instructionsHint": {
+    "other": "A clear title and the right category help your team find the content."
+  },
+  "upload.checkFile": {
+    "other": "Check the video format and size."
+  },
+  "upload.addDetails": {
+    "other": "Add details"
+  },
+  "upload.addDetailsHint": {
+    "other": "Add a topic, description and category."
+  },
+  "upload.shareLink": {
+    "other": "Share the link"
+  },
+  "upload.shareHint": {
+    "other": "The link is available on the watch page."
+  },
+  "upload.visibilityHint": {
+    "other": "Everyone can watch this library's public videos. For sensitive content, choose a locked list and share only its link."
+  },
+  "list.eyebrow": {
+    "other": "LOCKED LIST"
+  },
+  "list.title": {
+    "other": "Locked videos"
+  },
+  "list.description": {
+    "other": "Videos visible only through this list's link."
+  },
+  "list.sortNote": {
+    "other": "Sort: most recent"
+  },
+  "list.shareLink": {
+    "other": "List link"
+  },
+  "list.shareHint": {
+    "other": "Anyone with this link can watch these videos. Share it only through a secure channel."
+  },
+  "list.empty": {
+    "other": "There are no videos in this list"
+  },
+  "list.emptyHint": {
+    "other": "Assign videos to the list from their edit page."
+  },
+  "player.speedLabel": {
+    "other": "Playback speed"
+  },
+  "player.speed": {
+    "other": "Speed"
+  },
+  "player.queued": {
+    "other": "The video is queued for preparation"
+  },
+  "player.processing": {
+    "other": "The video is being prepared"
+  },
+  "player.pendingHint": {
+    "other": "Try the original file or refresh this page shortly."
+  },
+  "common.refresh": {
+    "other": "Refresh"
+  },
+  "player.failed": {
+    "other": "Preparation did not complete"
+  },
+  "player.failedHint": {
+    "other": "Try watching the original file or contact your administrator."
+  },
+  "watch.eyebrow": {
+    "other": "FROM THE LIBRARY"
+  },
+  "watch.description": {
+    "other": "Video description"
+  },
+  "video.noFullDescription": {
+    "other": "No description has been added for this video."
+  },
+  "share.title": {
+    "other": "Share"
+  },
+  "share.videoLink": {
+    "other": "Video link"
+  },
+  "share.copy": {
+    "other": "Copy"
+  },
+  "share.lockedHint": {
+    "other": "Sharing requires the original locked-list link. Open the video through that link or ask your administrator for it."
+  },
+  "video.original": {
+    "other": "Original file"
+  },
+  "video.information": {
+    "other": "Video information"
+  },
+  "video.added": {
+    "other": "Added"
+  },
+  "video.viewsLabel": {
+    "other": "Views"
+  },
+  "visibility.videoPublic": {
+    "other": "This video is public."
+  },
+  "video.manage": {
+    "other": "Manage video"
+  },
+  "video.editDelete": {
+    "other": "Edit and delete."
+  },
+  "video.editDetails": {
+    "other": "Edit details"
+  },
+  "video.delete": {
+    "other": "Delete video"
+  },
+  "video.editOnly": {
+    "other": "Edit details."
+  },
+  "library.more": {
+    "other": "More content"
+  },
+  "library.exploreHint": {
+    "other": "Find training, presentations and meetings in the library."
+  },
+  "language.label": {
+    "other": "Language"
+  },
+  "date.unknown": {
+    "other": "No date"
+  },
+  "status.ready": {
+    "other": "Ready"
+  },
+  "status.queued": {
+    "other": "Queued"
+  },
+  "status.processing": {
+    "other": "Processing"
+  },
+  "status.failed": {
+    "other": "Needs attention"
+  },
+  "status.unknown": {
+    "other": "Unknown"
+  },
+  "count.videos": {
+    "other": "{{.Count}} videos",
+    "one": "{{.Count}} video"
+  },
+  "count.views": {
+    "other": "{{.Count}} views",
+    "one": "{{.Count}} view"
+  },
+  "auth.invalidForm": {
+    "other": "Invalid form."
+  },
+  "auth.invalidCredentials": {
+    "other": "Incorrect credentials. Please try again."
+  },
+  "edit.invalidFields": {
+    "other": "Enter a title and shorten long fields. Some characters use more than one byte."
+  },
+  "confirm.deleteUser": {
+    "other": "Permanently delete this user and revoke their access?"
+  },
+  "confirm.deleteList": {
+    "other": "Permanently delete this locked list?"
+  },
+  "confirm.deleteVideo": {
+    "other": "Permanently delete this video and all its files?"
+  },
+  "edit.fieldTooLong": {
+    "other": "The “{{.Field}}” field is too long. Use fewer characters."
+  },
+  "share.copied": {
+    "other": "Link copied."
+  },
+  "share.copyFallback": {
+    "other": "Link selected. Copy it from the field."
+  },
+  "upload.invalidFormat": {
+    "other": "Choose a video in MP4, MOV, MKV or WEBM format."
+  },
+  "upload.invalidSize": {
+    "other": "The file must not be empty and must be smaller than {{.Limit}}."
+  },
+  "upload.pickerError": {
+    "other": "Use the file picker to add the video."
+  },
+  "upload.selectFirst": {
+    "other": "Choose a video first."
+  },
+  "upload.titleTooLong": {
+    "other": "The title is too long."
+  },
+  "upload.descriptionTooLong": {
+    "other": "The description is too long."
+  },
+  "upload.categoryTooLong": {
+    "other": "The category is too long."
+  },
+  "validation.fewerCharacters": {
+    "other": "Use fewer characters."
+  },
+  "upload.checkDetails": {
+    "other": "Check the title and video details."
+  },
+  "auth.sessionExpired": {
+    "other": "Your session has expired. Refresh the page and log in again."
+  },
+  "upload.forbidden": {
+    "other": "Upload is not allowed. Reopen the upload page from the library."
+  },
+  "upload.timeout": {
+    "other": "The upload timed out. Check your connection and try again."
+  },
+  "upload.tooLarge": {
+    "other": "The total size exceeds the {{.Limit}} limit."
+  },
+  "upload.unsupportedVideo": {
+    "other": "The file is not recognized as a supported video."
+  },
+  "auth.tooManyAttempts": {
+    "other": "Too many attempts. Wait a minute and try again."
+  },
+  "upload.notSaved": {
+    "other": "The video was not saved. Try again shortly."
+  },
+  "upload.connectionLost": {
+    "other": "The connection was interrupted. Check the library before uploading again."
+  },
+  "upload.cancelled": {
+    "other": "The upload was cancelled."
+  },
+  "upload.sendFailed": {
+    "other": "The upload could not be sent. Please try again."
+  },
+  "player.unsupported": {
+    "other": "Your browser cannot play this file. Try another browser or download the original video."
+  },
+  "player.originalFallback": {
+    "other": "The preview is unavailable. Trying the original video."
+  },
+  "error.invalidForm": {
+    "other": "invalid form"
+  },
+  "error.invalidUsername": {
+    "other": "invalid username"
+  },
+  "error.invalidKey": {
+    "other": "invalid key"
+  },
+  "error.authRateLimit": {
+    "other": "too many authentication requests; retry later"
+  },
+  "error.editorRequired": {
+    "other": "editor role required"
+  },
+  "error.adminRequired": {
+    "other": "administrator role required"
+  },
+  "error.invalidPagination": {
+    "other": "invalid pagination"
+  },
+  "error.unknownList": {
+    "other": "unknown access list"
+  },
+  "error.formTooLarge": {
+    "other": "form too large"
+  },
+  "error.idRequired": {
+    "other": "id required"
+  },
+  "error.deletionInProgress": {
+    "other": "video deletion in progress"
+  },
+  "error.invalidFields": {
+    "other": "title required; maximum bytes: title 512, description 8192, category 256"
+  },
+  "error.conversionNotStopped": {
+    "other": "conversion did not stop; retry deletion"
+  },
+  "error.mediaAuthorization": {
+    "other": "media authorization unavailable"
+  },
+  "error.crossOrigin": {
+    "other": "cross-origin mutation forbidden"
+  },
+  "error.internal": {
+    "other": "internal server error"
+  },
+  "error.render": {
+    "other": "page rendering failed"
+  },
+  "error.uploadTooLarge": {
+    "other": "upload exceeds MAX_UPLOAD_BYTES"
+  },
+  "error.uploadTimeout": {
+    "other": "upload timed out"
+  },
+  "error.multipart": {
+    "other": "invalid multipart upload"
+  },
+  "error.fileRequired": {
+    "other": "file required"
+  },
+  "error.formats": {
+    "other": "supported formats: mp4, mov, mkv, webm"
+  },
+  "error.mediaHeader": {
+    "other": "file does not have a supported media header"
+  },
+  "error.unsupportedLanguage": {
+    "other": "unsupported language"
+  },
+  "error.unknownRole": {
+    "other": "unknown role"
+  },
+  "error.passwordRequired": {
+    "other": "password required"
+  },
+  "error.userExists": {
+    "other": "user already exists"
+  },
+  "notice.userCreated": {
+    "other": "user created"
+  },
+  "error.ownAdminRole": {
+    "other": "cannot remove your own administrator role"
+  },
+  "error.userNotFound": {
+    "other": "user not found"
+  },
+  "error.lastAdmin": {
+    "other": "at least one active administrator is required"
+  },
+  "notice.roleUpdated": {
+    "other": "role updated"
+  },
+  "error.ownDeactivate": {
+    "other": "cannot deactivate your own account"
+  },
+  "notice.userUpdated": {
+    "other": "user updated"
+  },
+  "error.ldapPassword": {
+    "other": "LDAP users authenticate at the directory"
+  },
+  "notice.passwordReset": {
+    "other": "password reset; user sessions revoked"
+  },
+  "error.ownDelete": {
+    "other": "cannot delete your own account"
+  },
+  "notice.userDeleted": {
+    "other": "user deleted"
+  },
+  "error.listName": {
+    "other": "list name required (up to 100 characters)"
+  },
+  "error.listOrName": {
+    "other": "invalid list or name"
+  },
+  "error.listNotFound": {
+    "other": "list not found"
+  },
+  "notice.listRenamed": {
+    "other": "list renamed"
+  },
+  "error.invalidList": {
+    "other": "invalid list"
+  },
+  "error.listHasVideos": {
+    "other": "list still holds videos; move them to another list or public first"
+  },
+  "notice.listDeleted": {
+    "other": "list deleted"
+  },
+  "error.keyName": {
+    "other": "key name required (up to 100 characters)"
+  },
+  "error.keyNotFound": {
+    "other": "key not found"
+  },
+  "notice.keyRevoked": {
+    "other": "API key revoked"
+  },
+  "role.viewer": {
+    "other": "Viewer"
+  },
+  "role.editor": {
+    "other": "Editor"
+  },
+  "role.admin": {
+    "other": "Administrator"
+  },
+  "auth.source.local": {
+    "other": "Local"
+  },
+  "auth.source.ldap": {
+    "other": "LDAP"
+  },
+  "admin.resetPassword": {
+    "other": "Reset password"
+  },
+  "date.format": {
+    "other": "{{.Day}} {{.Month}} {{.Year}}"
+  },
+  "date.month.1": {
+    "other": "Jan"
+  },
+  "date.month.2": {
+    "other": "Feb"
+  },
+  "date.month.3": {
+    "other": "Mar"
+  },
+  "date.month.4": {
+    "other": "Apr"
+  },
+  "date.month.5": {
+    "other": "May"
+  },
+  "date.month.6": {
+    "other": "Jun"
+  },
+  "date.month.7": {
+    "other": "Jul"
+  },
+  "date.month.8": {
+    "other": "Aug"
+  },
+  "date.month.9": {
+    "other": "Sep"
+  },
+  "date.month.10": {
+    "other": "Oct"
+  },
+  "date.month.11": {
+    "other": "Nov"
+  },
+  "date.month.12": {
+    "other": "Dec"
+  },
+  "size.bytes": {
+    "one": "{{.Count}} byte",
+    "other": "{{.Count}} bytes"
+  },
+  "size.value": {
+    "other": "{{.Value}} {{.Unit}}"
+  },
+  "language.apply": {
+    "other": "Apply"
+  },
+  "search.resultsForQueryAndCategory": {
+    "other": "Results for “{{.Query}}” in category “{{.Category}}”"
+  },
+  "search.resultsForQuery": {
+    "other": "Results for “{{.Query}}”"
+  },
+  "search.resultsForCategory": {
+    "other": "Results in category “{{.Category}}”"
+  },
+  "visibility.lockedVideo": {
+    "other": "This video is locked — visible only through the list link."
+  },
+  "visibility.lockedVideoInList": {
+    "other": "This video is locked (list “{{.Name}}”) — visible only through the list link."
+  }
 }

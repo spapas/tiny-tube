@@ -32,7 +32,7 @@ func (a *application) adminData(r *http.Request, section string) (map[string]any
 		return nil, err
 	}
 	return map[string]any{
-		"Page": "admin", "Title": "Διαχείριση", "AdminSection": section,
+		"Page": "admin", "Title": "admin.title", "AdminSection": section,
 		"Users": users, "VideoTotal": len(videos), "ByStatus": byStatus,
 		"StorageOK": checkWritable(a.videoDir) == nil, "MetadataOK": true,
 		"FFmpeg": a.ffmpegBin, "Error": r.URL.Query().Get("error"),
@@ -80,11 +80,11 @@ func (a *application) handleAdminKeys(w http.ResponseWriter, r *http.Request) {
 func (a *application) parseAdminForm(w http.ResponseWriter, r *http.Request) bool {
 	r.Body = http.MaxBytesReader(w, r.Body, 64<<10)
 	if err := r.ParseForm(); err != nil {
-		writeAPIError(w, r, http.StatusBadRequest, "invalid form")
+		writeAPIError(w, r, http.StatusBadRequest, "error.invalidForm")
 		return false
 	}
 	if !store.ValidUsername(r.PostForm.Get("username")) {
-		writeAPIError(w, r, http.StatusBadRequest, "invalid username")
+		writeAPIError(w, r, http.StatusBadRequest, "error.invalidUsername")
 		return false
 	}
 	return true
@@ -123,15 +123,15 @@ func (a *application) handleAdminCreateUser(w http.ResponseWriter, r *http.Reque
 	role := r.PostForm.Get("role")
 	password := r.PostForm.Get("password")
 	if !store.ValidRole(role) {
-		adminRedirectError(w, r, "/admin/users", "unknown role")
+		adminRedirectError(w, r, "/admin/users", "error.unknownRole")
 		return
 	}
 	if strings.TrimSpace(password) == "" {
-		adminRedirectError(w, r, "/admin/users", "password required")
+		adminRedirectError(w, r, "/admin/users", "error.passwordRequired")
 		return
 	}
 	if _, err := a.fs.GetUser(username); err == nil {
-		adminRedirectError(w, r, "/admin/users", "user already exists")
+		adminRedirectError(w, r, "/admin/users", "error.userExists")
 		return
 	} else if !os.IsNotExist(err) {
 		a.apiServerError(w, r, "read user", err)
@@ -154,7 +154,7 @@ func (a *application) handleAdminCreateUser(w http.ResponseWriter, r *http.Reque
 		return
 	}
 	log.Printf("admin %q created user %q (%s)", currentUser(r).Username, username, role)
-	adminRedirectNotice(w, r, "/admin/users", "user created")
+	adminRedirectNotice(w, r, "/admin/users", "notice.userCreated")
 }
 
 func (a *application) handleAdminSetRole(w http.ResponseWriter, r *http.Request) {
@@ -165,18 +165,18 @@ func (a *application) handleAdminSetRole(w http.ResponseWriter, r *http.Request)
 	}
 	username, role := r.PostForm.Get("username"), r.PostForm.Get("role")
 	if !store.ValidRole(role) {
-		adminRedirectError(w, r, "/admin/users", "unknown role")
+		adminRedirectError(w, r, "/admin/users", "error.unknownRole")
 		return
 	}
 	me := currentUser(r).Username
 	if username == me && role != store.RoleAdmin {
-		adminRedirectError(w, r, "/admin/users", "cannot remove your own administrator role")
+		adminRedirectError(w, r, "/admin/users", "error.ownAdminRole")
 		return
 	}
 	u, err := a.fs.GetUser(username)
 	if err != nil {
 		if os.IsNotExist(err) {
-			adminRedirectError(w, r, "/admin/users", "user not found")
+			adminRedirectError(w, r, "/admin/users", "error.userNotFound")
 			return
 		}
 		a.apiServerError(w, r, "read user", err)
@@ -187,7 +187,7 @@ func (a *application) handleAdminSetRole(w http.ResponseWriter, r *http.Request)
 			a.apiServerError(w, r, "count administrators", err)
 			return
 		} else if last {
-			adminRedirectError(w, r, "/admin/users", "at least one active administrator is required")
+			adminRedirectError(w, r, "/admin/users", "error.lastAdmin")
 			return
 		}
 	}
@@ -197,7 +197,7 @@ func (a *application) handleAdminSetRole(w http.ResponseWriter, r *http.Request)
 		return
 	}
 	log.Printf("admin %q set %q role to %s", me, username, role)
-	adminRedirectNotice(w, r, "/admin/users", "role updated")
+	adminRedirectNotice(w, r, "/admin/users", "notice.roleUpdated")
 }
 
 func (a *application) handleAdminSetActive(w http.ResponseWriter, r *http.Request) {
@@ -210,13 +210,13 @@ func (a *application) handleAdminSetActive(w http.ResponseWriter, r *http.Reques
 	active := r.PostForm.Get("active") == "1"
 	me := currentUser(r).Username
 	if username == me && !active {
-		adminRedirectError(w, r, "/admin/users", "cannot deactivate your own account")
+		adminRedirectError(w, r, "/admin/users", "error.ownDeactivate")
 		return
 	}
 	u, err := a.fs.GetUser(username)
 	if err != nil {
 		if os.IsNotExist(err) {
-			adminRedirectError(w, r, "/admin/users", "user not found")
+			adminRedirectError(w, r, "/admin/users", "error.userNotFound")
 			return
 		}
 		a.apiServerError(w, r, "read user", err)
@@ -227,7 +227,7 @@ func (a *application) handleAdminSetActive(w http.ResponseWriter, r *http.Reques
 			a.apiServerError(w, r, "count administrators", err)
 			return
 		} else if last {
-			adminRedirectError(w, r, "/admin/users", "at least one active administrator is required")
+			adminRedirectError(w, r, "/admin/users", "error.lastAdmin")
 			return
 		}
 	}
@@ -240,7 +240,7 @@ func (a *application) handleAdminSetActive(w http.ResponseWriter, r *http.Reques
 		_ = a.fs.DeleteUserSessions(username)
 	}
 	log.Printf("admin %q set %q active=%v", me, username, active)
-	adminRedirectNotice(w, r, "/admin/users", "user updated")
+	adminRedirectNotice(w, r, "/admin/users", "notice.userUpdated")
 }
 
 func (a *application) handleAdminSetPassword(w http.ResponseWriter, r *http.Request) {
@@ -251,20 +251,20 @@ func (a *application) handleAdminSetPassword(w http.ResponseWriter, r *http.Requ
 	}
 	username, password := r.PostForm.Get("username"), r.PostForm.Get("password")
 	if strings.TrimSpace(password) == "" {
-		adminRedirectError(w, r, "/admin/users", "password required")
+		adminRedirectError(w, r, "/admin/users", "error.passwordRequired")
 		return
 	}
 	u, err := a.fs.GetUser(username)
 	if err != nil {
 		if os.IsNotExist(err) {
-			adminRedirectError(w, r, "/admin/users", "user not found")
+			adminRedirectError(w, r, "/admin/users", "error.userNotFound")
 			return
 		}
 		a.apiServerError(w, r, "read user", err)
 		return
 	}
 	if u.AuthSource != store.AuthLocal {
-		adminRedirectError(w, r, "/admin/users", "LDAP users authenticate at the directory")
+		adminRedirectError(w, r, "/admin/users", "error.ldapPassword")
 		return
 	}
 	hash, err := hashPassword(password)
@@ -279,7 +279,7 @@ func (a *application) handleAdminSetPassword(w http.ResponseWriter, r *http.Requ
 	}
 	_ = a.fs.DeleteUserSessions(username)
 	log.Printf("admin %q reset password for %q", currentUser(r).Username, username)
-	adminRedirectNotice(w, r, "/admin/users", "password reset; user sessions revoked")
+	adminRedirectNotice(w, r, "/admin/users", "notice.passwordReset")
 }
 
 func (a *application) handleAdminDeleteUser(w http.ResponseWriter, r *http.Request) {
@@ -291,13 +291,13 @@ func (a *application) handleAdminDeleteUser(w http.ResponseWriter, r *http.Reque
 	username := r.PostForm.Get("username")
 	me := currentUser(r).Username
 	if username == me {
-		adminRedirectError(w, r, "/admin/users", "cannot delete your own account")
+		adminRedirectError(w, r, "/admin/users", "error.ownDelete")
 		return
 	}
 	u, err := a.fs.GetUser(username)
 	if err != nil {
 		if os.IsNotExist(err) {
-			adminRedirectError(w, r, "/admin/users", "user not found")
+			adminRedirectError(w, r, "/admin/users", "error.userNotFound")
 			return
 		}
 		a.apiServerError(w, r, "read user", err)
@@ -308,7 +308,7 @@ func (a *application) handleAdminDeleteUser(w http.ResponseWriter, r *http.Reque
 			a.apiServerError(w, r, "count administrators", err)
 			return
 		} else if last {
-			adminRedirectError(w, r, "/admin/users", "at least one active administrator is required")
+			adminRedirectError(w, r, "/admin/users", "error.lastAdmin")
 			return
 		}
 	}
@@ -318,5 +318,5 @@ func (a *application) handleAdminDeleteUser(w http.ResponseWriter, r *http.Reque
 		return
 	}
 	log.Printf("admin %q deleted user %q", me, username)
-	adminRedirectNotice(w, r, "/admin/users", "user deleted")
+	adminRedirectNotice(w, r, "/admin/users", "notice.userDeleted")
 }

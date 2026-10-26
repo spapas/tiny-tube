@@ -64,12 +64,12 @@ func (a *application) handleAdminCreateKey(w http.ResponseWriter, r *http.Reques
 	username := r.PostForm.Get("username")
 	name := strings.TrimSpace(r.PostForm.Get("name"))
 	if name == "" || len(name) > 100 {
-		adminRedirectError(w, r, "/admin/keys", "key name required (up to 100 characters)")
+		adminRedirectError(w, r, "/admin/keys", "error.keyName")
 		return
 	}
 	if _, err := a.fs.GetUser(username); err != nil {
 		if os.IsNotExist(err) {
-			adminRedirectError(w, r, "/admin/keys", "user not found")
+			adminRedirectError(w, r, "/admin/keys", "error.userNotFound")
 			return
 		}
 		a.apiServerError(w, r, "read user", err)
@@ -94,24 +94,24 @@ func (a *application) handleAdminCreateKey(w http.ResponseWriter, r *http.Reques
 func (a *application) handleAdminRevokeKey(w http.ResponseWriter, r *http.Request) {
 	r.Body = http.MaxBytesReader(w, r.Body, 64<<10)
 	if err := r.ParseForm(); err != nil {
-		writeAPIError(w, r, http.StatusBadRequest, "invalid form")
+		writeAPIError(w, r, http.StatusBadRequest, "error.invalidForm")
 		return
 	}
 	prefix := strings.TrimSpace(r.PostForm.Get("prefix"))
 	if !store.ValidKeyPrefix(prefix) {
-		writeAPIError(w, r, http.StatusBadRequest, "invalid key")
+		writeAPIError(w, r, http.StatusBadRequest, "error.invalidKey")
 		return
 	}
 	if err := a.fs.DeleteAPIKey(prefix); err != nil {
 		if os.IsNotExist(err) {
-			adminRedirectError(w, r, "/admin/keys", "key not found")
+			adminRedirectError(w, r, "/admin/keys", "error.keyNotFound")
 			return
 		}
 		a.apiServerError(w, r, "revoke key", err)
 		return
 	}
 	log.Printf("admin %q revoked API key %q", currentUser(r).Username, prefix)
-	adminRedirectNotice(w, r, "/admin/keys", "API key revoked")
+	adminRedirectNotice(w, r, "/admin/keys", "notice.keyRevoked")
 }
 
 // renderAdmin renders the key dashboard; extracted so key creation can show

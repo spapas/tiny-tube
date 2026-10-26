@@ -1,17 +1,22 @@
 (() => {
   const t = window.tinyTubeTranslate;
   const root = document.documentElement;
+  const languageSelect = document.querySelector('[data-language-select]');
+  if (languageSelect && typeof languageSelect.form.requestSubmit === 'function') {
+    document.querySelector('[data-language-submit]').hidden = true;
+    languageSelect.addEventListener('change', () => languageSelect.form.requestSubmit());
+  }
   document.querySelectorAll('.video-poster').forEach(image => {
     image.addEventListener('error', () => { image.hidden = true; });
     if (image.complete && !image.naturalWidth) image.hidden = true;
   });
   document.querySelectorAll('[data-delete-video]').forEach(form => form.addEventListener('submit', event => {
     const messages = {
-      '/api/admin/users/delete': t('Να διαγραφεί οριστικά αυτός ο χρήστης και να ανακληθεί η πρόσβασή του;'),
-      '/api/admin/lists/delete': t('Να διαγραφεί οριστικά αυτή η κλειδωμένη λίστα;')
+      '/api/admin/users/delete': t('confirm.deleteUser'),
+      '/api/admin/lists/delete': t('confirm.deleteList')
     };
     const path = new URL(form.action, window.location.href).pathname;
-    if (!window.confirm(messages[path] || t('Να διαγραφεί οριστικά το βίντεο και όλα τα αρχεία του;'))) event.preventDefault();
+    if (!window.confirm(messages[path] || t('confirm.deleteVideo'))) event.preventDefault();
   }));
   document.querySelector('[data-metadata-form]')?.addEventListener('submit', event => {
     const form = event.currentTarget;
@@ -19,7 +24,7 @@
     for (const [name, maximum] of [['title',512],['desc',8192],['category',256]]) {
       if (new TextEncoder().encode(form.elements[name].value.trim()).length > maximum) {
         event.preventDefault(); error.hidden = false;
-        error.textContent = t('Το πεδίο «%s» είναι πολύ μεγάλο. Χρησιμοποιήστε λιγότερους χαρακτήρες.', t(({title:'Τίτλος',desc:'Περιγραφή',category:'Κατηγορία'})[name]));
+        error.textContent = t('edit.fieldTooLong', { Field: t(({title:'field.title',desc:'field.description',category:'field.category'})[name]) });
         form.elements[name].focus(); return;
       }
     }
@@ -28,10 +33,10 @@
   const syncTheme = () => {
     const dark = root.dataset.theme === 'dark';
     toggle?.setAttribute('aria-pressed', String(dark));
-    toggle?.setAttribute('aria-label', dark ? t('Ενεργοποίηση ανοιχτού θέματος') : t('Ενεργοποίηση σκοτεινού θέματος'));
+    toggle?.setAttribute('aria-label', dark ? t('theme.enableLight') : t('theme.enableDark'));
     if (toggle) toggle.title = toggle.getAttribute('aria-label');
     const label = document.querySelector('[data-theme-label]');
-    if (label) label.textContent = dark ? t('Σκούρο') : t('Ανοιχτό');
+    if (label) label.textContent = dark ? t('theme.dark') : t('theme.light');
   };
   syncTheme();
   toggle?.addEventListener('click', () => {
@@ -55,11 +60,11 @@
     const status = document.querySelector('[data-share-status]');
     try {
       await navigator.clipboard.writeText(shareInput.value);
-      status.textContent = t('Ο σύνδεσμος αντιγράφηκε.');
+      status.textContent = t('share.copied');
     } catch (_) {
       shareInput.focus();
       shareInput.select();
-      status.textContent = t('Ο σύνδεσμος επιλέχθηκε. Αντιγράψτε τον από το πεδίο.');
+      status.textContent = t('share.copyFallback');
     }
   });
 })();

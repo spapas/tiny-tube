@@ -1,5 +1,31 @@
 # Project review and fixes — 2026-10-14
 
+## English source catalogs and extensible i18n — 2026-10-26
+
+The first localization implementation below was replaced with standard go-i18n
+JSON catalogs keyed by stable English identifiers. English is now the source and
+fallback language. `go-i18n` handles named variables and CLDR plural rules;
+`golang.org/x/text` negotiates language tags and formats numbers. All embedded
+locale files are discovered automatically, including their native `language.name`.
+Adding a translation requires only its JSON file and a rebuild, with no changes
+to server/browser language lists, the selector, or date-formatting code. Partial
+translations fall back to English. The browser preserves the source locale of
+fallback messages so its CLDR plurals match the server, including cases such as
+Russian 21 falling back to English "21 views".
+
+Catalog validation rejects unknown IDs, malformed files and incompatible named
+variables. Tests add German, Russian and Arabic catalogs in memory to verify
+registration, negotiation, native selector names, formatting, fallback and all six
+plural categories. User content and the JSON API's English errors stay intact.
+See [I18N.md](I18N.md) for the translator workflow.
+
+Verification on Windows/amd64 with Go 1.27.3: Go tests (including real FFmpeg),
+vet, build, changed-file formatting, module checksum/tidy checks and all seven
+Node UI tests pass. A temporary SQLite instance was checked for both languages,
+selector persistence, login, protected forms, multipart upload, HLS/poster
+publication, Range/206 and browser playback. The local race detector remains
+unavailable with CGO disabled; concurrent-language tests run without it.
+
 ## Greek and English interface — 2026-10-25
 
 All public, login, editing and administrator pages now share embedded Greek and

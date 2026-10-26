@@ -50,7 +50,7 @@ func (a *application) handleEditPage(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
-	a.renderPage(w, r, editTmpl, map[string]any{"Page": "edit", "Title": "Επεξεργασία βίντεο", "Video": m, "AccessLists": lists})
+	a.renderPage(w, r, editTmpl, map[string]any{"Page": "edit", "Title": "edit.title", "Video": m, "AccessLists": lists})
 }
 
 func parseManagementForm(w http.ResponseWriter, r *http.Request) bool {
@@ -58,14 +58,14 @@ func parseManagementForm(w http.ResponseWriter, r *http.Request) bool {
 	if err := r.ParseForm(); err != nil {
 		var tooLarge *http.MaxBytesError
 		if errors.As(err, &tooLarge) {
-			writeAPIError(w, r, http.StatusRequestEntityTooLarge, "form too large")
+			writeAPIError(w, r, http.StatusRequestEntityTooLarge, "error.formTooLarge")
 		} else {
-			writeAPIError(w, r, http.StatusBadRequest, "invalid form")
+			writeAPIError(w, r, http.StatusBadRequest, "error.invalidForm")
 		}
 		return false
 	}
 	if r.PostForm.Get("id") == "" {
-		writeAPIError(w, r, http.StatusBadRequest, "id required")
+		writeAPIError(w, r, http.StatusBadRequest, "error.idRequired")
 		return false
 	}
 	return true
@@ -80,7 +80,7 @@ func (a *application) handleEdit(w http.ResponseWriter, r *http.Request) {
 	defer a.claimMu.Unlock()
 	id := r.PostForm.Get("id")
 	if a.deleting[id] {
-		writeAPIError(w, r, http.StatusConflict, "video deletion in progress")
+		writeAPIError(w, r, http.StatusConflict, "error.deletionInProgress")
 		return
 	}
 	m, ok := a.readVideo(w, r, id)
@@ -89,7 +89,7 @@ func (a *application) handleEdit(w http.ResponseWriter, r *http.Request) {
 	}
 	if title == "" || len(title) > 512 || len(desc) > 8192 || len(category) > 256 {
 		if wantsJSON(r) {
-			writeAPIError(w, r, http.StatusBadRequest, "title required; maximum bytes: title 512, description 8192, category 256")
+			writeAPIError(w, r, http.StatusBadRequest, "error.invalidFields")
 		} else {
 			lists, ok := a.accessListsForForm(w, r)
 			if !ok {
@@ -98,7 +98,7 @@ func (a *application) handleEdit(w http.ResponseWriter, r *http.Request) {
 			m.Title, m.Desc, m.Category = title, desc, category
 			w.Header().Set("Content-Type", "text/html; charset=utf-8")
 			w.WriteHeader(http.StatusBadRequest)
-			a.renderPage(w, r, editTmpl, map[string]any{"Page": "edit", "Title": "Επεξεργασία βίντεο", "Video": m, "AccessLists": lists, "Error": "Συμπληρώστε τίτλο και συντομεύστε τα μεγάλα πεδία. Οι ελληνικοί χαρακτήρες μπορεί να καταλαμβάνουν περισσότερα bytes."})
+			a.renderPage(w, r, editTmpl, map[string]any{"Page": "edit", "Title": "edit.title", "Video": m, "AccessLists": lists, "Error": "edit.invalidFields"})
 		}
 		return
 	}
@@ -132,7 +132,7 @@ func (a *application) handleDelete(w http.ResponseWriter, r *http.Request) {
 	a.claimMu.Lock()
 	if a.deleting[id] {
 		a.claimMu.Unlock()
-		writeAPIError(w, r, http.StatusConflict, "video deletion in progress")
+		writeAPIError(w, r, http.StatusConflict, "error.deletionInProgress")
 		return
 	}
 	if _, ok := a.readVideo(w, r, id); !ok {
@@ -171,7 +171,7 @@ func (a *application) handleDelete(w http.ResponseWriter, r *http.Request) {
 		case <-r.Context().Done():
 			return
 		case <-timer.C:
-			writeAPIError(w, r, http.StatusServiceUnavailable, "conversion did not stop; retry deletion")
+			writeAPIError(w, r, http.StatusServiceUnavailable, "error.conversionNotStopped")
 			return
 		}
 	}

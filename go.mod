@@ -6,7 +6,9 @@ toolchain go1.27.3
 
 require (
 	github.com/go-ldap/ldap/v3 v3.4.15
+	github.com/nicksnyder/go-i18n/v2 v2.6.1
 	golang.org/x/crypto v0.58.0
+	golang.org/x/text v0.43.0
 	modernc.org/sqlite v1.60.1
 )
 

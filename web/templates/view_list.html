@@ -4,26 +4,26 @@
 <main id="main" class="container library-main">
   <section class="library-hero" aria-labelledby="library-title">
     <div class="hero-copy">
-      <span class="eyebrow muted">{{t "ΚΛΕΙΔΩΜΕΝΗ ΛΙΣΤΑ"}}</span>
-      <h1 id="library-title">{{if .ListName}}{{.ListName}}{{else}}{{t "Κλειδωμένα βίντεο"}}{{end}}</h1>
-      <p class="hero-description">{{t "Βίντεο ορατά μόνο με τον σύνδεσμο αυτής της λίστας."}}</p>
+      <span class="eyebrow muted">{{t "list.eyebrow"}}</span>
+      <h1 id="library-title">{{if .ListName}}{{.ListName}}{{else}}{{t "list.title"}}{{end}}</h1>
+      <p class="hero-description">{{t "list.description"}}</p>
     </div>
-    {{if .CurrentUser}}{{if .CurrentUser.CanEdit}}<a class="button button-primary library-upload" href="/upload">{{template "upload-icon"}} {{t "Ανέβασμα βίντεο"}}</a>{{end}}{{end}}
+    {{if .CurrentUser}}{{if .CurrentUser.CanEdit}}<a class="button button-primary library-upload" href="/upload">{{template "upload-icon"}} {{t "upload.title"}}</a>{{end}}{{end}}
   </section>
 
   <section class="library-content" aria-labelledby="videos-title">
-    <div class="section-heading"><h2 id="videos-title">{{t "Βίντεο"}} <span class="count-bubble">{{.Total}}</span></h2><span class="section-note">{{t "Ταξινόμηση: πιο πρόσφατα"}}</span></div>
-    {{if .ListKey}}<div class="notice notice-info">{{template "info"}}<div><strong>{{t "Σύνδεσμος λίστας"}}</strong><p>{{t "Όποιος έχει αυτόν τον σύνδεσμο βλέπει αυτά τα βίντεο. Κοινοποιήστε τον μόνο από ασφαλές κανάλι."}}</p><p><code>/view_list?key={{.ListKey}}</code></p></div></div>{{end}}
+    <div class="section-heading"><h2 id="videos-title">{{t "common.videos"}} <span class="count-bubble">{{.Total}}</span></h2><span class="section-note">{{t "list.sortNote"}}</span></div>
+    {{if .ListKey}}<div class="notice notice-info">{{template "info"}}<div><strong>{{t "list.shareLink"}}</strong><p>{{t "list.shareHint"}}</p><p><code>/view_list?key={{.ListKey}}</code></p></div></div>{{end}}
     <div class="video-grid">
       {{range .Items}}
       <article class="video-card">
         <a class="video-card-link" href="/watch?id={{.ID}}{{if $.ListKey}}&amp;key={{$.ListKey}}{{end}}">
-          <div class="video-cover" aria-hidden="true">{{if .Poster}}<img class="video-poster" loading="lazy" src="/videos/{{.ID}}/{{.Poster}}{{if $.ListKey}}?key={{$.ListKey}}{{end}}" alt="">{{end}}<span class="cover-type">{{template "film"}} {{t "ΒΙΝΤΕΟ"}}</span><span class="cover-play">{{template "play"}}</span></div>
-          <div class="card-body"><div class="card-topline"><span class="card-category">{{if .Category}}{{.Category}}{{else}}{{t "Χωρίς κατηγορία"}}{{end}}</span>{{if $.CurrentUser}}{{if $.CurrentUser.CanEdit}}<span class="status-badge status-{{statusClass .Status}}"><span></span>{{statusLabel .Status}}</span>{{end}}{{end}}</div><h3>{{.Title}}</h3><p class="card-description">{{if .Desc}}{{.Desc}}{{else}}{{t "Δεν έχει προστεθεί περιγραφή."}}{{end}}</p><div class="card-bottom"><span>{{template "clock"}} {{formatDate .Created}}</span><span>{{viewCount .Views}}</span><span class="card-open">{{t "Προβολή"}} {{template "arrow"}}</span></div></div>
+          <div class="video-cover" aria-hidden="true">{{if .Poster}}<img class="video-poster" loading="lazy" src="/videos/{{.ID}}/{{.Poster}}{{if $.ListKey}}?key={{$.ListKey}}{{end}}" alt="">{{end}}<span class="cover-type">{{template "film"}} {{t "video.coverLabel"}}</span><span class="cover-play">{{template "play"}}</span></div>
+          <div class="card-body"><div class="card-topline"><span class="card-category">{{if .Category}}{{.Category}}{{else}}{{t "video.uncategorized"}}{{end}}</span>{{if $.CurrentUser}}{{if $.CurrentUser.CanEdit}}<span class="status-badge status-{{statusClass .Status}}"><span></span>{{statusLabel .Status}}</span>{{end}}{{end}}</div><h3>{{.Title}}</h3><p class="card-description">{{if .Desc}}{{.Desc}}{{else}}{{t "video.noDescription"}}{{end}}</p><div class="card-bottom"><span>{{template "clock"}} {{formatDate .Created}}</span><span>{{viewCount .Views}}</span><span class="card-open">{{t "video.watch"}} {{template "arrow"}}</span></div></div>
         </a>
       </article>
       {{else}}
-      <div class="empty-state"><span class="empty-icon">{{template "film"}}</span><h3>{{t "Δεν υπάρχουν βίντεο σε αυτή τη λίστα"}}</h3><p>{{t "Αναθέστε βίντεο στη λίστα από τη σελίδα επεξεργασίας τους."}}</p><a class="button button-primary" href="/">{{t "Όλα τα βίντεο"}} {{template "arrow"}}</a></div>
+      <div class="empty-state"><span class="empty-icon">{{template "film"}}</span><h3>{{t "list.empty"}}</h3><p>{{t "list.emptyHint"}}</p><a class="button button-primary" href="/">{{t "library.allVideos"}} {{template "arrow"}}</a></div>
       {{end}}
     </div>
     {{template "pagination" .}}

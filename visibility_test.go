@@ -89,7 +89,7 @@ func TestStatusBadgeRequiresEditor(t *testing.T) {
 			if got := strings.Contains(watch, "status-badge"); got != tc.wantVisible {
 				t.Errorf("watch badge visible=%v, want %v", got, tc.wantVisible)
 			}
-			if got := strings.Contains(watch, "Κατάσταση"); got != tc.wantVisible {
+			if got := strings.Contains(watch, "Status"); got != tc.wantVisible {
 				t.Errorf("watch status row visible=%v, want %v", got, tc.wantVisible)
 			}
 		})

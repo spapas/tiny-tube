@@ -2,15 +2,15 @@
 <html lang="{{.Lang}}" data-theme="light"><head>{{template "head" .}}</head><body>
 {{template "header" .}}
 <main id="main" class="container">
-  <div class="page-heading"><span class="eyebrow muted">{{t "Διαχείριση"}}</span><h1>{{t "Σύνδεση"}}</h1><p>{{t "Συνδεθείτε για ανέβασμα και διαχείριση βίντεο. Η προβολή παραμένει ανοιχτή χωρίς σύνδεση."}}</p></div>
+  <div class="page-heading"><span class="eyebrow muted">{{t "admin.title"}}</span><h1>{{t "auth.login"}}</h1><p>{{t "auth.loginDescription"}}</p></div>
   <section class="upload-card" aria-labelledby="login-title">
-    <h2 id="login-title">{{t "Στοιχεία σύνδεσης"}}</h2>
+    <h2 id="login-title">{{t "auth.loginDetails"}}</h2>
     {{if .Error}}<p class="notice notice-warning" role="alert">{{.Error}}</p>{{end}}
     <form method="POST" action="/login">
       <input type="hidden" name="next" value="{{.Next}}">
-      <div class="form-field"><label for="login-username">{{t "Όνομα χρήστη"}}</label><input id="login-username" name="username" type="text" required autocomplete="username" autofocus></div>
-      <div class="form-field"><label for="login-password">{{t "Κωδικός"}}</label><input id="login-password" name="password" type="password" required autocomplete="current-password"></div>
-      <button class="button button-primary" type="submit">{{t "Σύνδεση"}}</button>
+      <div class="form-field"><label for="login-username">{{t "auth.username"}}</label><input id="login-username" name="username" type="text" required autocomplete="username" autofocus></div>
+      <div class="form-field"><label for="login-password">{{t "auth.password"}}</label><input id="login-password" name="password" type="password" required autocomplete="current-password"></div>
+      <button class="button button-primary" type="submit">{{t "auth.login"}}</button>
     </form>
   </section>
 </main>

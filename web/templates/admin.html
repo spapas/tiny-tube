@@ -2,33 +2,33 @@
 <html lang="{{.Lang}}" data-theme="light"><head>{{template "head" .}}</head><body>
 {{template "header" .}}
 <main id="main" class="container">
-  <div class="page-heading"><span class="eyebrow muted">{{t "Διαχείριση"}}</span><h1>{{t "Επισκόπηση"}}</h1><p>{{t "Κατάσταση υπηρεσίας και συντομεύσεις διαχείρισης."}}</p></div>
+  <div class="page-heading"><span class="eyebrow muted">{{t "admin.title"}}</span><h1>{{t "admin.overview"}}</h1><p>{{t "admin.overviewDescription"}}</p></div>
   {{template "admin-nav" .}}
   {{if .Error}}<p class="notice notice-warning" role="alert">{{.Error}}</p>{{end}}
   {{if .Notice}}<p class="notice notice-info" role="status">{{.Notice}}</p>{{end}}
   <section class="info-card" aria-labelledby="health-title">
-    <h2 id="health-title">{{t "Κατάσταση"}}</h2>
+    <h2 id="health-title">{{t "common.status"}}</h2>
     <dl>
-      <div><dt>{{t "Βίντεο"}}</dt><dd>{{.VideoTotal}}</dd></div>
-      <div><dt>{{t "Χρήστες"}}</dt><dd>{{len .Users}}</dd></div>
-      <div><dt>{{t "Κλειδιά API"}}</dt><dd>{{len .APIKeys}}</dd></div>
-      <div><dt>{{t "Αποθηκευτικός χώρος"}}</dt><dd>{{if .StorageOK}}{{t "Εντάξει"}}{{else}}{{t "Μη διαθέσιμος"}}{{end}}</dd></div>
-      <div><dt>{{t "Μεταδεδομένα"}}</dt><dd>{{if .MetadataOK}}{{t "Εντάξει"}}{{else}}{{t "Μη διαθέσιμα"}}{{end}}</dd></div>
-      <div><dt>FFmpeg</dt><dd>{{if .FFmpeg}}{{.FFmpeg}}{{else}}{{t "Δεν βρέθηκε — προβολή αρχικών"}}{{end}}</dd></div>
+      <div><dt>{{t "common.videos"}}</dt><dd>{{.VideoTotal}}</dd></div>
+      <div><dt>{{t "admin.users"}}</dt><dd>{{len .Users}}</dd></div>
+      <div><dt>{{t "admin.apiKeys"}}</dt><dd>{{len .APIKeys}}</dd></div>
+      <div><dt>{{t "admin.storage"}}</dt><dd>{{if .StorageOK}}{{t "common.ok"}}{{else}}{{t "common.unavailable"}}{{end}}</dd></div>
+      <div><dt>{{t "admin.metadata"}}</dt><dd>{{if .MetadataOK}}{{t "common.ok"}}{{else}}{{t "admin.metadataUnavailable"}}{{end}}</dd></div>
+      <div><dt>FFmpeg</dt><dd>{{if .FFmpeg}}{{.FFmpeg}}{{else}}{{t "admin.ffmpegMissing"}}{{end}}</dd></div>
     </dl>
-    <p class="field-hint">{{t "Τεχνικός έλεγχος:"}} <a class="text-link" href="/readyz">/readyz</a> · <a class="text-link" href="/healthz">/healthz</a></p>
+    <p class="field-hint">{{t "admin.serviceChecks"}} <a class="text-link" href="/readyz">/readyz</a> · <a class="text-link" href="/healthz">/healthz</a></p>
   </section>
 </main>
 {{template "footer" .}}
 </body></html>{{end}}
 
 {{define "admin-nav"}}
-<nav class="category-filters" aria-label="{{t "Ενότητες διαχείρισης"}}">
-  <a class="filter-chip{{if eq .AdminSection "overview"}} is-selected{{end}}" href="/admin"{{if eq .AdminSection "overview"}} aria-current="true"{{end}}>{{t "Επισκόπηση"}}</a>
-  <a class="filter-chip{{if eq .AdminSection "users"}} is-selected{{end}}" href="/admin/users"{{if eq .AdminSection "users"}} aria-current="true"{{end}}>{{t "Χρήστες"}}</a>
-  <a class="filter-chip{{if eq .AdminSection "user-new"}} is-selected{{end}}" href="/admin/users/new"{{if eq .AdminSection "user-new"}} aria-current="true"{{end}}>{{t "Νέος χρήστης"}}</a>
-  <a class="filter-chip{{if eq .AdminSection "keys"}} is-selected{{end}}" href="/admin/keys"{{if eq .AdminSection "keys"}} aria-current="true"{{end}}>{{t "Κλειδιά API"}}</a>
-  <a class="filter-chip{{if eq .AdminSection "lists"}} is-selected{{end}}" href="/admin/lists"{{if eq .AdminSection "lists"}} aria-current="true"{{end}}>{{t "Κλειδωμένες λίστες"}}</a>
+<nav class="category-filters" aria-label="{{t "admin.navigation"}}">
+  <a class="filter-chip{{if eq .AdminSection "overview"}} is-selected{{end}}" href="/admin"{{if eq .AdminSection "overview"}} aria-current="true"{{end}}>{{t "admin.overview"}}</a>
+  <a class="filter-chip{{if eq .AdminSection "users"}} is-selected{{end}}" href="/admin/users"{{if eq .AdminSection "users"}} aria-current="true"{{end}}>{{t "admin.users"}}</a>
+  <a class="filter-chip{{if eq .AdminSection "user-new"}} is-selected{{end}}" href="/admin/users/new"{{if eq .AdminSection "user-new"}} aria-current="true"{{end}}>{{t "admin.newUser"}}</a>
+  <a class="filter-chip{{if eq .AdminSection "keys"}} is-selected{{end}}" href="/admin/keys"{{if eq .AdminSection "keys"}} aria-current="true"{{end}}>{{t "admin.apiKeys"}}</a>
+  <a class="filter-chip{{if eq .AdminSection "lists"}} is-selected{{end}}" href="/admin/lists"{{if eq .AdminSection "lists"}} aria-current="true"{{end}}>{{t "admin.lockedLists"}}</a>
 </nav>
 {{end}}
 
@@ -36,50 +36,50 @@
 <html lang="{{.Lang}}" data-theme="light"><head>{{template "head" .}}</head><body>
 {{template "header" .}}
 <main id="main" class="container">
-  <div class="page-heading"><span class="eyebrow muted">{{t "Διαχείριση"}}</span><h1>{{t "Χρήστες"}}</h1><p>{{t "Ρόλοι και κατάσταση λογαριασμών. Οι editors ανεβάζουν και επεξεργάζονται βίντεο. Οι διαχειριστές διαγράφουν επίσης βίντεο και διαχειρίζονται χρήστες. Οι χρήστες LDAP δημιουργούνται στην πρώτη σύνδεση και παίρνουν δικαιώματα εδώ."}}</p></div>
+  <div class="page-heading"><span class="eyebrow muted">{{t "admin.title"}}</span><h1>{{t "admin.users"}}</h1><p>{{t "admin.usersDescription"}}</p></div>
   {{template "admin-nav" .}}
   {{if .Error}}<p class="notice notice-warning" role="alert">{{.Error}}</p>{{end}}
   {{if .Notice}}<p class="notice notice-info" role="status">{{.Notice}}</p>{{end}}
   <section aria-labelledby="users-title">
-    <h2 id="users-title" class="sr-only">{{t "Χρήστες"}}</h2>
+    <h2 id="users-title" class="sr-only">{{t "admin.users"}}</h2>
     <div class="table-wrap"><table>
-      <thead><tr><th>{{t "Χρήστης"}}</th><th>{{t "Πηγή"}}</th><th>{{t "Ρόλος"}}</th><th>{{t "Ενεργός"}}</th><th>{{t "Ενέργειες"}}</th></tr></thead>
+      <thead><tr><th>{{t "common.user"}}</th><th>{{t "admin.source"}}</th><th>{{t "admin.role"}}</th><th>{{t "admin.active"}}</th><th>{{t "common.actions"}}</th></tr></thead>
       <tbody>
       {{range .Users}}
         <tr>
           <td>{{if .DisplayName}}{{.DisplayName}} ({{.Username}}){{else}}{{.Username}}{{end}}</td>
-          <td>{{t .AuthSource}}</td>
+          <td>{{t (printf "auth.source.%s" .AuthSource)}}</td>
           <td>
             <form method="POST" action="/api/admin/users/role">
               <input type="hidden" name="username" value="{{.Username}}">
-              <label class="sr-only" for="role-{{.Username}}">{{t "Ρόλος του %s" .Username}}</label>
+              <label class="sr-only" for="role-{{.Username}}">{{t "admin.userRole" "Username" .Username}}</label>
               <select id="role-{{.Username}}" name="role">
-                <option value="viewer"{{if eq .Role "viewer"}} selected{{end}}>{{t "viewer"}}</option>
-                <option value="editor"{{if eq .Role "editor"}} selected{{end}}>{{t "editor"}}</option>
-                <option value="admin"{{if eq .Role "admin"}} selected{{end}}>{{t "admin"}}</option>
+                <option value="viewer"{{if eq .Role "viewer"}} selected{{end}}>{{t "role.viewer"}}</option>
+                <option value="editor"{{if eq .Role "editor"}} selected{{end}}>{{t "role.editor"}}</option>
+                <option value="admin"{{if eq .Role "admin"}} selected{{end}}>{{t "role.admin"}}</option>
               </select>
-              <button class="button button-quiet" type="submit">{{t "Αλλαγή"}}</button>
+              <button class="button button-quiet" type="submit">{{t "common.update"}}</button>
             </form>
           </td>
           <td>
             <form method="POST" action="/api/admin/users/active">
               <input type="hidden" name="username" value="{{.Username}}">
               <input type="hidden" name="active" value="{{if .Active}}0{{else}}1{{end}}">
-              <button class="button button-quiet" type="submit">{{if .Active}}{{t "Απενεργοποίηση"}}{{else}}{{t "Ενεργοποίηση"}}{{end}}</button>
+              <button class="button button-quiet" type="submit">{{if .Active}}{{t "admin.deactivate"}}{{else}}{{t "admin.activate"}}{{end}}</button>
             </form>
           </td>
           <td>
             {{if eq .AuthSource "local"}}
             <form method="POST" action="/api/admin/users/password">
               <input type="hidden" name="username" value="{{.Username}}">
-              <label class="sr-only" for="pw-{{.Username}}">{{t "Νέος κωδικός για %s" .Username}}</label>
-              <input id="pw-{{.Username}}" name="password" type="password" required autocomplete="new-password" placeholder="{{t "Νέος κωδικός"}}">
-              <button class="button button-quiet" type="submit">{{t "Reset"}}</button>
+              <label class="sr-only" for="pw-{{.Username}}">{{t "admin.userNewPassword" "Username" .Username}}</label>
+              <input id="pw-{{.Username}}" name="password" type="password" required autocomplete="new-password" placeholder="{{t "admin.newPassword"}}">
+              <button class="button button-quiet" type="submit">{{t "admin.resetPassword"}}</button>
             </form>
             {{end}}
             <form method="POST" action="/api/admin/users/delete" data-delete-video>
               <input type="hidden" name="username" value="{{.Username}}">
-              <button class="button button-danger" type="submit">{{t "Διαγραφή"}}</button>
+              <button class="button button-danger" type="submit">{{t "common.delete"}}</button>
             </form>
           </td>
         </tr>
@@ -95,18 +95,18 @@
 <html lang="{{.Lang}}" data-theme="light"><head>{{template "head" .}}</head><body>
 {{template "header" .}}
 <main id="main" class="container">
-  <div class="page-heading"><span class="eyebrow muted">{{t "Διαχείριση"}}</span><h1>{{t "Νέος τοπικός χρήστης"}}</h1><p>{{t "Δημιουργία λογαριασμού με κωδικό. Οι χρήστες LDAP δεν χρειάζονται εγγραφή — δημιουργούνται στην πρώτη σύνδεση."}}</p></div>
+  <div class="page-heading"><span class="eyebrow muted">{{t "admin.title"}}</span><h1>{{t "admin.newLocalUser"}}</h1><p>{{t "admin.newUserDescription"}}</p></div>
   {{template "admin-nav" .}}
   {{if .Error}}<p class="notice notice-warning" role="alert">{{.Error}}</p>{{end}}
   {{if .Notice}}<p class="notice notice-info" role="status">{{.Notice}}</p>{{end}}
   <section class="upload-card" aria-labelledby="create-title">
-    <h2 id="create-title" class="sr-only">{{t "Νέος τοπικός χρήστης"}}</h2>
+    <h2 id="create-title" class="sr-only">{{t "admin.newLocalUser"}}</h2>
     <form method="POST" action="/api/admin/users/create">
-      <div class="form-field"><label for="new-username">{{t "Όνομα χρήστη"}}</label><input id="new-username" name="username" type="text" required pattern="[A-Za-z0-9_.-]{1,64}"></div>
-      <div class="form-field"><label for="new-display">{{t "Εμφανιζόμενο όνομα (προαιρετικό)"}}</label><input id="new-display" name="display" type="text"></div>
-      <div class="form-field"><label for="new-role">{{t "Ρόλος"}}</label><select id="new-role" name="role"><option value="viewer">{{t "viewer"}}</option><option value="editor">{{t "editor"}}</option><option value="admin">{{t "admin"}}</option></select></div>
-      <div class="form-field"><label for="new-password">{{t "Κωδικός"}}</label><input id="new-password" name="password" type="password" required autocomplete="new-password"></div>
-      <button class="button button-primary" type="submit">{{t "Δημιουργία"}}</button>
+      <div class="form-field"><label for="new-username">{{t "auth.username"}}</label><input id="new-username" name="username" type="text" required pattern="[A-Za-z0-9_.-]{1,64}"></div>
+      <div class="form-field"><label for="new-display">{{t "admin.displayName"}}</label><input id="new-display" name="display" type="text"></div>
+      <div class="form-field"><label for="new-role">{{t "admin.role"}}</label><select id="new-role" name="role"><option value="viewer">{{t "role.viewer"}}</option><option value="editor">{{t "role.editor"}}</option><option value="admin">{{t "role.admin"}}</option></select></div>
+      <div class="form-field"><label for="new-password">{{t "auth.password"}}</label><input id="new-password" name="password" type="password" required autocomplete="new-password"></div>
+      <button class="button button-primary" type="submit">{{t "common.create"}}</button>
     </form>
   </section>
 </main>
@@ -117,15 +117,15 @@
 <html lang="{{.Lang}}" data-theme="light"><head>{{template "head" .}}</head><body>
 {{template "header" .}}
 <main id="main" class="container">
-  <div class="page-heading"><span class="eyebrow muted">{{t "Διαχείριση"}}</span><h1>{{t "Κλειδωμένες λίστες"}}</h1><p>{{t "Ομάδες βίντεο ορατές μόνο με μακρύ σύνδεσμο (%s). Το πλήρες κλειδί φαίνεται μία μόνο φορά, κατά τη δημιουργία ή την αλλαγή. Η αλλαγή κλειδιού απενεργοποιεί αμέσως όλα τα παλιά αντίγραφα του συνδέσμου." "/view_list?key=…"}}</p></div>
+  <div class="page-heading"><span class="eyebrow muted">{{t "admin.title"}}</span><h1>{{t "admin.lockedLists"}}</h1><p>{{t "admin.listsDescription" "Link" "/view_list?key=…"}}</p></div>
   {{template "admin-nav" .}}
   {{if .Error}}<p class="notice notice-warning" role="alert">{{.Error}}</p>{{end}}
   {{if .Notice}}<p class="notice notice-info" role="status">{{.Notice}}</p>{{end}}
   <section aria-labelledby="lists-title">
-    <h2 id="lists-title" class="sr-only">{{t "Κλειδωμένες λίστες"}}</h2>
-    {{if .NewListKey}}<p class="notice notice-warning" role="alert"><span><strong>{{t "Νέο κλειδί για «%s» — αντιγράψτε το τώρα, δεν θα ξαναεμφανιστεί:" .NewListName}}</strong><br><code>/view_list?key={{.NewListKey}}</code></span></p>{{end}}
+    <h2 id="lists-title" class="sr-only">{{t "admin.lockedLists"}}</h2>
+    {{if .NewListKey}}<p class="notice notice-warning" role="alert"><span><strong>{{t "admin.newListKey" "Name" .NewListName}}</strong><br><code>/view_list?key={{.NewListKey}}</code></span></p>{{end}}
     <div class="table-wrap"><table>
-      <thead><tr><th>{{t "Λίστα"}}</th><th>{{t "Βίντεο"}}</th><th>{{t "Μετονομασία"}}</th><th>{{t "Ενέργειες"}}</th></tr></thead>
+      <thead><tr><th>{{t "common.list"}}</th><th>{{t "common.videos"}}</th><th>{{t "common.rename"}}</th><th>{{t "common.actions"}}</th></tr></thead>
       <tbody>
       {{range .AccessLists}}
         <tr>
@@ -134,30 +134,30 @@
           <td>
             <form method="POST" action="/api/admin/lists/rename">
               <input type="hidden" name="id" value="{{.ID}}">
-              <label class="sr-only" for="name-{{.ID}}">{{t "Όνομα λίστας"}}</label>
+              <label class="sr-only" for="name-{{.ID}}">{{t "admin.listName"}}</label>
               <input id="name-{{.ID}}" name="name" type="text" required maxlength="100" value="{{.Name}}">
-              <button class="button button-quiet" type="submit">{{t "Μετονομασία"}}</button>
+              <button class="button button-quiet" type="submit">{{t "common.rename"}}</button>
             </form>
           </td>
           <td>
             <form method="POST" action="/api/admin/lists/rotate">
               <input type="hidden" name="id" value="{{.ID}}">
-              <button class="button button-quiet" type="submit">{{t "Αλλαγή κλειδιού"}}</button>
+              <button class="button button-quiet" type="submit">{{t "admin.rotateKey"}}</button>
             </form>
             <form method="POST" action="/api/admin/lists/delete" data-delete-video>
               <input type="hidden" name="id" value="{{.ID}}">
-              <button class="button button-danger" type="submit">{{t "Διαγραφή"}}</button>
+              <button class="button button-danger" type="submit">{{t "common.delete"}}</button>
             </form>
           </td>
         </tr>
       {{else}}
-        <tr><td colspan="4">{{t "Δεν υπάρχουν κλειδωμένες λίστες."}}</td></tr>
+        <tr><td colspan="4">{{t "admin.noLists"}}</td></tr>
       {{end}}
       </tbody>
     </table></div>
     <form method="POST" action="/api/admin/lists/create">
-      <div class="form-field"><label for="list-name">{{t "Όνομα νέας λίστας (π.χ. Έλεγχοι, Ασφάλεια)"}}</label><input id="list-name" name="name" type="text" required maxlength="100"></div>
-      <button class="button button-primary" type="submit">{{t "Δημιουργία λίστας"}}</button>
+      <div class="form-field"><label for="list-name">{{t "admin.newListName"}}</label><input id="list-name" name="name" type="text" required maxlength="100"></div>
+      <button class="button button-primary" type="submit">{{t "admin.createList"}}</button>
     </form>
   </section>
 </main>
@@ -168,38 +168,38 @@
 <html lang="{{.Lang}}" data-theme="light"><head>{{template "head" .}}</head><body>
 {{template "header" .}}
 <main id="main" class="container">
-  <div class="page-heading"><span class="eyebrow muted">{{t "Διαχείριση"}}</span><h1>{{t "Κλειδιά API"}}</h1><p>{{t "Για αυτοματισμούς χωρίς cookies: στέλνεται ως %s και δίνει τα δικαιώματα του χρήστη. Το πλήρες κλειδί φαίνεται μία μόνο φορά, κατά τη δημιουργία." "Authorization: Bearer …"}}</p></div>
+  <div class="page-heading"><span class="eyebrow muted">{{t "admin.title"}}</span><h1>{{t "admin.apiKeys"}}</h1><p>{{t "admin.keysDescription" "Header" "Authorization: Bearer …"}}</p></div>
   {{template "admin-nav" .}}
   {{if .Error}}<p class="notice notice-warning" role="alert">{{.Error}}</p>{{end}}
   {{if .Notice}}<p class="notice notice-info" role="status">{{.Notice}}</p>{{end}}
   <section aria-labelledby="keys-title">
-    <h2 id="keys-title" class="sr-only">{{t "Κλειδιά API"}}</h2>
-    {{if .NewAPIKey}}<p class="notice notice-warning" role="alert"><span><strong>{{t "Νέο κλειδί για %s — αντιγράψτε το τώρα, δεν θα ξαναεμφανιστεί:" .NewAPIKeyUser}}</strong><br><code>{{.NewAPIKey}}</code></span></p>{{end}}
+    <h2 id="keys-title" class="sr-only">{{t "admin.apiKeys"}}</h2>
+    {{if .NewAPIKey}}<p class="notice notice-warning" role="alert"><span><strong>{{t "admin.newUserKey" "Username" .NewAPIKeyUser}}</strong><br><code>{{.NewAPIKey}}</code></span></p>{{end}}
     <div class="table-wrap"><table>
-      <thead><tr><th>{{t "Πρόθεμα"}}</th><th>{{t "Χρήστης"}}</th><th>{{t "Όνομα"}}</th><th>{{t "Τελευταία χρήση"}}</th><th>{{t "Ενέργεια"}}</th></tr></thead>
+      <thead><tr><th>{{t "admin.keyPrefix"}}</th><th>{{t "common.user"}}</th><th>{{t "common.name"}}</th><th>{{t "admin.lastUsed"}}</th><th>{{t "common.action"}}</th></tr></thead>
       <tbody>
       {{range .APIKeys}}
         <tr>
           <td><code>{{.Prefix}}</code></td>
           <td>{{.Username}}</td>
           <td>{{.Name}}</td>
-          <td>{{if .LastUsedAt}}{{.LastUsedAt}}{{else}}{{t "ποτέ"}}{{end}}</td>
+          <td>{{if .LastUsedAt}}{{.LastUsedAt}}{{else}}{{t "common.never"}}{{end}}</td>
           <td>
             <form method="POST" action="/api/admin/users/keys/revoke">
               <input type="hidden" name="prefix" value="{{.Prefix}}">
-              <button class="button button-danger" type="submit">{{t "Ανάκληση"}}</button>
+              <button class="button button-danger" type="submit">{{t "admin.revoke"}}</button>
             </form>
           </td>
         </tr>
       {{else}}
-        <tr><td colspan="5">{{t "Δεν υπάρχουν κλειδιά API."}}</td></tr>
+        <tr><td colspan="5">{{t "admin.noKeys"}}</td></tr>
       {{end}}
       </tbody>
     </table></div>
     <form method="POST" action="/api/admin/users/keys/create">
-      <div class="form-field"><label for="key-username">{{t "Όνομα χρήστη"}}</label><input id="key-username" name="username" type="text" required pattern="[A-Za-z0-9_.-]{1,64}"></div>
-      <div class="form-field"><label for="key-name">{{t "Όνομα κλειδιού (π.χ. script μεταφορτώσεων)"}}</label><input id="key-name" name="name" type="text" required maxlength="100"></div>
-      <button class="button button-primary" type="submit">{{t "Δημιουργία κλειδιού"}}</button>
+      <div class="form-field"><label for="key-username">{{t "auth.username"}}</label><input id="key-username" name="username" type="text" required pattern="[A-Za-z0-9_.-]{1,64}"></div>
+      <div class="form-field"><label for="key-name">{{t "admin.keyName"}}</label><input id="key-name" name="name" type="text" required maxlength="100"></div>
+      <button class="button button-primary" type="submit">{{t "admin.createKey"}}</button>
     </form>
   </section>
 </main>

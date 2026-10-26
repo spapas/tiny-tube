@@ -21,7 +21,7 @@ func (a *application) queryLibrary(w http.ResponseWriter, r *http.Request, api, 
 		if raw := values.Get(entry.name); raw != "" {
 			n, err := strconv.Atoi(raw)
 			if err != nil || n < 1 || n > entry.max {
-				writeAPIError(w, r, http.StatusBadRequest, "invalid pagination")
+				writeAPIError(w, r, http.StatusBadRequest, "error.invalidPagination")
 				return store.VideoPage{}, false
 			}
 			*entry.target = n
@@ -91,7 +91,7 @@ func (a *application) renderLibrary(w http.ResponseWriter, r *http.Request, p st
 	sort.Slice(categories, func(i, j int) bool { return categories[i].Name < categories[j].Name })
 	data := paginationData(r, p)
 	data["Page"] = "list"
-	data["Title"] = "Βιβλιοθήκη"
+	data["Title"] = "nav.library"
 	data["Items"] = p.Items
 	data["Q"] = r.URL.Query().Get("q")
 	data["Category"] = r.URL.Query().Get("category")

@@ -212,11 +212,11 @@ deadline. Response writes are limited to `max(30 minutes, UPLOAD_TIMEOUT_SECONDS
 
 ## Upload and playback
 
-The interface supports Greek and English on every page, including administration,
-upload validation and player messages. Use **ΕΛ / EN** in the header to switch;
+The interface supports English and Greek on every page, including administration,
+upload validation and player messages. Use the language selector in the header;
 the choice is saved in a browser cookie for one year and works without JavaScript.
-Until a choice is saved, the browser's `Accept-Language` preference selects Greek
-or English; unsupported preferences fall back to Greek. Switching preserves the
+Until a choice is saved, the browser's `Accept-Language` preference selects a
+supported language; unsupported preferences fall back to English. Switching preserves the
 current page, search/filter/pagination parameters and locked-list key.
 Switching reloads the page, so save edits or finish an upload first.
 Dates, file sizes and view/video counts follow the selected language. Titles,
@@ -224,12 +224,16 @@ descriptions, categories, list names and other user content retain their origina
 text. JSON API fields, status values, errors, server logs and CLI output retain
 their existing format/language for automation.
 
-Translations live in embedded `web/locales/el.json` and `web/locales/en.json`.
-Both catalogs use the original message as a key; parameterized messages use matching
-`%s`/`%d` placeholders. Templates call `t`, and browser scripts share the same
-catalog through an external script, keeping CSP unchanged. Update both catalogs
-when adding text and rebuild the binary. Catalog and browser regression checks
-run with the Go and Node test suites; no frontend packages are required.
+English is the source catalog in `web/locales/en.json`; `el.json` translates the
+same stable message IDs (for example `upload.title`). The server uses `go-i18n`
+for named variables and CLDR plural rules, and `golang.org/x/text` for language
+matching and number formatting. Browser messages use the same catalogs, with
+`Intl.PluralRules` and `Intl.NumberFormat`; CSP needs no inline exceptions.
+Missing translations fall back to English. To add another language, add its
+standard go-i18n JSON catalog with a `language.name` entry and rebuild: discovery,
+cookies, negotiation and the selector automatically include it. No Go/HTML/JS
+language lists need editing. See [the translation guide](docs/I18N.md) for examples,
+plural forms and validation. No frontend packages are required.
 
 The interface defaults to light mode. The theme button switches between light and
 dark and remembers the selection in browser-local storage; it does not follow the
@@ -319,7 +323,7 @@ requires the matching role.
 
 | Method | Route | Auth | Description |
 | --- | --- | --- | --- |
-| `POST` | `/language` | none | Form fields `language=el\|en` and optional site-local `next`; saves the browser language and redirects back. Same-origin protection applies. |
+| `POST` | `/language` | none | Form fields `language=<registered locale>` (initially `en` or `el`) and optional site-local `next`; saves the browser language and redirects back. Same-origin protection applies. |
 | `POST` | `/api/login` | none | JSON `{"username", "password"}`; sets the session cookie, returns `{"username", "role"}`. |
 | `POST` | `/logout` | session | Revokes the session cookie. |
 | `POST` | `/api/upload` | editor | Multipart fields `title` (required), `desc`, `category`, `file`, `access_list` (empty for public, otherwise a locked-list id). JSON clients get `201` with `id`, `title`, `status`, `original`, `access_list`, `watch_url`, `video_url`, `api_url`. Browsers get `303` to `/watch?id=`. |

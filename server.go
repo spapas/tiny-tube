@@ -185,7 +185,7 @@ func (a *application) routes() http.Handler {
 		if !ok {
 			return
 		}
-		a.renderPage(w, r, uploadTmpl, map[string]any{"Page": "upload", "Title": "Ανέβασμα βίντεο", "MaxUploadBytes": a.cfg.MaxUploadBytes, "AccessLists": lists})
+		a.renderPage(w, r, uploadTmpl, map[string]any{"Page": "upload", "Title": "upload.title", "MaxUploadBytes": a.cfg.MaxUploadBytes, "AccessLists": lists})
 	})))))
 	mux.Handle("POST /api/upload", a.limited(a.withUser(a.requireEditor(http.HandlerFunc(a.handleUpload)))))
 	mux.Handle("GET /edit", a.limited(a.withUser(a.requireEditor(http.HandlerFunc(a.handleEditPage)))))
@@ -222,7 +222,7 @@ func render(w http.ResponseWriter, tmpl *template.Template, data any) {
 	var buf bytes.Buffer
 	if err := tmpl.Execute(&buf, data); err != nil {
 		log.Printf("render %s: %v", tmpl.Name(), err)
-		http.Error(w, translate(w.Header().Get("Content-Language"), "page rendering failed"), http.StatusInternalServerError)
+		http.Error(w, translate(w.Header().Get("Content-Language"), "error.render"), http.StatusInternalServerError)
 		return
 	}
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
@@ -233,7 +233,7 @@ func render(w http.ResponseWriter, tmpl *template.Template, data any) {
 
 func (a *application) serverError(w http.ResponseWriter, operation string, err error) {
 	log.Printf("%s: %v", operation, err)
-	http.Error(w, translate(w.Header().Get("Content-Language"), "internal server error"), http.StatusInternalServerError)
+	http.Error(w, translate(w.Header().Get("Content-Language"), "error.internal"), http.StatusInternalServerError)
 }
 
 // wantsJSON reports whether the client prefers a JSON REST response over the
@@ -261,7 +261,7 @@ func writeJSON(w http.ResponseWriter, code int, v any) {
 // writeAPIError mirrors http.Error but returns {"error": msg} for JSON clients.
 func writeAPIError(w http.ResponseWriter, r *http.Request, code int, msg string) {
 	if wantsJSON(r) {
-		writeJSON(w, code, map[string]string{"error": msg})
+		writeJSON(w, code, map[string]string{"error": translate(defaultLanguage, msg)})
 		return
 	}
 	http.Error(w, translate(requestLanguage(r), msg), code)
@@ -269,7 +269,7 @@ func writeAPIError(w http.ResponseWriter, r *http.Request, code int, msg string)
 
 func (a *application) apiServerError(w http.ResponseWriter, r *http.Request, operation string, err error) {
 	log.Printf("%s: %v", operation, err)
-	writeAPIError(w, r, http.StatusInternalServerError, "internal server error")
+	writeAPIError(w, r, http.StatusInternalServerError, "error.internal")
 }
 
 // GET /api/videos?q=&category= — public JSON mirror of the library page,

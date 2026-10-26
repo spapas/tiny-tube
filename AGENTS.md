@@ -17,6 +17,9 @@ update the documentation when an issue is resolved.
 
 - `main.go`: startup, MIME registration, and graceful shutdown.
 - `ui.go`: embedded web assets, template loading, and display helpers.
+- `i18n.go`: embedded go-i18n JSON discovery, English source/fallback, language
+  negotiation, named variables, plural forms, and locale formatting. Add languages
+  through `web/locales/<BCP47-tag>.json`; see `docs/I18N.md`.
 - `web/templates/`: shared layout and library/watch/upload/edit pages.
 - `web/static/`: shared responsive styles, theme/share behavior, player, and upload.
 - `config.go`: environment settings and startup validation.
@@ -62,6 +65,10 @@ update the documentation when an issue is resolved.
 - Keep light mode as the default. The optional dark mode is a browser-local choice.
   Preserve accessible labels/focus states and mobile layouts. No frontend framework
   or package install is required; assets are embedded in the executable.
+- Keep English as the translation source and fallback. Use stable message IDs,
+  named variables and CLDR plural forms; never use Greek text as source keys.
+  Languages must be discovered from catalogs, including the selector and browser
+  messages. Preserve English JSON API errors and keep user content untranslated.
 - Keep the interface appropriate for workplace training, presentations, and recorded
   meetings: restrained colors, compact headings, and clear task-oriented copy.
   Avoid playful illustrations, decorative numbers, and storytelling slogans.

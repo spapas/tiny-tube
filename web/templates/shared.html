@@ -4,47 +4,47 @@
 <meta name="color-scheme" content="light dark">
 <title>{{if or (eq .Page "watch") .ListName}}{{.Title}}{{else}}{{t .Title}}{{end}} · Tiny Tube</title>
 <script src="/assets/theme.js?v=1"></script>
-<link rel="stylesheet" href="/assets/app.css?v=7">
-<script src="/assets/i18n/{{.Lang}}.js?v=1" defer></script>
-<script src="/assets/app.js?v=6" defer></script>
+<link rel="stylesheet" href="/assets/app.css?v=8">
+<script src="/assets/i18n/{{.Lang}}.js?v=2" defer></script>
+<script src="/assets/app.js?v=7" defer></script>
 {{end}}
 
 {{define "header"}}
-<a class="skip-link" href="#main">{{t "Μετάβαση στο περιεχόμενο"}}</a>
+<a class="skip-link" href="#main">{{t "nav.skipContent"}}</a>
 <header class="site-header">
   <div class="container header-inner">
-    <a class="brand" href="/" aria-label="{{t "Tiny Tube — Αρχική"}}"><span class="brand-mark">{{template "play"}}</span><span>Tiny Tube</span></a>
-    <nav class="primary-nav" aria-label="{{t "Κύρια πλοήγηση"}}">
-      <a class="nav-link{{if eq .Page "list"}} is-active{{end}}" href="/" {{if eq .Page "list"}}aria-current="page"{{end}}>{{template "grid"}} {{t "Βιβλιοθήκη"}}</a>
+    <a class="brand" href="/" aria-label="{{t "nav.home"}}"><span class="brand-mark">{{template "play"}}</span><span>Tiny Tube</span></a>
+    <nav class="primary-nav" aria-label="{{t "nav.main"}}">
+      <a class="nav-link{{if eq .Page "list"}} is-active{{end}}" href="/" {{if eq .Page "list"}}aria-current="page"{{end}}>{{template "grid"}} {{t "nav.library"}}</a>
       {{if .CurrentUser}}{{if .CurrentUser.CanEdit}}
-      <a class="nav-link{{if eq .Page "upload"}} is-active{{end}}" href="/upload" {{if eq .Page "upload"}}aria-current="page"{{end}}>{{template "upload-icon"}} {{t "Ανέβασμα βίντεο"}}</a>
+      <a class="nav-link{{if eq .Page "upload"}} is-active{{end}}" href="/upload" {{if eq .Page "upload"}}aria-current="page"{{end}}>{{template "upload-icon"}} {{t "upload.title"}}</a>
       {{end}}{{if .CurrentUser.IsAdmin}}
-      <a class="nav-link{{if eq .Page "admin"}} is-active{{end}}" href="/admin" {{if eq .Page "admin"}}aria-current="page"{{end}}>{{template "info"}} {{t "Διαχείριση"}}</a>
+      <a class="nav-link{{if eq .Page "admin"}} is-active{{end}}" href="/admin" {{if eq .Page "admin"}}aria-current="page"{{end}}>{{template "info"}} {{t "admin.title"}}</a>
       {{end}}{{end}}
     </nav>
     <div class="user-area">
     {{if .CurrentUser}}
       <span class="user-name">{{if .CurrentUser.DisplayName}}{{.CurrentUser.DisplayName}}{{else}}{{.CurrentUser.Username}}{{end}}</span>
-      <form method="POST" action="/logout"><button class="button button-quiet" type="submit">{{t "Αποσύνδεση"}}</button></form>
+      <form method="POST" action="/logout"><button class="button button-quiet" type="submit">{{t "auth.logout"}}</button></form>
     {{else}}
-      <a class="button button-quiet" href="/login">{{t "Σύνδεση"}}</a>
+      <a class="button button-quiet" href="/login">{{t "auth.login"}}</a>
     {{end}}
     </div>
-    <form class="language-switch" method="POST" action="/language" aria-label="{{t "Γλώσσα"}}">
+    <form class="language-switch" method="POST" action="/language" aria-label="{{t "language.label"}}">
       <input type="hidden" name="next" value="{{.LanguageReturn}}">
-      <button type="submit" name="language" value="el" lang="el" aria-label="Ελληνικά" title="Ελληνικά" aria-pressed="{{if eq .Lang "el"}}true{{else}}false{{end}}">ΕΛ</button>
-      <button type="submit" name="language" value="en" lang="en" aria-label="English" title="English" aria-pressed="{{if eq .Lang "en"}}true{{else}}false{{end}}">EN</button>
+      <select name="language" data-language-select aria-label="{{t "language.label"}}">{{range .Languages}}<option value="{{.Code}}" lang="{{.Code}}"{{if eq $.Lang .Code}} selected{{end}}>{{.Name}}</option>{{end}}</select>
+      <button type="submit" data-language-submit>{{t "language.apply"}}</button>
     </form>
-    <button class="theme-toggle" type="button" data-theme-toggle aria-label="{{t "Ενεργοποίηση σκοτεινού θέματος"}}" aria-pressed="false"><span class="theme-sun">{{template "sun"}}</span><span class="theme-moon">{{template "moon"}}</span><span class="theme-label" data-theme-label>{{t "Ανοιχτό"}}</span></button>
+    <button class="theme-toggle" type="button" data-theme-toggle aria-label="{{t "theme.enableDark"}}" aria-pressed="false"><span class="theme-sun">{{template "sun"}}</span><span class="theme-moon">{{template "moon"}}</span><span class="theme-label" data-theme-label>{{t "theme.light"}}</span></button>
   </div>
 </header>
 {{end}}
 
 {{define "footer"}}
-<footer class="site-footer container"><span class="footer-brand">Tiny Tube</span><span>{{t "Βιβλιοθήκη βίντεο για ομάδες."}}</span></footer>
+<footer class="site-footer container"><span class="footer-brand">Tiny Tube</span><span>{{t "footer.description"}}</span></footer>
 {{end}}
 
-{{define "pagination"}}{{if .PageCount}}{{if gt .PageCount 1}}<nav class="pagination" aria-label="{{t "Σελίδες βίντεο"}}">{{if .PreviousPage}}<a class="button button-secondary" href="{{.PreviousPage}}">{{t "Προηγούμενη"}}</a>{{end}}<span>{{t "Σελίδα %d από %d" .PageNumber .PageCount}}</span>{{if .NextPage}}<a class="button button-secondary" href="{{.NextPage}}">{{t "Επόμενη"}}</a>{{end}}</nav>{{end}}{{end}}{{end}}
+{{define "pagination"}}{{if .PageCount}}{{if gt .PageCount 1}}<nav class="pagination" aria-label="{{t "pagination.label"}}">{{if .PreviousPage}}<a class="button button-secondary" href="{{.PreviousPage}}">{{t "pagination.previous"}}</a>{{end}}<span>{{t "pagination.page" "Page" .PageNumber "Pages" .PageCount}}</span>{{if .NextPage}}<a class="button button-secondary" href="{{.NextPage}}">{{t "pagination.next"}}</a>{{end}}</nav>{{end}}{{end}}{{end}}
 
 {{define "play"}}<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5.5a1 1 0 0 1 1.5-.86l10 6a1.6 1.6 0 0 1 0 2.72l-10 6A1 1 0 0 1 8 18.5z"/></svg>{{end}}
 {{define "grid"}}<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="2"/><rect x="14" y="3" width="7" height="7" rx="2"/><rect x="3" y="14" width="7" height="7" rx="2"/><rect x="14" y="14" width="7" height="7" rx="2"/></svg>{{end}}

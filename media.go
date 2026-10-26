@@ -77,7 +77,7 @@ func (a *application) serveVideo(w http.ResponseWriter, r *http.Request) {
 			if errors.Is(err, os.ErrNotExist) || errors.Is(err, os.ErrInvalid) {
 				http.NotFound(w, r)
 			} else {
-				writeAPIError(w, r, http.StatusServiceUnavailable, "media authorization unavailable")
+				writeAPIError(w, r, http.StatusServiceUnavailable, "error.mediaAuthorization")
 			}
 			return
 		}

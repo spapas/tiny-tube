@@ -225,7 +225,7 @@ func (a *application) handleViewList(w http.ResponseWriter, r *http.Request) {
 	data["Total"] = p.Total
 	data["ListKey"] = ""
 	data["ListName"] = ""
-	data["Title"] = "Κλειδωμένα βίντεο"
+	data["Title"] = "list.title"
 	if raw := r.URL.Query().Get("key"); raw != "" {
 		l, ok := a.findListByKey(raw)
 		if !ok {
@@ -246,12 +246,12 @@ func (a *application) resolveAccessList(w http.ResponseWriter, r *http.Request) 
 		return "", true
 	}
 	if !store.ValidAccessListID(id) {
-		writeAPIError(w, r, http.StatusBadRequest, "unknown access list")
+		writeAPIError(w, r, http.StatusBadRequest, "error.unknownList")
 		return "", false
 	}
 	if _, err := a.fs.GetAccessList(id); err != nil {
 		if errors.Is(err, os.ErrNotExist) || errors.Is(err, os.ErrInvalid) {
-			writeAPIError(w, r, http.StatusBadRequest, "unknown access list")
+			writeAPIError(w, r, http.StatusBadRequest, "error.unknownList")
 		} else {
 			a.apiServerError(w, r, "read access list", err)
 		}
@@ -325,7 +325,7 @@ func (a *application) renderAdminLists(w http.ResponseWriter, r *http.Request, e
 func (a *application) parseListForm(w http.ResponseWriter, r *http.Request) bool {
 	r.Body = http.MaxBytesReader(w, r.Body, 64<<10)
 	if err := r.ParseForm(); err != nil {
-		writeAPIError(w, r, http.StatusBadRequest, "invalid form")
+		writeAPIError(w, r, http.StatusBadRequest, "error.invalidForm")
 		return false
 	}
 	return true
@@ -339,7 +339,7 @@ func (a *application) handleAdminCreateList(w http.ResponseWriter, r *http.Reque
 	}
 	name := strings.TrimSpace(r.PostForm.Get("name"))
 	if !store.ValidAccessListName(name) {
-		adminRedirectError(w, r, "/admin/lists", "list name required (up to 100 characters)")
+		adminRedirectError(w, r, "/admin/lists", "error.listName")
 		return
 	}
 	id, err := store.GenerateAccessListID()
@@ -367,13 +367,13 @@ func (a *application) handleAdminRenameList(w http.ResponseWriter, r *http.Reque
 	id := strings.TrimSpace(r.PostForm.Get("id"))
 	name := strings.TrimSpace(r.PostForm.Get("name"))
 	if !store.ValidAccessListID(id) || !store.ValidAccessListName(name) {
-		adminRedirectError(w, r, "/admin/lists", "invalid list or name")
+		adminRedirectError(w, r, "/admin/lists", "error.listOrName")
 		return
 	}
 	l, err := a.fs.GetAccessList(id)
 	if err != nil {
 		if errors.Is(err, os.ErrNotExist) || errors.Is(err, os.ErrInvalid) {
-			adminRedirectError(w, r, "/admin/lists", "list not found")
+			adminRedirectError(w, r, "/admin/lists", "error.listNotFound")
 		} else {
 			a.apiServerError(w, r, "read access list", err)
 		}
@@ -385,7 +385,7 @@ func (a *application) handleAdminRenameList(w http.ResponseWriter, r *http.Reque
 		return
 	}
 	log.Printf("admin %q renamed access list %q to %q", currentUser(r).Username, id, name)
-	adminRedirectNotice(w, r, "/admin/lists", "list renamed")
+	adminRedirectNotice(w, r, "/admin/lists", "notice.listRenamed")
 }
 
 // handleAdminRotateList replaces the key without moving videos: every copy
@@ -396,13 +396,13 @@ func (a *application) handleAdminRotateList(w http.ResponseWriter, r *http.Reque
 	}
 	id := strings.TrimSpace(r.PostForm.Get("id"))
 	if !store.ValidAccessListID(id) {
-		adminRedirectError(w, r, "/admin/lists", "invalid list")
+		adminRedirectError(w, r, "/admin/lists", "error.invalidList")
 		return
 	}
 	l, err := a.fs.GetAccessList(id)
 	if err != nil {
 		if errors.Is(err, os.ErrNotExist) || errors.Is(err, os.ErrInvalid) {
-			adminRedirectError(w, r, "/admin/lists", "list not found")
+			adminRedirectError(w, r, "/admin/lists", "error.listNotFound")
 		} else {
 			a.apiServerError(w, r, "read access list", err)
 		}
@@ -430,7 +430,7 @@ func (a *application) handleAdminDeleteList(w http.ResponseWriter, r *http.Reque
 	}
 	id := strings.TrimSpace(r.PostForm.Get("id"))
 	if !store.ValidAccessListID(id) {
-		adminRedirectError(w, r, "/admin/lists", "invalid list")
+		adminRedirectError(w, r, "/admin/lists", "error.invalidList")
 		return
 	}
 	videos, err := a.fs.List("")
@@ -445,17 +445,17 @@ func (a *application) handleAdminDeleteList(w http.ResponseWriter, r *http.Reque
 		}
 	}
 	if held > 0 {
-		adminRedirectError(w, r, "/admin/lists", "list still holds videos; move them to another list or public first")
+		adminRedirectError(w, r, "/admin/lists", "error.listHasVideos")
 		return
 	}
 	if err := a.fs.DeleteAccessList(id); err != nil {
 		if errors.Is(err, os.ErrNotExist) || errors.Is(err, os.ErrInvalid) {
-			adminRedirectError(w, r, "/admin/lists", "list not found")
+			adminRedirectError(w, r, "/admin/lists", "error.listNotFound")
 		} else {
 			a.apiServerError(w, r, "delete access list", err)
 		}
 		return
 	}
 	log.Printf("admin %q deleted access list %q", currentUser(r).Username, id)
-	adminRedirectNotice(w, r, "/admin/lists", "list deleted")
+	adminRedirectNotice(w, r, "/admin/lists", "notice.listDeleted")
 }

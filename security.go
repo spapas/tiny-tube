@@ -26,7 +26,7 @@ func secureHTTP(next http.Handler) http.Handler {
 	csrf := http.NewCrossOriginProtection()
 	csrf.SetDenyHandler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Cache-Control", "no-store")
-		writeAPIError(w, r, http.StatusForbidden, "cross-origin mutation forbidden")
+		writeAPIError(w, r, http.StatusForbidden, "error.crossOrigin")
 	}))
 	protected := csrf.Handler(next)
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

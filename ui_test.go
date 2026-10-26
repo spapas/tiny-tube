@@ -38,7 +38,7 @@ func TestLibraryCategoryAndSearchFilters(t *testing.T) {
 	}
 	w = httptest.NewRecorder()
 	a.routes().ServeHTTP(w, httptest.NewRequest("GET", "/?q=unmatched-query", nil))
-	if !strings.Contains(w.Body.String(), "Δεν βρέθηκαν βίντεο") {
+	if !strings.Contains(w.Body.String(), "No videos found") {
 		t.Fatal("missing empty search state")
 	}
 }

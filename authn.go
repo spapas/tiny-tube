@@ -73,6 +73,7 @@ func (a *application) renderPage(w http.ResponseWriter, r *http.Request, tmpl *t
 	data["CurrentUser"] = currentUser(r)
 	lang := requestLanguage(r)
 	data["Lang"] = lang
+	data["Languages"] = appTranslations.languages
 	data["LanguageReturn"] = r.URL.RequestURI()
 	// A mutation may render a page (e.g. a newly issued API/list key). The
 	// language form must return to the corresponding GET page, never that POST.
@@ -181,7 +182,7 @@ func (a *application) limited(next http.Handler) http.Handler {
 		if allowed, retry := a.authRequests.allow(r.RemoteAddr); !allowed {
 			w.Header().Set("Cache-Control", "no-store")
 			w.Header().Set("Retry-After", strconv.Itoa(retry))
-			writeAPIError(w, r, http.StatusTooManyRequests, "too many authentication requests; retry later")
+			writeAPIError(w, r, http.StatusTooManyRequests, "error.authRateLimit")
 			return
 		}
 		next.ServeHTTP(w, r)
@@ -209,7 +210,7 @@ func (a *application) requireLogin(next http.Handler) http.Handler {
 func (a *application) requireEditor(next http.Handler) http.Handler {
 	return a.requireLogin(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if !currentUser(r).CanEdit() {
-			writeAPIError(w, r, http.StatusForbidden, "editor role required")
+			writeAPIError(w, r, http.StatusForbidden, "error.editorRequired")
 			return
 		}
 		next.ServeHTTP(w, r)
@@ -219,7 +220,7 @@ func (a *application) requireEditor(next http.Handler) http.Handler {
 func (a *application) requireAdmin(next http.Handler) http.Handler {
 	return a.requireLogin(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if !currentUser(r).IsAdmin() {
-			writeAPIError(w, r, http.StatusForbidden, "administrator role required")
+			writeAPIError(w, r, http.StatusForbidden, "error.adminRequired")
 			return
 		}
 		next.ServeHTTP(w, r)
@@ -351,7 +352,7 @@ func (a *application) handleLoginPage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	a.renderPage(w, r, loginTmpl, map[string]any{
-		"Page": "login", "Title": "Σύνδεση",
+		"Page": "login", "Title": "auth.login",
 		"Next": r.URL.Query().Get("next"), "Error": "",
 	})
 }
@@ -363,7 +364,7 @@ func (a *application) handleLogin(w http.ResponseWriter, r *http.Request) {
 	}
 	r.Body = http.MaxBytesReader(w, r.Body, 64<<10)
 	if err := r.ParseForm(); err != nil {
-		a.renderPage(w, r, loginTmpl, map[string]any{"Page": "login", "Title": "Σύνδεση", "Error": "Μη έγκυρη φόρμα."})
+		a.renderPage(w, r, loginTmpl, map[string]any{"Page": "login", "Title": "auth.login", "Error": "auth.invalidForm"})
 		return
 	}
 	username, password := r.PostForm.Get("username"), r.PostForm.Get("password")
@@ -375,8 +376,8 @@ func (a *application) handleLogin(w http.ResponseWriter, r *http.Request) {
 		}
 		log.Printf("failed login for %q", username)
 		a.renderPage(w, r, loginTmpl, map[string]any{
-			"Page": "login", "Title": "Σύνδεση",
-			"Next": r.PostForm.Get("next"), "Error": "Λάθος στοιχεία. Προσπαθήστε ξανά.",
+			"Page": "login", "Title": "auth.login",
+			"Next": r.PostForm.Get("next"), "Error": "auth.invalidCredentials",
 		})
 		return
 	}

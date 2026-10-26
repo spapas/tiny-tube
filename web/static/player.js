@@ -18,12 +18,12 @@
   const showMessage = text => { message.textContent = text; message.hidden = false; };
   function fallback() {
     if (usingOriginal) {
-      showMessage(t('Ο browser δεν μπορεί να αναπαράγει αυτό το αρχείο. Δοκίμασε άλλο browser ή κατέβασε το αρχικό βίντεο.'));
+      showMessage(t('player.unsupported'));
       return;
     }
     usingOriginal = true;
     if (player) { player.destroy(); player = null; }
-    if (hls) showMessage(t('Η προεπισκόπηση δεν είναι διαθέσιμη. Δοκιμάζουμε το αρχικό βίντεο.'));
+    if (hls) showMessage(t('player.originalFallback'));
     video.src = base + original;
     video.load();
   }

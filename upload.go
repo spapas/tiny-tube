@@ -41,7 +41,7 @@ func reserveUploadDir(root string) (string, string, error) {
 func (a *application) handleUpload(w http.ResponseWriter, r *http.Request) {
 	r.Body = http.MaxBytesReader(w, r.Body, a.cfg.MaxUploadBytes)
 	if r.ContentLength > a.cfg.MaxUploadBytes {
-		writeAPIError(w, r, http.StatusRequestEntityTooLarge, "upload exceeds MAX_UPLOAD_BYTES")
+		writeAPIError(w, r, http.StatusRequestEntityTooLarge, "error.uploadTooLarge")
 		return
 	}
 	if err := http.NewResponseController(w).SetReadDeadline(time.Now().Add(time.Duration(a.cfg.UploadTimeoutSeconds) * time.Second)); err != nil && !errors.Is(err, http.ErrNotSupported) {
@@ -60,17 +60,17 @@ func (a *application) handleUpload(w http.ResponseWriter, r *http.Request) {
 		var tooLarge *http.MaxBytesError
 		var timeout net.Error
 		if errors.As(err, &tooLarge) {
-			writeAPIError(w, r, http.StatusRequestEntityTooLarge, "upload exceeds MAX_UPLOAD_BYTES")
+			writeAPIError(w, r, http.StatusRequestEntityTooLarge, "error.uploadTooLarge")
 		} else if errors.As(err, &timeout) && timeout.Timeout() {
-			writeAPIError(w, r, http.StatusRequestTimeout, "upload timed out")
+			writeAPIError(w, r, http.StatusRequestTimeout, "error.uploadTimeout")
 		} else {
-			writeAPIError(w, r, http.StatusBadRequest, "invalid multipart upload")
+			writeAPIError(w, r, http.StatusBadRequest, "error.multipart")
 		}
 		return
 	}
 	title, desc, category := strings.TrimSpace(r.FormValue("title")), r.FormValue("desc"), r.FormValue("category")
 	if title == "" || len(title) > 512 || len(desc) > 8192 || len(category) > 256 {
-		writeAPIError(w, r, http.StatusBadRequest, "title required; maximum bytes: title 512, description 8192, category 256")
+		writeAPIError(w, r, http.StatusBadRequest, "error.invalidFields")
 		return
 	}
 	accessList, ok := a.resolveAccessList(w, r)
@@ -79,17 +79,17 @@ func (a *application) handleUpload(w http.ResponseWriter, r *http.Request) {
 	}
 	f, hdr, err := r.FormFile("file")
 	if err != nil {
-		writeAPIError(w, r, http.StatusBadRequest, "file required")
+		writeAPIError(w, r, http.StatusBadRequest, "error.fileRequired")
 		return
 	}
 	defer f.Close()
 	ext := strings.ToLower(filepath.Ext(hdr.Filename))
 	if ext != ".mp4" && ext != ".mov" && ext != ".mkv" && ext != ".webm" {
-		writeAPIError(w, r, http.StatusUnsupportedMediaType, "supported formats: mp4, mov, mkv, webm")
+		writeAPIError(w, r, http.StatusUnsupportedMediaType, "error.formats")
 		return
 	}
 	if !hasMediaHeader(f, ext) {
-		writeAPIError(w, r, http.StatusUnsupportedMediaType, "file does not have a supported media header")
+		writeAPIError(w, r, http.StatusUnsupportedMediaType, "error.mediaHeader")
 		return
 	}
 	if _, err = f.Seek(0, io.SeekStart); err != nil {

@@ -2,32 +2,17 @@ package main
 
 import (
 	"embed"
-	"fmt"
 	"html/template"
 	"io/fs"
 	"net/url"
-	"strconv"
-	"strings"
-	"time"
 )
 
 //go:embed web/templates/*.html web/static/* web/locales/*.json
 var webFiles embed.FS
 
 var pageTemplates = template.Must(template.New("pages").Funcs(template.FuncMap{
-	"t":            func(message string, args ...any) string { return translate("el", message, args...) },
 	"hlsScriptURL": func() string { return hlsScriptURL },
-	"formatDate":   formatDate,
-	"formatBytes":  formatBytes,
-	"statusLabel":  statusLabel,
 	"statusClass":  statusClass,
-	"videoCount":   func(n int) string { return fmt.Sprintf("%d βίντεο", n) },
-	"viewCount": func(n int64) string {
-		if n == 1 {
-			return "1 προβολή"
-		}
-		return fmt.Sprintf("%d προβολές", n)
-	},
 	"filterURL": func(q, category string) string {
 		values := url.Values{}
 		if q != "" {
@@ -57,7 +42,7 @@ var pageTemplates = template.Must(template.New("pages").Funcs(template.FuncMap{
 		}
 		return "/?" + values.Encode()
 	},
-}).ParseFS(webFiles, "web/templates/*.html"))
+}).Funcs(appTranslations.templateFuncs(defaultLanguage)).ParseFS(webFiles, "web/templates/*.html"))
 
 var languageTemplates = localizedTemplates(pageTemplates)
 
@@ -81,44 +66,6 @@ func staticFiles() fs.FS {
 		panic(err)
 	}
 	return assets
-}
-
-func formatDate(created string) string {
-	t, err := time.Parse(time.RFC3339Nano, created)
-	if err != nil {
-		return "Χωρίς ημερομηνία"
-	}
-	months := [...]string{"Ιαν", "Φεβ", "Μαρ", "Απρ", "Μάι", "Ιουν", "Ιουλ", "Αυγ", "Σεπ", "Οκτ", "Νοε", "Δεκ"}
-	return fmt.Sprintf("%d %s %d", t.Day(), months[t.Month()-1], t.Year())
-}
-
-func formatBytes(n int64) string {
-	for _, unit := range []struct {
-		bytes int64
-		name  string
-	}{{1 << 30, "GiB"}, {1 << 20, "MiB"}, {1 << 10, "KiB"}} {
-		if n >= unit.bytes {
-			value := strconv.FormatFloat(float64(n)/float64(unit.bytes), 'f', 1, 64)
-			value = strings.TrimSuffix(value, ".0")
-			return strings.ReplaceAll(value, ".", ",") + " " + unit.name
-		}
-	}
-	return fmt.Sprintf("%d bytes", n)
-}
-
-func statusLabel(status string) string {
-	switch status {
-	case "ready":
-		return "Έτοιμο"
-	case "queued":
-		return "Στην ουρά"
-	case "processing":
-		return "Ετοιμάζεται"
-	case "failed":
-		return "Χρειάζεται έλεγχο"
-	default:
-		return "Άγνωστη"
-	}
 }
 
 func statusClass(status string) string {
