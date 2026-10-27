@@ -2,8 +2,9 @@
 
 [![CI](https://github.com/spapas/tiny-tube/actions/workflows/ci.yml/badge.svg)](https://github.com/spapas/tiny-tube/actions/workflows/ci.yml)
 
-A small video-sharing server written in Go, with media on disk, SQLite metadata,
-and optional FFmpeg conversion to HLS with preview posters. Viewing is public;
+Tiny Tube is a self-contained video-sharing server for training, presentations,
+and recorded meetings. It stores media on disk and metadata in SQLite, with
+optional FFmpeg conversion to HLS and preview posters. Viewing is public;
 uploading and editing require login with an editor or administrator account,
 and deleting or managing users requires an administrator. Videos can also be
 assigned to locked lists, visible only through a long list link
@@ -14,76 +15,119 @@ SQLite uses the pure Go
 `modernc.org/sqlite` driver, so single-binary builds do not require CGO. Legacy
 filesystem JSON metadata remains available with `STORE=fs`.
 
-This is a small pilot. Upload isolation, request limits, metadata replacement,
-and bounded conversion workers are covered by regression tests. See the
-[review and remaining limitations](docs/REVIEW.md) before deployment.
+Upload isolation, request limits, metadata replacement, and bounded conversion
+workers are covered by regression tests. See the [review and remaining
+limitations](docs/REVIEW.md) when planning an installation.
 
-## Requirements
+## Screenshots
 
-- A patched Go release: 1.26.10 or 1.27.3 and newer. The module selects Go 1.27.3
-  automatically; startup rejects builds from older/unverified toolchains.
-- A writable video directory, with space for both originals and generated HLS files.
-- Optional FFmpeg on `PATH`, with the `libx264` and AAC encoders, for HLS conversion.
-  Without FFmpeg, the server serves the original file; playback depends on the
-  browser's support for its container and codecs.
-- Native HLS playback and original-file playback do not require that script.
+The examples below use demonstration content.
 
-## Download a release
+**Library:** browse by category, search, and sort videos by date, views, or title.
 
-Download the matching archive from [GitHub Releases](https://github.com/spapas/tiny-tube/releases).
-Releases provide Linux, Windows and macOS binaries for `amd64` (Intel/AMD) and
-`arm64` (including Apple Silicon). Windows packages use `.zip`; Linux/macOS use
-`.tar.gz`. Extract the archive, copy `.env.example` to `.env`, set `ADMIN_PASS`,
-then run `tiny-tube.exe` on Windows or `./tiny-tube` on Linux/macOS. Go is only
-needed to build from source. UI assets and SQLite are embedded; FFmpeg is optional
-and installed separately. Binaries are unsigned; Windows/macOS may show platform
-security prompts.
+![Video library with category filters and title sorting](docs/screenshots/library.jpg)
 
-Each archive includes `tiny-tube`, `tiny-tube-cli` (with `.exe` on Windows),
-configuration examples, documentation, the vendored player license and
-`VERSION.txt` recording the tag, source commit and toolchain. Use the CLI in place
-of `go run ./cmd/cli` in the operator examples below.
+**Watch:** play a video, adjust playback speed, and share or download the original.
 
-Verify the downloaded archive against the release's `SHA256SUMS`: use
-`Get-FileHash .\tiny-tube-v1.0-windows-amd64.zip -Algorithm SHA256` in PowerShell,
-`sha256sum` on Linux, or `shasum -a 256` on macOS. Compare its hash with the entry
-for that exact filename.
+![Video watch page with playback controls and video details](docs/screenshots/watch.jpg)
 
-## Run on Windows (PowerShell)
+**Upload:** add a video and choose its title, category, description, and visibility.
 
-From the repository directory:
+![Video upload form and visibility options](docs/screenshots/upload.jpg)
+
+## Installation
+
+### 1. Download and extract
+
+Download the archive for your system from [GitHub Releases](https://github.com/spapas/tiny-tube/releases):
+Windows (`.zip`), Linux, or macOS (`.tar.gz`), choosing `amd64` for Intel/AMD
+or `arm64` for ARM, including Apple Silicon. Extract it and open a terminal in
+the extracted folder. The binaries are unsigned; Windows or macOS may show a
+security prompt.
+
+The release contains the server, the `tiny-tube-cli` administration tool,
+configuration examples, documentation, and `VERSION.txt`. Go and a separate
+database server are not required: SQLite and the web interface are included.
+You need a writable video directory with space for originals and generated media.
+
+To verify the download, compare its hash with the matching filename in the
+release's `SHA256SUMS`. For example, for the v1.0.3 amd64 archives:
 
 ```powershell
-$env:VIDEO_DIR = "videos"
-$env:ADDR = "127.0.0.1:8081"
-$env:ADMIN_USER = "admin"
-$env:ADMIN_PASS = "replace-with-a-strong-password"
-go run .
+# Windows PowerShell
+Get-FileHash .\tiny-tube-v1.0.3-windows-amd64.zip -Algorithm SHA256
 ```
 
-Open <http://localhost:8081> for the searchable list, <http://localhost:8081/upload>
-to upload after login, and <http://localhost:8081/admin> to manage users.
-On first boot with an empty user table the server creates the administrator
-from `ADMIN_USER`/`ADMIN_PASS`; afterwards users and roles are managed at
-`/admin`. For operator role fixes without the web UI, `cli.bat` (or
-`go run ./cmd/cli`) offers `users list` and
-`users set-role --username U --role admin|editor|viewer` against the same
-`VIDEO_DIR`/`STORE`/`DB_PATH` settings; it refuses to demote the last active
-administrator. Runtime storage starts empty; the small
-video under `testdata/` is a test fixture.
+```sh
+# Linux
+sha256sum tiny-tube-v1.0.3-linux-amd64.tar.gz
+# macOS (use darwin-arm64 for Apple Silicon)
+shasum -a 256 tiny-tube-v1.0.3-darwin-amd64.tar.gz
+```
 
-To build a Windows executable:
+Use the filename for the version and platform you downloaded.
+
+### 2. Configure the first administrator
+
+For a **new installation**, copy `.env.example` to `.env` in the extracted folder:
 
 ```powershell
-go build -o tiny-tube.exe .
+# Windows PowerShell
+Copy-Item .env.example .env
+```
+
+```sh
+# Linux / macOS
+cp .env.example .env
+```
+
+Open `.env` in a text editor and set `ADMIN_PASS` to a strong password. The
+default administrator name is `admin`; change `ADMIN_USER` if you prefer.
+The password cannot be empty or `changeme`. Keep `.env` private: it may contain
+credentials. Do not replace an existing `.env` when upgrading.
+
+### 3. Start the server
+
+From that same extracted folder, run:
+
+```powershell
+# Windows PowerShell
 .\tiny-tube.exe
 ```
 
-Environment settings apply to the current shell and processes started from it.
-The application also loads `.env` from its working directory at startup. Copy
-`.env.example` to `.env` and set `ADMIN_PASS`; explicitly set environment variables
-take precedence, including empty values. Values may be quoted; there is no variable
-expansion or inline-comment support. `.env` is ignored by Git.
+```sh
+# Linux / macOS
+./tiny-tube
+```
+
+Open <http://localhost:8081> on the same computer. Sign in with the administrator
+credentials, then use **Upload video** to add a video or **Administration** to
+manage users. Press `Ctrl+C` in the terminal to stop the server.
+
+On the first start with an empty user table, Tiny Tube creates the administrator.
+After that, manage users and passwords at `/admin`; changing `ADMIN_USER` or
+`ADMIN_PASS` does not change existing accounts. The library starts empty. By
+default, videos and the SQLite database are stored in `videos/` under the
+working directory.
+
+For HLS conversion and automatically generated posters, install FFmpeg separately
+with the `libx264` and AAC encoders, and make it available on `PATH` (or set
+`FFMPEG_BIN`). Without FFmpeg, original-file playback remains available when the
+browser supports the video's format and codecs.
+
+The default address only accepts local connections. For network access, configure
+the address and HTTPS; see [Configuration](#configuration) and the [Nginx example](#optional-nginx-deployment).
+Plan backups of the videos and database; Tiny Tube does not create them
+automatically. See [Security](docs/SECURITY.md) and [remaining limitations](docs/REVIEW.md).
+
+For a long-running Linux deployment, configure a service with the intended
+working directory, absolute `VIDEO_DIR`, and credentials. If conversion is
+needed, ensure the service can find FFmpeg. A systemd unit is not included.
+
+For operator role fixes without the web UI, the release's `tiny-tube-cli`
+provides `users list` and `users set-role --username U --role admin|editor|viewer`.
+Use the same `VIDEO_DIR`, `STORE`, and `DB_PATH` settings as the server. The CLI
+refuses to demote the last active administrator.
 
 ## Locked lists
 
@@ -118,36 +162,11 @@ Existing videos stay public unless moved.
 For scripts, pass the key as `?key=…` on `/api/videos`, `/api/video`,
 `/watch` and `/videos/…`, or reuse the unlock cookie from a link visit.
 
-For automatic rebuilding/restarting on Windows, run `dev.bat` from cmd.exe or
-`.\dev.bat` from PowerShell. It watches Go sources (excluding test files),
-embedded HTML/CSS/JavaScript and translation catalogs, module files and `.env`.
-Configure the password before starting the watcher.
-
-## Run on Linux / AlmaLinux
-
-Build on the target platform with Go installed:
-
-```sh
-go build -o tiny-tube .
-VIDEO_DIR=/srv/tiny-tube/videos ADDR=127.0.0.1:8081 ADMIN_USER=admin \
-  ADMIN_PASS='replace-with-a-strong-password' ./tiny-tube
-```
-
-For a Linux binary built from Windows:
-
-```powershell
-$env:GOOS = "linux"
-$env:GOARCH = "amd64" # match the target machine's architecture
-go build -o tiny-tube .
-Remove-Item Env:GOOS, Env:GOARCH
-```
-
-The same source supports both platforms; a Windows executable cannot run natively
-on Linux. A systemd unit is not included. If creating one, set an absolute
-`VIDEO_DIR`, supply the upload credentials, and ensure the service account can
-write there and find FFmpeg on its `PATH`.
-
 ## Configuration
+
+The server loads `.env` from its working directory. Explicit environment variables
+take precedence, including empty values. Values may be quoted; there is no variable
+expansion or inline-comment support. `.env` is ignored by Git.
 
 | Variable | Default | Behavior |
 | --- | --- | --- |
@@ -330,7 +349,7 @@ requires the matching role.
 | `POST` | `/logout` | session | Revokes the session cookie. |
 | `POST` | `/api/upload` | editor | Multipart fields `title` (required), `desc`, `category`, `file`, `access_list` (empty for public, otherwise a locked-list id). JSON clients get `201` with `id`, `title`, `status`, `original`, `access_list`, `watch_url`, `video_url`, `api_url`. Browsers get `303` to `/watch?id=`. |
 | `GET` | `/view_list?key=…` | none | HTML page with exactly one locked list's videos; grants an unlock cookie. Without `key`, shows everything the cookie already unlocked. Unknown keys return 404. |
-| `GET` | `/api/videos?q=&category=` | none | JSON `{"total", "count", "q", "category", "sort", "items"}` with the same filtering as the library page. Locked videos are excluded unless `?key=…`, an unlock cookie, or an editor/administrator credential is presented; `total` counts only visible videos. `sort=views` orders by view count, otherwise by recency. |
+| `GET` | `/api/videos?q=&category=` | none | JSON `{"total", "count", "q", "category", "sort", "items"}` with the same filtering as the library page. Locked videos are excluded unless `?key=…`, an unlock cookie, or an editor/administrator credential is presented; `total` counts only visible videos. Use `sort=views` for view count or `sort=title` for title; the default is recency. |
 | `GET` | `/api/video?id=<id>` | none | JSON metadata for one video, including `status` (`queued`/`processing`/`ready`/`failed`), `access_list` and `views`. `404` when missing or locked without access. |
 | `POST` | `/api/edit` | editor | Form fields `id`, `title`, `desc`, `category`, `access_list`. JSON clients get `200` with `id`, `title`, `watch_url`, `api_url`. |
 | `POST` | `/api/delete` | admin | Form field `id`. JSON clients get `200` with `{"id", "deleted": true}`. |
@@ -428,6 +447,43 @@ Capacity has not been measured. Validate the edited configuration with `nginx -t
 on the deployment machine, then check a real authenticated upload and playback.
 
 ## Development
+
+### Run and build from source
+
+In a source checkout, install patched Go 1.26.10 or 1.27.3+; `go.mod` selects
+Go 1.27.3. Copy `.env.example` to `.env` and set the first administrator password
+as described in [Installation](#2-configure-the-first-administrator). Then run
+`go run .` from the repository directory, or build an executable:
+
+```powershell
+# Windows PowerShell
+go build -o tiny-tube.exe .
+.\tiny-tube.exe
+```
+
+```sh
+# Linux / macOS
+go build -o tiny-tube .
+./tiny-tube
+```
+
+On Windows, `dev.bat` (or `.\dev.bat` in PowerShell) can rebuild and restart
+the application as source files, assets, catalogs, module files, or `.env` change.
+For the administration CLI, use `cli.bat` or `go run ./cmd/cli` with the same
+storage settings as the server. The tracked video under `testdata/` is a test
+fixture, not library content.
+
+To cross-build a Linux binary from Windows PowerShell, choose the target's
+architecture:
+
+```powershell
+$env:GOOS = "linux"
+$env:GOARCH = "amd64" # or arm64
+go build -o tiny-tube .
+Remove-Item Env:GOOS, Env:GOARCH
+```
+
+### Tests and CI
 
 GitHub Actions runs [CI](.github/workflows/ci.yml) for every push and pull request,
 and can also be started manually from the Actions tab:
