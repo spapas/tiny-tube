@@ -24,7 +24,7 @@ go version -m "$stage/tiny-tube$suffix"
 go version -m "$stage/tiny-tube-cli$suffix"
 
 # Explicit allowlist: never package local .env files, databases or user uploads.
-cp README.md .env.example nginx.sample.conf "$stage/"
+cp README.md LICENSE .env.example nginx.sample.conf "$stage/"
 cp docs/REVIEW.md docs/SECURITY.md docs/PROJECT-REVIEW-2026-10-24.md docs/I18N.md "$stage/docs/"
 cp docs/screenshots/library.jpg docs/screenshots/watch.jpg docs/screenshots/upload.jpg "$stage/docs/screenshots/"
 cp web/static/hls.js.LICENSE.txt "$stage/"

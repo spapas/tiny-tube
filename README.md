@@ -2,22 +2,30 @@
 
 [![CI](https://github.com/spapas/tiny-tube/actions/workflows/ci.yml/badge.svg)](https://github.com/spapas/tiny-tube/actions/workflows/ci.yml)
 
-Tiny Tube is a self-contained video-sharing server for training, presentations,
-and recorded meetings. It stores media on disk and metadata in SQLite, with
-optional FFmpeg conversion to HLS and preview posters. Viewing is public;
-uploading and editing require login with an editor or administrator account,
-and deleting or managing users requires an administrator. Videos can also be
-assigned to locked lists, visible only through a long list link
-(`/view_list?key=…`); editors and administrators bypass keys for management.
-Users authenticate
-with a local password (bcrypt) or against LDAP; roles are assigned locally.
-SQLite uses the pure Go
-`modernc.org/sqlite` driver, so single-binary builds do not require CGO. Legacy
-filesystem JSON metadata remains available with `STORE=fs`.
+Tiny Tube is a self-hosted video-sharing server for training videos,
+presentations, and recorded meetings. It runs as a single Go binary, with an
+embedded web interface, SQLite metadata, and video files stored on disk.
 
-Upload isolation, request limits, metadata replacement, and bounded conversion
-workers are covered by regression tests. See the [review and remaining
-limitations](docs/REVIEW.md) when planning an installation.
+- **One binary:** runs on Windows, Linux, and macOS. No separate database server
+  or frontend setup is required.
+- **A searchable video library:** categories, sorting, playback speed controls,
+  and original-file downloads, with an English and Greek interface.
+- **Optional HLS and posters:** add FFmpeg for conversion and preview images.
+  Without it, play original files in browsers that support their codecs.
+- **Local or LDAP login:** editors upload and edit; administrators also delete
+  videos and manage users. Roles are assigned locally.
+- **Public viewing or locked lists:** share a group of videos through a secret
+  link. Anyone with the link can view that list; editors and administrators can
+  access all videos for management.
+
+[Download a release](https://github.com/spapas/tiny-tube/releases) ·
+[Installation](#installation) · [Configuration](#configuration) ·
+[HTTP API](#http-api) · [License](#license)
+
+Run one server process per video directory. HLS currently provides a single
+720p rendition; backups, storage quotas, and adaptive quality are not built in.
+See the [review and remaining limitations](docs/REVIEW.md#remaining-limits)
+for deployment details.
 
 ## Screenshots
 
@@ -132,20 +140,21 @@ refuses to demote the last active administrator.
 ## Locked lists
 
 Public videos stay visible to everyone. For sensitive material, an
-administrator creates any number of locked lists at `/admin/lists` (section
-«Κλειδωμένες λίστες»), each with its own long random key. Uploads and edits
+administrator creates any number of locked lists at `/admin/lists`,
+each with its own long random key. Uploads and edits
 offer a visibility picker: public by default, or one locked list per video.
 Existing videos stay public unless moved.
 
 - Holders of `/view_list?key=…` see exactly that list; without the key its
-  videos are invisible everywhere — library, search, category counts, watch
-  page, JSON API, originals, HLS segments and posters all answer 404.
+  videos are excluded from the library, search, category counts, and API listings.
+  Direct requests for their watch page, metadata, originals, HLS segments, or
+  posters return 404 unless an unlock cookie or editor/administrator access applies.
 - The first key visit sets an unlock cookie so posters, HLS segments and
   later pages keep working without repeating the key.
 - Editors and administrators see every video without a key, so lost links
   never block management.
 - A link is a bearer credential: anyone it is forwarded to gains access.
-  Share links only over a safe channel. Rotating the key («Αλλαγή κλειδιού»)
+  Share links only over a safe channel. Rotating the key
   revokes every copy at once, including previously granted cookies.
   Deleting a list is refused while it still holds videos, so videos cannot
   silently become public.
@@ -311,7 +320,7 @@ naturally, so Lesson 2 comes before Lesson 10. The library and API accept
    otherwise they become `failed`. On graceful shutdown, active conversions are
    cancelled and requeued. Failed jobs are not automatically retried.
 
-### REST API for upload (automation / LLM clients)
+## HTTP API
 
 `GET /api/videos` is paginated: use `page` (starting at 1) and `page_size`
 (default 50, maximum 100; HTML defaults to 24). Responses include `total`
@@ -328,7 +337,7 @@ permit an extra view under heavy churn.
 Programmatic clients log in with `POST /api/login` (`{"username", "password"}`)
 and reuse the session cookie, exactly like a browser. For scripts that should
 not juggle cookies, an administrator can issue a long-lived API key per user
-at `/admin` (section «Κλειδιά API») or with
+at `/admin` in the API keys section or with
 `cli.bat users api-key --username U --name N`, and the client sends it as
 `Authorization: Bearer tt-…`. Keys carry the user's role, never expire, and
 are revoked from `/admin` or with `users api-key-revoke --prefix P`; only
@@ -349,7 +358,7 @@ requires the matching role.
 | `POST` | `/logout` | session | Revokes the session cookie. |
 | `POST` | `/api/upload` | editor | Multipart fields `title` (required), `desc`, `category`, `file`, `access_list` (empty for public, otherwise a locked-list id). JSON clients get `201` with `id`, `title`, `status`, `original`, `access_list`, `watch_url`, `video_url`, `api_url`. Browsers get `303` to `/watch?id=`. |
 | `GET` | `/view_list?key=…` | none | HTML page with exactly one locked list's videos; grants an unlock cookie. Without `key`, shows everything the cookie already unlocked. Unknown keys return 404. |
-| `GET` | `/api/videos?q=&category=` | none | JSON `{"total", "count", "q", "category", "sort", "items"}` with the same filtering as the library page. Locked videos are excluded unless `?key=…`, an unlock cookie, or an editor/administrator credential is presented; `total` counts only visible videos. Use `sort=views` for view count or `sort=title` for title; the default is recency. |
+| `GET` | `/api/videos?q=&category=&page=1&page_size=50` | none | JSON fields `total`, `filtered`, `count`, `page`, `page_size`, `pages`, `q`, `category`, `sort`, and `items`, with the same filtering as the library page. Locked videos are excluded unless `?key=…`, an unlock cookie, or an editor/administrator credential is presented. `total` counts all visible videos; `filtered` counts matches; `count` counts this page's items. Use `sort=views` for view count or `sort=title` for title; the default is recency. |
 | `GET` | `/api/video?id=<id>` | none | JSON metadata for one video, including `status` (`queued`/`processing`/`ready`/`failed`), `access_list` and `views`. `404` when missing or locked without access. |
 | `POST` | `/api/edit` | editor | Form fields `id`, `title`, `desc`, `category`, `access_list`. JSON clients get `200` with `id`, `title`, `watch_url`, `api_url`. |
 | `POST` | `/api/delete` | admin | Form field `id`. JSON clients get `200` with `{"id", "deleted": true}`. |
@@ -391,6 +400,11 @@ r.raise_for_status()
 video_id = r.json()["id"]
 print(requests.get(f"{base}/api/video", params={"id": video_id}).json())
 ```
+
+## Storage and conversion
+
+SQLite uses the pure Go `modernc.org/sqlite` driver, so single-binary builds do
+not require CGO. Legacy filesystem JSON metadata remains available with `STORE=fs`.
 
 ```text
 videos/
@@ -546,3 +560,10 @@ access, and rebuild existing binaries with the selected patched toolchain.
 The [2026-10-24 review and resolutions](docs/PROJECT-REVIEW-2026-10-24.md) records
 the additional fixes. Run `node --test tests/ui.test.cjs` for the client-behavior
 suite (Node is a test tool, not a runtime dependency).
+
+## License
+
+Tiny Tube is available under the [MIT License](LICENSE).
+The vendored hls.js player is licensed under
+[Apache-2.0](web/static/hls.js.LICENSE.txt). Third-party dependencies retain
+their respective licenses.
