@@ -263,8 +263,10 @@ removes the original, HLS, poster and metadata. There is no undo.
 Each authorized watch-page load counts one view, debounced to one per viewer
 address per video every 24 hours so refreshes do not inflate totals; denied
 requests never count. Totals appear on library cards and the watch page, and
-the library offers an optional «Δημοφιλή» sort next to the default recency
-order (`/?sort=views`, mirrored by `/api/videos?sort=views`).
+the library and locked-list pages offer most-viewed and title sorts alongside
+the default recency order. Title sorting is case-insensitive and orders numbers
+naturally, so Lesson 2 comes before Lesson 10. The library and API accept
+`sort=views` or `sort=title`; paging and filters preserve the selection.
 
 1. An authenticated `POST /api/upload` accepts multipart fields `title` (required),
    `desc`, `category`, and `file`.

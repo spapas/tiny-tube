@@ -230,6 +230,9 @@
   "library.sortPopularNote": {
     "other": "δημοφιλή"
   },
+  "library.sortTitleNote": {
+    "other": "τίτλος"
+  },
   "library.sortRecentNote": {
     "other": "πιο πρόσφατα"
   },
@@ -250,6 +253,9 @@
   },
   "search.sortOrder": {
     "other": "Ταξινόμηση"
+  },
+  "search.sortTitle": {
+    "other": "Τίτλος Α–Ω"
   },
   "search.sortRecent": {
     "other": "Πιο πρόσφατα"

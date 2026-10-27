@@ -52,8 +52,8 @@ func (a *application) queryLibrary(w http.ResponseWriter, r *http.Request, api, 
 }
 
 func librarySort(r *http.Request) string {
-	if r.URL.Query().Get("sort") == "views" {
-		return "views"
+	if sort := r.URL.Query().Get("sort"); sort == "views" || sort == "title" {
+		return sort
 	}
 	return "recent"
 }

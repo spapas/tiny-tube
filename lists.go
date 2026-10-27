@@ -221,6 +221,7 @@ func (a *application) handleViewList(w http.ResponseWriter, r *http.Request) {
 	}
 	data := paginationData(r, p)
 	data["Page"] = "view-list"
+	data["Sort"] = librarySort(r)
 	data["Items"] = p.Items
 	data["Total"] = p.Total
 	data["ListKey"] = ""

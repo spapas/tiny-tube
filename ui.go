@@ -26,6 +26,19 @@ var pageTemplates = template.Must(template.New("pages").Funcs(template.FuncMap{
 		}
 		return "/?" + values.Encode()
 	},
+	"listSortURL": func(key, sort string) string {
+		values := url.Values{}
+		if key != "" {
+			values.Set("key", key)
+		}
+		if sort != "" {
+			values.Set("sort", sort)
+		}
+		if len(values) == 0 {
+			return "/view_list"
+		}
+		return "/view_list?" + values.Encode()
+	},
 	"sortURL": func(q, category, sort string) string {
 		values := url.Values{}
 		if q != "" {
@@ -34,7 +47,7 @@ var pageTemplates = template.Must(template.New("pages").Funcs(template.FuncMap{
 		if category != "" {
 			values.Set("category", category)
 		}
-		if sort == "views" {
+		if sort == "views" || sort == "title" {
 			values.Set("sort", sort)
 		}
 		if len(values) == 0 {

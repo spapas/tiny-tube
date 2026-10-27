@@ -47,7 +47,7 @@ func TestUploadControlsRequireEditor(t *testing.T) {
 				t.Errorf("list hero upload visible=%v, want %v", got, tc.wantVisible)
 			}
 			viewList := renderTmpl(t, viewListTmpl, map[string]any{
-				"Page": "view-list", "Title": "Λίστα", "ListName": "Λίστα",
+				"Page": "view-list", "Title": "Λίστα", "ListName": "Λίστα", "ListKey": "", "Sort": "recent",
 				"Items": []store.Meta{item}, "Total": 1,
 				"CurrentUser": tc.user,
 			})

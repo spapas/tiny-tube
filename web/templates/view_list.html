@@ -12,8 +12,13 @@
   </section>
 
   <section class="library-content" aria-labelledby="videos-title">
-    <div class="section-heading"><h2 id="videos-title">{{t "common.videos"}} <span class="count-bubble">{{.Total}}</span></h2><span class="section-note">{{t "list.sortNote"}}</span></div>
+    <div class="section-heading"><h2 id="videos-title">{{t "common.videos"}} <span class="count-bubble">{{.Total}}</span></h2><span class="section-note">{{t "library.sortLabel"}} {{if eq .Sort "views"}}{{t "library.sortPopularNote"}}{{else if eq .Sort "title"}}{{t "library.sortTitleNote"}}{{else}}{{t "library.sortRecentNote"}}{{end}}</span></div>
     {{if .ListKey}}<div class="notice notice-info">{{template "info"}}<div><strong>{{t "list.shareLink"}}</strong><p>{{t "list.shareHint"}}</p><p><code>/view_list?key={{.ListKey}}</code></p></div></div>{{end}}
+    <nav class="category-filters" aria-label="{{t "search.sortOrder"}}">
+      <a class="filter-chip{{if eq .Sort "recent"}} is-selected{{end}}" href="{{listSortURL .ListKey ""}}" {{if eq .Sort "recent"}}aria-current="true"{{end}}>{{t "search.sortRecent"}}</a>
+      <a class="filter-chip{{if eq .Sort "views"}} is-selected{{end}}" href="{{listSortURL .ListKey "views"}}" {{if eq .Sort "views"}}aria-current="true"{{end}}>{{t "search.sortPopular"}}</a>
+      <a class="filter-chip{{if eq .Sort "title"}} is-selected{{end}}" href="{{listSortURL .ListKey "title"}}" {{if eq .Sort "title"}}aria-current="true"{{end}}>{{t "search.sortTitle"}}</a>
+    </nav>
     <div class="video-grid">
       {{range .Items}}
       <article class="video-card">

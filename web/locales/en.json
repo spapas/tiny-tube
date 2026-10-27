@@ -230,6 +230,9 @@
   "library.sortPopularNote": {
     "other": "most viewed"
   },
+  "library.sortTitleNote": {
+    "other": "title"
+  },
   "library.sortRecentNote": {
     "other": "most recent"
   },
@@ -250,6 +253,9 @@
   },
   "search.sortOrder": {
     "other": "Sort order"
+  },
+  "search.sortTitle": {
+    "other": "Title A–Z"
   },
   "search.sortRecent": {
     "other": "Most recent"

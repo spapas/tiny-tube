@@ -12,13 +12,13 @@
   </section>
 
   <section class="library-content" aria-labelledby="videos-title">
-    <div class="section-heading"><h2 id="videos-title">{{t "common.videos"}} <span class="count-bubble">{{.Total}}</span></h2><span class="section-note">{{t "library.sortLabel"}} {{if eq .Sort "views"}}{{t "library.sortPopularNote"}}{{else}}{{t "library.sortRecentNote"}}{{end}}</span></div>
+    <div class="section-heading"><h2 id="videos-title">{{t "common.videos"}} <span class="count-bubble">{{.Total}}</span></h2><span class="section-note">{{t "library.sortLabel"}} {{if eq .Sort "views"}}{{t "library.sortPopularNote"}}{{else if eq .Sort "title"}}{{t "library.sortTitleNote"}}{{else}}{{t "library.sortRecentNote"}}{{end}}</span></div>
     <div class="library-toolbar">
       <form class="search-form" method="GET" action="/" role="search">
         {{template "search"}}<label class="sr-only" for="search">{{t "search.videos"}}</label>
         <input id="search" type="search" name="q" placeholder="{{t "search.placeholder"}}" value="{{.Q}}">
         {{if .Category}}<input type="hidden" name="category" value="{{.Category}}">{{end}}
-        {{if eq .Sort "views"}}<input type="hidden" name="sort" value="views">{{end}}
+        {{if ne .Sort "recent"}}<input type="hidden" name="sort" value="{{.Sort}}">{{end}}
         <button type="submit" class="search-submit" aria-label="{{t "search.submit"}}">{{template "arrow"}}</button>
       </form>
       <span class="result-count">{{if .FilteredTotal}}{{videoCount .FilteredTotal}}{{else}}{{videoCount (len .Items)}}{{end}}</span>
@@ -28,8 +28,9 @@
       {{range .Categories}}<a class="filter-chip{{if .Selected}} is-selected{{end}}" href="{{sortURL $.Q .Name $.Sort}}" {{if .Selected}}aria-current="true"{{end}}>{{.Name}} <span>{{.Count}}</span></a>{{end}}
     </nav>
     <nav class="category-filters" aria-label="{{t "search.sortOrder"}}">
-      <a class="filter-chip{{if ne .Sort "views"}} is-selected{{end}}" href="{{sortURL .Q .Category ""}}" {{if ne .Sort "views"}}aria-current="true"{{end}}>{{t "search.sortRecent"}}</a>
+      <a class="filter-chip{{if eq .Sort "recent"}} is-selected{{end}}" href="{{sortURL .Q .Category ""}}" {{if eq .Sort "recent"}}aria-current="true"{{end}}>{{t "search.sortRecent"}}</a>
       <a class="filter-chip{{if eq .Sort "views"}} is-selected{{end}}" href="{{sortURL .Q .Category "views"}}" {{if eq .Sort "views"}}aria-current="true"{{end}}>{{t "search.sortPopular"}}</a>
+      <a class="filter-chip{{if eq .Sort "title"}} is-selected{{end}}" href="{{sortURL .Q .Category "title"}}" {{if eq .Sort "title"}}aria-current="true"{{end}}>{{t "search.sortTitle"}}</a>
     </nav>
     {{if or .Q .Category}}<div class="active-search"><span>{{if and .Q .Category}}{{t "search.resultsForQueryAndCategory" "Query" .Q "Category" .Category}}{{else if .Q}}{{t "search.resultsForQuery" "Query" .Q}}{{else}}{{t "search.resultsForCategory" "Category" .Category}}{{end}}</span><a href="/">{{t "search.clear"}} {{template "close"}}</a></div>{{end}}
     <div class="video-grid">

@@ -5,8 +5,11 @@ import (
 	"os"
 	"sort"
 	"strings"
+	"sync"
 	"time"
 
+	"golang.org/x/text/collate"
+	"golang.org/x/text/language"
 	sqlite "modernc.org/sqlite"
 )
 
@@ -25,7 +28,19 @@ type VideoPage struct {
 	Categories                     map[string]int
 }
 
+var titleCollators = sync.Pool{New: func() any {
+	return collate.New(language.Und, collate.Numeric, collate.IgnoreCase)
+}}
+
+func compareTitles(a, b string) int {
+	c := titleCollators.Get().(*collate.Collator)
+	result := c.CompareString(a, b)
+	titleCollators.Put(c)
+	return result
+}
+
 func init() {
+	sqlite.MustRegisterCollationUtf8("tt_title", compareTitles)
 	sqlite.MustRegisterDeterministicScalarFunction("tt_fold", 1, func(_ *sqlite.FunctionContext, args []driver.Value) (driver.Value, error) {
 		v, _ := args[0].(string)
 		return strings.ToLower(v), nil
@@ -108,6 +123,11 @@ func BrowseVideos(s Store, q VideoQuery) (VideoPage, error) {
 	}
 	if q.Sort == "views" {
 		SortByViews(filtered)
+	} else if q.Sort == "title" {
+		// List is already ordered by date and ID, which break equal-title ties.
+		sort.SliceStable(filtered, func(i, j int) bool {
+			return compareTitles(filtered[i].Title, filtered[j].Title) < 0
+		})
 	}
 	p.Matches = len(filtered)
 	start, end := pageBounds(&p, q)
@@ -180,6 +200,8 @@ func (s *SQLite) BrowseVideos(q VideoQuery) (VideoPage, error) {
 	order := `tt_date(created) DESC,id DESC`
 	if q.Sort == "views" {
 		order = `views DESC,` + order
+	} else if q.Sort == "title" {
+		order = `title COLLATE tt_title ASC,` + order
 	}
 	args = append(args, q.PageSize, start)
 	rows, err = tx.Query(`SELECT id,title,description,category,created,original,hls,poster,status,error,access_list,views FROM videos WHERE `+where+` ORDER BY `+order+` LIMIT ? OFFSET ?`, args...)
