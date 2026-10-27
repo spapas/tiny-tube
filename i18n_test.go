@@ -110,7 +110,7 @@ func TestLocalizedPagesAndUserContent(t *testing.T) {
 				if w.Code != 200 || !strings.Contains(body, `lang="`+lang+`"`) || w.Header().Get("Content-Language") != lang || !strings.Contains(body, translate(lang, "nav.skipContent")) {
 					t.Fatalf("localized page: %d", w.Code)
 				}
-				if !strings.Contains(body, `/assets/i18n/`+lang+`.js?v=2`) || !strings.Contains(body, `action="/language"`) || !strings.Contains(body, `value="`+lang+`" lang="`+lang+`" selected`) {
+				if !strings.Contains(body, `/assets/i18n/`+lang+`.js?v=2`) || !strings.Contains(body, `action="/language"`) || !strings.Contains(body, `value="`+lang+`" lang="`+lang+`" aria-label="`+translate(lang, "language.name")+`" class="is-selected" aria-current="true"`) {
 					t.Fatal("missing language resources or selector")
 				}
 				if strings.Contains(body, m.Desc) {
@@ -289,7 +289,7 @@ func TestAddingLocaleOnlyNeedsCatalog(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !strings.Contains(w.Body.String(), `value="de" lang="de" selected>Deutsch</option>`) || !strings.Contains(w.Body.String(), "Bibliothek") || !strings.Contains(w.Body.String(), "data-language-submit") {
+	if !strings.Contains(w.Body.String(), `value="de" lang="de" aria-label="Deutsch" class="is-selected" aria-current="true"`) || !strings.Contains(w.Body.String(), "Bibliothek") || !strings.Contains(w.Body.String(), `name="next"`) {
 		t.Fatal("new locale not included in no-JavaScript selector")
 	}
 }

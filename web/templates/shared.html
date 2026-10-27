@@ -4,9 +4,9 @@
 <meta name="color-scheme" content="light dark">
 <title>{{if or (eq .Page "watch") .ListName}}{{.Title}}{{else}}{{t .Title}}{{end}} · Tiny Tube</title>
 <script src="/assets/theme.js?v=1"></script>
-<link rel="stylesheet" href="/assets/app.css?v=8">
+<link rel="stylesheet" href="/assets/app.css?v=9">
 <script src="/assets/i18n/{{.Lang}}.js?v=2" defer></script>
-<script src="/assets/app.js?v=7" defer></script>
+<script src="/assets/app.js?v=8" defer></script>
 {{end}}
 
 {{define "header"}}
@@ -30,11 +30,13 @@
       <a class="button button-quiet" href="/login">{{t "auth.login"}}</a>
     {{end}}
     </div>
-    <form class="language-switch" method="POST" action="/language" aria-label="{{t "language.label"}}">
-      <input type="hidden" name="next" value="{{.LanguageReturn}}">
-      <select name="language" data-language-select aria-label="{{t "language.label"}}">{{range .Languages}}<option value="{{.Code}}" lang="{{.Code}}"{{if eq $.Lang .Code}} selected{{end}}>{{.Name}}</option>{{end}}</select>
-      <button type="submit" data-language-submit>{{t "language.apply"}}</button>
-    </form>
+    <details class="language-switch" data-language-menu>
+      <summary><span class="sr-only">{{t "language.label"}}: </span>{{range .Languages}}{{if eq $.Lang .Code}}<span lang="{{.Code}}">{{.Name}}</span>{{end}}{{end}}<svg class="language-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></summary>
+      <form class="language-options" method="POST" action="/language" aria-label="{{t "language.label"}}">
+        <input type="hidden" name="next" value="{{.LanguageReturn}}">
+        {{range .Languages}}<button type="submit" name="language" value="{{.Code}}" lang="{{.Code}}" aria-label="{{.Name}}"{{if eq $.Lang .Code}} class="is-selected" aria-current="true"{{end}}><span>{{.Name}}</span>{{if eq $.Lang .Code}}{{template "check"}}{{end}}</button>{{end}}
+      </form>
+    </details>
     <button class="theme-toggle" type="button" data-theme-toggle aria-label="{{t "theme.enableDark"}}" aria-pressed="false"><span class="theme-sun">{{template "sun"}}</span><span class="theme-moon">{{template "moon"}}</span><span class="theme-label" data-theme-label>{{t "theme.light"}}</span></button>
   </div>
 </header>

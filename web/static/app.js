@@ -1,10 +1,17 @@
 (() => {
   const t = window.tinyTubeTranslate;
   const root = document.documentElement;
-  const languageSelect = document.querySelector('[data-language-select]');
-  if (languageSelect && typeof languageSelect.form.requestSubmit === 'function') {
-    document.querySelector('[data-language-submit]').hidden = true;
-    languageSelect.addEventListener('change', () => languageSelect.form.requestSubmit());
+  const languageMenu = document.querySelector('[data-language-menu]');
+  if (languageMenu) {
+    document.addEventListener('click', event => {
+      if (!languageMenu.contains(event.target)) languageMenu.open = false;
+    });
+    languageMenu.addEventListener('keydown', event => {
+      if (event.key === 'Escape' && languageMenu.open) {
+        languageMenu.open = false;
+        languageMenu.querySelector('summary').focus();
+      }
+    });
   }
   document.querySelectorAll('.video-poster').forEach(image => {
     image.addEventListener('error', () => { image.hidden = true; });
