@@ -9,7 +9,7 @@ embedded web interface, SQLite metadata, and video files stored on disk.
 - **One binary:** runs on Windows, Linux, and macOS. No separate database server
   or frontend setup is required.
 - **A searchable video library:** categories, sorting, playback speed controls,
-  and original-file downloads, with an English and Greek interface.
+  and original-file downloads, with a multilingual interface.
 - **Optional HLS and posters:** add FFmpeg for conversion and preview images.
   Without it, play original files in browsers that support their codecs.
 - **Local or LDAP login:** editors upload and edit; administrators also delete
@@ -240,11 +240,10 @@ deadline. Response writes are limited to `max(30 minutes, UPLOAD_TIMEOUT_SECONDS
 
 ## Upload and playback
 
-The interface supports English and Greek on every page, including administration,
+The interface supports English and Greek, Italian, Spanish, French, German and Simplified Chinese, including administration,
 upload validation and player messages. Use the language selector in the header;
 the choice is saved in a browser cookie for one year and works without JavaScript.
-Until a choice is saved, the browser's `Accept-Language` preference selects a
-supported language; unsupported preferences fall back to English. Switching preserves the
+Until a choice is saved, the interface defaults to Greek. Switching preserves the
 current page, search/filter/pagination parameters and locked-list key.
 Switching reloads the page, so save edits or finish an upload first.
 Dates, file sizes and view/video counts follow the selected language. Titles,
@@ -255,11 +254,11 @@ their existing format/language for automation.
 English is the source catalog in `web/locales/en.json`; `el.json` translates the
 same stable message IDs (for example `upload.title`). The server uses `go-i18n`
 for named variables and CLDR plural rules, and `golang.org/x/text` for language
-matching and number formatting. Browser messages use the same catalogs, with
+tags and number formatting. Browser messages use the same catalogs, with
 `Intl.PluralRules` and `Intl.NumberFormat`; CSP needs no inline exceptions.
 Missing translations fall back to English. To add another language, add its
 standard go-i18n JSON catalog with a `language.name` entry and rebuild: discovery,
-cookies, negotiation and the selector automatically include it. No Go/HTML/JS
+cookies and the selector automatically include it. No Go/HTML/JS
 language lists need editing. See [the translation guide](docs/I18N.md) for examples,
 plural forms and validation. No frontend packages are required.
 

@@ -49,10 +49,10 @@ func TestWatchCountsDebouncedViews(t *testing.T) {
 				t.Fatalf("second viewer: %+v", m)
 			}
 			// The displayed total follows the counter.
-			if rec := watchAs(t, a, target, "10.0.0.3:1234"); !strings.Contains(rec.Body.String(), "3 views") {
+			if rec := watchAs(t, a, target, "10.0.0.3:1234"); !strings.Contains(rec.Body.String(), translate("el", "count.views", "Count", 3)) {
 				t.Fatalf("missing view count in page: %d", rec.Code)
 			}
-			if rec := watchAs(t, a, "/", "10.0.0.4:1234"); !strings.Contains(rec.Body.String(), "3 views") {
+			if rec := watchAs(t, a, "/", "10.0.0.4:1234"); !strings.Contains(rec.Body.String(), translate("el", "count.views", "Count", 3)) {
 				t.Fatal("missing view count in library")
 			}
 			if rec := watchAs(t, a, "/api/video?id="+id, "10.0.0.5:1234"); !strings.Contains(rec.Body.String(), `"views":3`) {
@@ -95,12 +95,12 @@ func TestLibrarySortsByViewsOptionally(t *testing.T) {
 	if newPos < 0 || oldPos < 0 || oldPos > newPos {
 		t.Fatalf("views order wrong: %d %d", oldPos, newPos)
 	}
-	if !strings.Contains(rec.Body.String(), "Most viewed") {
+	if !strings.Contains(rec.Body.String(), translate("el", "search.sortPopular")) {
 		t.Fatal("missing sort control state")
 	}
 	// Unknown sort values fall back to recent.
 	rec = watchAs(t, a, "/?sort=bogus", "10.1.0.3:1")
-	if strings.Contains(rec.Body.String(), "Sort: most viewed") {
+	if strings.Contains(rec.Body.String(), "Sort: "+translate("el", "library.sortPopularNote")) {
 		t.Fatal("bogus sort accepted")
 	}
 	// API mirrors the sort.
@@ -132,14 +132,14 @@ func TestWatchManageCardRespectsRoles(t *testing.T) {
 		t.Fatal("manage card leaks to viewer")
 	}
 	rec := watchAs(t, a, target, "10.2.0.3:1", ed)
-	if !strings.Contains(rec.Body.String(), "Edit details") {
+	if !strings.Contains(rec.Body.String(), translate("el", "video.editDetails")) {
 		t.Fatal("editor lost edit button")
 	}
-	if strings.Contains(rec.Body.String(), "Delete video") {
+	if strings.Contains(rec.Body.String(), translate("el", "video.delete")) {
 		t.Fatal("delete leaks to editor")
 	}
 	rec = watchAs(t, a, target, "10.2.0.4:1", testSession(t, a, "tester"))
-	if !strings.Contains(rec.Body.String(), "Edit details") || !strings.Contains(rec.Body.String(), "Delete video") {
+	if !strings.Contains(rec.Body.String(), translate("el", "video.editDetails")) || !strings.Contains(rec.Body.String(), translate("el", "video.delete")) {
 		t.Fatal("admin lost management buttons")
 	}
 }

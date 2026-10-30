@@ -237,8 +237,8 @@ func TestHandleListEmpty(t *testing.T) {
 	if ct := w.Header().Get("Content-Type"); ct != "text/html; charset=utf-8" {
 		t.Errorf("list Content-Type = %q, want html+utf-8", ct)
 	}
-	if !strings.Contains(w.Body.String(), "No videos yet") {
-		t.Error("empty list should show the English fallback message")
+	if !strings.Contains(w.Body.String(), translate("el", "library.empty")) {
+		t.Error("empty list should show the default language message")
 	}
 }
 

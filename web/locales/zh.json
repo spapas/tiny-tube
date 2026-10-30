@@ -1,0 +1,890 @@
+{
+  "language.name": {
+    "other": "中文（简体）"
+  },
+  "admin.title": {
+    "other": "管理"
+  },
+  "admin.overview": {
+    "other": "概览"
+  },
+  "common.status": {
+    "other": "状态"
+  },
+  "common.videos": {
+    "other": "视频"
+  },
+  "admin.users": {
+    "other": "用户"
+  },
+  "admin.storage": {
+    "other": "存储"
+  },
+  "common.unavailable": {
+    "other": "不可用"
+  },
+  "common.user": {
+    "other": "用户"
+  },
+  "admin.role": {
+    "other": "角色"
+  },
+  "admin.active": {
+    "other": "启用"
+  },
+  "common.actions": {
+    "other": "操作"
+  },
+  "common.update": {
+    "other": "更新"
+  },
+  "admin.deactivate": {
+    "other": "停用"
+  },
+  "admin.activate": {
+    "other": "启用"
+  },
+  "admin.newPassword": {
+    "other": "新密码"
+  },
+  "common.delete": {
+    "other": "删除"
+  },
+  "auth.username": {
+    "other": "用户名"
+  },
+  "auth.password": {
+    "other": "密码"
+  },
+  "common.create": {
+    "other": "创建"
+  },
+  "common.list": {
+    "other": "列表"
+  },
+  "common.rename": {
+    "other": "重命名"
+  },
+  "common.name": {
+    "other": "名称"
+  },
+  "common.action": {
+    "other": "操作"
+  },
+  "nav.backToVideo": {
+    "other": "返回视频"
+  },
+  "edit.title": {
+    "other": "编辑视频"
+  },
+  "field.title": {
+    "other": "标题"
+  },
+  "field.description": {
+    "other": "描述"
+  },
+  "field.optional": {
+    "other": "可选"
+  },
+  "field.category": {
+    "other": "类别"
+  },
+  "field.visibility": {
+    "other": "可见性"
+  },
+  "common.cancel": {
+    "other": "取消"
+  },
+  "edit.save": {
+    "other": "保存更改"
+  },
+  "library.title": {
+    "other": "视频库"
+  },
+  "upload.title": {
+    "other": "上传视频"
+  },
+  "library.sortLabel": {
+    "other": "排序："
+  },
+  "search.videos": {
+    "other": "搜索视频"
+  },
+  "search.submit": {
+    "other": "搜索"
+  },
+  "search.all": {
+    "other": "全部"
+  },
+  "search.sortOrder": {
+    "other": "排序方式"
+  },
+  "search.sortTitle": {
+    "other": "标题 A–Z"
+  },
+  "search.sortRecent": {
+    "other": "最新"
+  },
+  "search.sortPopular": {
+    "other": "最多观看"
+  },
+  "search.clear": {
+    "other": "清除筛选"
+  },
+  "video.uncategorized": {
+    "other": "未分类"
+  },
+  "video.watch": {
+    "other": "观看"
+  },
+  "search.noResults": {
+    "other": "未找到视频"
+  },
+  "library.allVideos": {
+    "other": "所有视频"
+  },
+  "library.empty": {
+    "other": "暂无视频"
+  },
+  "auth.login": {
+    "other": "登录"
+  },
+  "auth.logout": {
+    "other": "退出登录"
+  },
+  "nav.library": {
+    "other": "视频库"
+  },
+  "theme.dark": {
+    "other": "深色"
+  },
+  "theme.light": {
+    "other": "浅色"
+  },
+  "pagination.previous": {
+    "other": "上一页"
+  },
+  "pagination.next": {
+    "other": "下一页"
+  },
+  "nav.backToLibrary": {
+    "other": "返回视频库"
+  },
+  "upload.file": {
+    "other": "视频文件"
+  },
+  "upload.chooseFile": {
+    "other": "选择文件"
+  },
+  "video.details": {
+    "other": "视频详情"
+  },
+  "upload.uploading": {
+    "other": "正在上传视频…"
+  },
+  "upload.saving": {
+    "other": "正在保存视频…"
+  },
+  "upload.progress": {
+    "other": "上传进度"
+  },
+  "player.speed": {
+    "other": "速度"
+  },
+  "common.refresh": {
+    "other": "刷新"
+  },
+  "watch.description": {
+    "other": "视频描述"
+  },
+  "share.title": {
+    "other": "分享"
+  },
+  "share.videoLink": {
+    "other": "视频链接"
+  },
+  "share.copy": {
+    "other": "复制"
+  },
+  "video.original": {
+    "other": "原始文件"
+  },
+  "video.information": {
+    "other": "视频信息"
+  },
+  "video.added": {
+    "other": "添加时间"
+  },
+  "video.viewsLabel": {
+    "other": "观看次数"
+  },
+  "video.manage": {
+    "other": "管理视频"
+  },
+  "video.editDetails": {
+    "other": "编辑详情"
+  },
+  "video.delete": {
+    "other": "删除视频"
+  },
+  "language.label": {
+    "other": "语言"
+  },
+  "date.unknown": {
+    "other": "无日期"
+  },
+  "status.ready": {
+    "other": "就绪"
+  },
+  "status.queued": {
+    "other": "排队中"
+  },
+  "status.processing": {
+    "other": "处理中"
+  },
+  "status.failed": {
+    "other": "需要关注"
+  },
+  "status.unknown": {
+    "other": "未知"
+  },
+  "role.viewer": {
+    "other": "查看者"
+  },
+  "role.editor": {
+    "other": "编辑者"
+  },
+  "role.admin": {
+    "other": "管理员"
+  },
+  "language.apply": {
+    "other": "应用"
+  },
+  "admin.overviewDescription": {
+    "other": "服务状态和管理快捷方式。"
+  },
+  "admin.ffmpegMissing": {
+    "other": "未找到 — 播放原始文件"
+  },
+  "admin.serviceChecks": {
+    "other": "服务检查："
+  },
+  "admin.navigation": {
+    "other": "管理栏目"
+  },
+  "admin.newUser": {
+    "other": "新用户"
+  },
+  "admin.lockedLists": {
+    "other": "受限列表"
+  },
+  "admin.usersDescription": {
+    "other": "账户角色和状态。编辑者可上传和编辑视频。管理员还可删除视频和管理用户。LDAP 用户在首次登录时创建，并在此分配权限。"
+  },
+  "admin.source": {
+    "other": "来源"
+  },
+  "admin.userRole": {
+    "other": "{{.Username}} 的角色"
+  },
+  "admin.userNewPassword": {
+    "other": "{{.Username}} 的新密码"
+  },
+  "admin.newLocalUser": {
+    "other": "新建本地用户"
+  },
+  "admin.newUserDescription": {
+    "other": "创建带密码的账户。LDAP 用户在首次登录时创建，无需注册。"
+  },
+  "admin.displayName": {
+    "other": "显示名称（可选）"
+  },
+  "admin.listsDescription": {
+    "other": "只能通过长链接（{{.Link}}）访问的视频组。完整密钥仅在创建或轮换时显示一次。轮换密钥会立即使所有旧链接失效。"
+  },
+  "admin.newListKey": {
+    "other": "“{{.Name}}”的新密钥 — 请立即复制，之后不会再次显示："
+  },
+  "admin.listName": {
+    "other": "列表名称"
+  },
+  "admin.rotateKey": {
+    "other": "轮换密钥"
+  },
+  "admin.noLists": {
+    "other": "没有受限列表。"
+  },
+  "admin.newListName": {
+    "other": "新列表名称（例如：审计、安全）"
+  },
+  "admin.createList": {
+    "other": "创建列表"
+  },
+  "admin.keysDescription": {
+    "other": "用于无 Cookie 的自动化：通过 {{.Header}} 发送以使用用户权限。完整密钥仅在创建时显示一次。"
+  },
+  "admin.newUserKey": {
+    "other": "{{.Username}} 的新密钥 — 请立即复制，之后不会再次显示："
+  },
+  "admin.keyPrefix": {
+    "other": "前缀"
+  },
+  "admin.lastUsed": {
+    "other": "上次使用"
+  },
+  "common.never": {
+    "other": "从未使用"
+  },
+  "admin.revoke": {
+    "other": "撤销"
+  },
+  "admin.noKeys": {
+    "other": "没有 API 密钥。"
+  },
+  "admin.keyName": {
+    "other": "密钥名称（例如上传脚本）"
+  },
+  "admin.createKey": {
+    "other": "创建密钥"
+  },
+  "edit.eyebrow": {
+    "other": "管理内容"
+  },
+  "edit.description": {
+    "other": "更新视频库中的视频详情。"
+  },
+  "visibility.public": {
+    "other": "公开 — 所有人可见"
+  },
+  "visibility.locked": {
+    "other": "受限 — {{.Name}}"
+  },
+  "visibility.hint": {
+    "other": "受限视频只能通过列表链接观看。"
+  },
+  "library.eyebrow": {
+    "other": "团队内容"
+  },
+  "library.description": {
+    "other": "将培训、演示和会议录像集中管理。"
+  },
+  "library.sortPopularNote": {
+    "other": "最多观看"
+  },
+  "library.sortTitleNote": {
+    "other": "标题"
+  },
+  "library.sortRecentNote": {
+    "other": "最新"
+  },
+  "search.placeholder": {
+    "other": "按标题、描述或类别搜索…"
+  },
+  "search.categoryFilters": {
+    "other": "类别筛选"
+  },
+  "video.coverLabel": {
+    "other": "视频"
+  },
+  "video.locked": {
+    "other": "· 受限"
+  },
+  "video.noDescription": {
+    "other": "尚未添加描述。"
+  },
+  "search.noResultsHint": {
+    "other": "尝试其他搜索词或清除筛选条件。"
+  },
+  "library.emptyHint": {
+    "other": "向团队视频库添加第一个视频。"
+  },
+  "auth.loginDescription": {
+    "other": "登录后可上传和管理视频。无需登录即可观看公开视频。"
+  },
+  "auth.loginDetails": {
+    "other": "登录信息"
+  },
+  "nav.skipContent": {
+    "other": "跳至内容"
+  },
+  "nav.home": {
+    "other": "Tiny Tube — 首页"
+  },
+  "nav.main": {
+    "other": "主导航"
+  },
+  "theme.enableDark": {
+    "other": "切换到深色主题"
+  },
+  "theme.enableLight": {
+    "other": "切换到浅色主题"
+  },
+  "footer.description": {
+    "other": "团队视频库。"
+  },
+  "pagination.label": {
+    "other": "视频分页"
+  },
+  "pagination.page": {
+    "other": "第 {{.Page}} 页，共 {{.Pages}} 页"
+  },
+  "upload.eyebrow": {
+    "other": "添加内容"
+  },
+  "upload.description": {
+    "other": "向视频库添加文件，并填写标题、描述和类别。"
+  },
+  "upload.chooseHint": {
+    "other": "从设备中选择文件。"
+  },
+  "upload.chooseVideo": {
+    "other": "选择视频文件"
+  },
+  "upload.dropHere": {
+    "other": "将文件拖放到此处"
+  },
+  "upload.pickerHint": {
+    "other": "或使用文件选择器"
+  },
+  "upload.limit": {
+    "other": "MP4、MOV、MKV 或 WEBM · 总限制 {{.Limit}}，包含详细信息。"
+  },
+  "upload.removeFile": {
+    "other": "移除所选文件"
+  },
+  "upload.detailsHint": {
+    "other": "帮助查找和整理内容的详情。"
+  },
+  "upload.titleExample": {
+    "other": "例如：新员工培训"
+  },
+  "upload.titleHint": {
+    "other": "请使用简短且有描述性的标题。"
+  },
+  "upload.categoryExample": {
+    "other": "例如：培训"
+  },
+  "upload.descriptionHint": {
+    "other": "视频的主题、内容和有用信息。"
+  },
+  "upload.keepOpen": {
+    "other": "上传完成前请保持此页面打开。"
+  },
+  "nav.returnToLibrary": {
+    "other": "返回视频库"
+  },
+  "upload.guidance": {
+    "other": "上传指南"
+  },
+  "upload.instructions": {
+    "other": "添加视频"
+  },
+  "upload.instructionsHint": {
+    "other": "清晰的标题和合适的类别有助于团队查找内容。"
+  },
+  "upload.checkFile": {
+    "other": "检查视频格式和大小。"
+  },
+  "upload.addDetails": {
+    "other": "添加详情"
+  },
+  "upload.addDetailsHint": {
+    "other": "添加主题、描述和类别。"
+  },
+  "upload.shareLink": {
+    "other": "分享链接"
+  },
+  "upload.shareHint": {
+    "other": "链接位于观看页面。"
+  },
+  "upload.visibilityHint": {
+    "other": "所有人都可观看公开的视频。敏感内容请选择受限列表，并仅分享其链接。"
+  },
+  "list.eyebrow": {
+    "other": "受限列表"
+  },
+  "list.title": {
+    "other": "受限视频"
+  },
+  "list.description": {
+    "other": "只能通过此列表链接观看的视频。"
+  },
+  "list.sortNote": {
+    "other": "排序：最新"
+  },
+  "list.shareLink": {
+    "other": "列表链接"
+  },
+  "list.shareHint": {
+    "other": "任何拥有此链接的人都可以观看这些视频。请仅通过安全渠道分享。"
+  },
+  "list.empty": {
+    "other": "此列表中没有视频"
+  },
+  "list.emptyHint": {
+    "other": "在视频编辑页面将视频分配给此列表。"
+  },
+  "player.speedLabel": {
+    "other": "播放速度"
+  },
+  "player.queued": {
+    "other": "视频正在排队等待处理"
+  },
+  "player.processing": {
+    "other": "视频正在处理"
+  },
+  "player.pendingHint": {
+    "other": "请尝试原始文件或稍后刷新页面。"
+  },
+  "player.failed": {
+    "other": "处理未完成"
+  },
+  "player.failedHint": {
+    "other": "请尝试观看原始文件或联系管理员。"
+  },
+  "watch.eyebrow": {
+    "other": "来自视频库"
+  },
+  "video.noFullDescription": {
+    "other": "尚未为此视频添加描述。"
+  },
+  "share.lockedHint": {
+    "other": "分享需要原始的受限列表链接。请通过该链接打开视频或向管理员索取。"
+  },
+  "visibility.videoPublic": {
+    "other": "此视频公开。"
+  },
+  "video.editDelete": {
+    "other": "编辑和删除。"
+  },
+  "video.editOnly": {
+    "other": "编辑详情。"
+  },
+  "library.more": {
+    "other": "更多内容"
+  },
+  "library.exploreHint": {
+    "other": "在视频库中查找培训、演示和会议。"
+  },
+  "auth.invalidForm": {
+    "other": "表单无效。"
+  },
+  "auth.invalidCredentials": {
+    "other": "凭据错误，请重试。"
+  },
+  "edit.invalidFields": {
+    "other": "请输入标题并缩短过长的字段。某些字符占用多个字节。"
+  },
+  "confirm.deleteUser": {
+    "other": "永久删除此用户并撤销其访问权限？"
+  },
+  "confirm.deleteList": {
+    "other": "永久删除此受限列表？"
+  },
+  "confirm.deleteVideo": {
+    "other": "永久删除此视频及其所有文件？"
+  },
+  "edit.fieldTooLong": {
+    "other": "“{{.Field}}”字段过长，请减少字符数。"
+  },
+  "share.copied": {
+    "other": "链接已复制。"
+  },
+  "share.copyFallback": {
+    "other": "链接已选中，请从字段中复制。"
+  },
+  "upload.invalidFormat": {
+    "other": "请选择 MP4、MOV、MKV 或 WEBM 格式的视频。"
+  },
+  "upload.invalidSize": {
+    "other": "文件不能为空，且必须小于 {{.Limit}}。"
+  },
+  "upload.pickerError": {
+    "other": "请使用文件选择器添加视频。"
+  },
+  "upload.selectFirst": {
+    "other": "请先选择视频。"
+  },
+  "upload.titleTooLong": {
+    "other": "标题过长。"
+  },
+  "upload.descriptionTooLong": {
+    "other": "描述过长。"
+  },
+  "upload.categoryTooLong": {
+    "other": "类别过长。"
+  },
+  "validation.fewerCharacters": {
+    "other": "请减少字符数。"
+  },
+  "upload.checkDetails": {
+    "other": "请检查标题和视频详情。"
+  },
+  "auth.sessionExpired": {
+    "other": "会话已过期，请刷新页面并重新登录。"
+  },
+  "upload.forbidden": {
+    "other": "不允许上传，请从视频库重新打开上传页面。"
+  },
+  "upload.timeout": {
+    "other": "上传超时，请检查网络连接并重试。"
+  },
+  "upload.tooLarge": {
+    "other": "总大小超过 {{.Limit}} 限制。"
+  },
+  "upload.unsupportedVideo": {
+    "other": "文件未被识别为支持的视频格式。"
+  },
+  "auth.tooManyAttempts": {
+    "other": "尝试次数过多，请等待一分钟后重试。"
+  },
+  "upload.notSaved": {
+    "other": "视频未保存，请稍后重试。"
+  },
+  "upload.connectionLost": {
+    "other": "连接已中断。再次上传前请先检查视频库。"
+  },
+  "upload.cancelled": {
+    "other": "上传已取消。"
+  },
+  "upload.sendFailed": {
+    "other": "无法发送上传请求，请重试。"
+  },
+  "player.unsupported": {
+    "other": "浏览器无法播放此文件。请尝试其他浏览器或下载原始视频。"
+  },
+  "player.originalFallback": {
+    "other": "预览不可用，正在尝试播放原始视频。"
+  },
+  "admin.apiKeys": {
+    "other": "API 密钥"
+  },
+  "common.ok": {
+    "other": "确定"
+  },
+  "admin.metadata": {
+    "other": "元数据"
+  },
+  "admin.metadataUnavailable": {
+    "other": "不可用"
+  },
+  "error.invalidForm": {
+    "other": "表单无效"
+  },
+  "error.invalidUsername": {
+    "other": "用户名无效"
+  },
+  "error.invalidKey": {
+    "other": "密钥无效"
+  },
+  "error.authRateLimit": {
+    "other": "身份验证请求过多，请稍后重试"
+  },
+  "error.editorRequired": {
+    "other": "需要编辑者角色"
+  },
+  "error.adminRequired": {
+    "other": "需要管理员角色"
+  },
+  "error.invalidPagination": {
+    "other": "分页无效"
+  },
+  "error.unknownList": {
+    "other": "未知访问列表"
+  },
+  "error.formTooLarge": {
+    "other": "表单过大"
+  },
+  "error.idRequired": {
+    "other": "需要 ID"
+  },
+  "error.deletionInProgress": {
+    "other": "正在删除视频"
+  },
+  "error.invalidFields": {
+    "other": "需要标题；最大字节数：标题 512、描述 8192、类别 256"
+  },
+  "error.conversionNotStopped": {
+    "other": "转换未停止，请重试删除"
+  },
+  "error.mediaAuthorization": {
+    "other": "媒体授权不可用"
+  },
+  "error.crossOrigin": {
+    "other": "禁止跨源修改"
+  },
+  "error.internal": {
+    "other": "服务器内部错误"
+  },
+  "error.render": {
+    "other": "页面渲染失败"
+  },
+  "error.uploadTooLarge": {
+    "other": "上传超过 MAX_UPLOAD_BYTES"
+  },
+  "error.uploadTimeout": {
+    "other": "上传超时"
+  },
+  "error.multipart": {
+    "other": "无效的 multipart 上传"
+  },
+  "error.fileRequired": {
+    "other": "需要文件"
+  },
+  "error.formats": {
+    "other": "支持的格式：mp4、mov、mkv、webm"
+  },
+  "error.mediaHeader": {
+    "other": "文件没有受支持的媒体文件头"
+  },
+  "error.unsupportedLanguage": {
+    "other": "不支持的语言"
+  },
+  "error.unknownRole": {
+    "other": "未知角色"
+  },
+  "error.passwordRequired": {
+    "other": "需要密码"
+  },
+  "error.userExists": {
+    "other": "用户已存在"
+  },
+  "notice.userCreated": {
+    "other": "用户已创建"
+  },
+  "error.ownAdminRole": {
+    "other": "不能移除自己的管理员角色"
+  },
+  "error.userNotFound": {
+    "other": "未找到用户"
+  },
+  "error.lastAdmin": {
+    "other": "至少需要一个启用的管理员"
+  },
+  "notice.roleUpdated": {
+    "other": "角色已更新"
+  },
+  "error.ownDeactivate": {
+    "other": "不能停用自己的账户"
+  },
+  "notice.userUpdated": {
+    "other": "用户已更新"
+  },
+  "error.ldapPassword": {
+    "other": "LDAP 用户通过目录进行身份验证"
+  },
+  "notice.passwordReset": {
+    "other": "密码已重置，用户会话已撤销"
+  },
+  "error.ownDelete": {
+    "other": "不能删除自己的账户"
+  },
+  "notice.userDeleted": {
+    "other": "用户已删除"
+  },
+  "error.listName": {
+    "other": "需要列表名称（最多 100 个字符）"
+  },
+  "error.listOrName": {
+    "other": "列表或名称无效"
+  },
+  "error.listNotFound": {
+    "other": "未找到列表"
+  },
+  "notice.listRenamed": {
+    "other": "列表已重命名"
+  },
+  "error.invalidList": {
+    "other": "列表无效"
+  },
+  "error.listHasVideos": {
+    "other": "列表仍包含视频，请先将其移至其他列表或设为公开"
+  },
+  "notice.listDeleted": {
+    "other": "列表已删除"
+  },
+  "error.keyName": {
+    "other": "需要密钥名称（最多 100 个字符）"
+  },
+  "error.keyNotFound": {
+    "other": "未找到密钥"
+  },
+  "notice.keyRevoked": {
+    "other": "API 密钥已撤销"
+  },
+  "auth.source.local": {
+    "other": "本地"
+  },
+  "auth.source.ldap": {
+    "other": "LDAP"
+  },
+  "admin.resetPassword": {
+    "other": "重置密码"
+  },
+  "search.resultsForQueryAndCategory": {
+    "other": "类别“{{.Category}}”中“{{.Query}}”的结果"
+  },
+  "search.resultsForQuery": {
+    "other": "“{{.Query}}”的搜索结果"
+  },
+  "search.resultsForCategory": {
+    "other": "类别“{{.Category}}”中的结果"
+  },
+  "visibility.lockedVideo": {
+    "other": "此视频受限，只能通过列表链接观看。"
+  },
+  "visibility.lockedVideoInList": {
+    "other": "此视频受限（列表“{{.Name}}”），只能通过列表链接观看。"
+  },
+  "date.month.1": {
+    "other": "1月"
+  },
+  "date.month.2": {
+    "other": "2月"
+  },
+  "date.month.3": {
+    "other": "3月"
+  },
+  "date.month.4": {
+    "other": "4月"
+  },
+  "date.month.5": {
+    "other": "5月"
+  },
+  "date.month.6": {
+    "other": "6月"
+  },
+  "date.month.7": {
+    "other": "7月"
+  },
+  "date.month.8": {
+    "other": "8月"
+  },
+  "date.month.9": {
+    "other": "9月"
+  },
+  "date.month.10": {
+    "other": "10月"
+  },
+  "date.month.11": {
+    "other": "11月"
+  },
+  "date.month.12": {
+    "other": "12月"
+  },
+  "date.format": {
+    "other": "{{.Year}}年{{.Month}}{{.Day}}日"
+  },
+  "count.videos": {
+    "other": "{{.Count}} 个视频"
+  },
+  "count.views": {
+    "other": "{{.Count}} 次观看"
+  },
+  "size.bytes": {
+    "other": "{{.Count}} 字节"
+  },
+  "size.value": {
+    "other": "{{.Value}} {{.Unit}}"
+  }
+}

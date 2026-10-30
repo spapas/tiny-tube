@@ -18,14 +18,9 @@ import (
 
 func TestLanguageNegotiation(t *testing.T) {
 	for _, tc := range []struct{ header, cookie, want string }{
-		{"", "", "en"}, {"fr, de", "", "en"},
-		{"en-GB,en;q=0.9,el;q=0.8", "", "en"},
-		{"en;q=0.5,el-GR;q=0.9", "", "el"},
-		{"el;q=0.5,en;q=0.5", "", "el"},
-		{"en;q=0", "", "en"}, {"en;q=2", "", "en"},
-		{"en;q=invalid", "", "en"}, {"EN-us", "", "en"},
+		{"", "", "el"}, {"fr, de", "", "el"},
 		{"en", "el", "el"}, {"el", "en", "en"},
-		{"en", "invalid", "en"},
+		{"en", "invalid", "el"}, {"", "fr", "fr"},
 	} {
 		t.Run(tc.header+"/"+tc.cookie, func(t *testing.T) {
 			r := httptest.NewRequest("GET", "/", nil)
@@ -71,7 +66,7 @@ func TestLanguageSwitchPreservesLocationAndRejectsInvalidRequests(t *testing.T) 
 		body, origin string
 		code         int
 	}{
-		{"language=fr", "", 400}, {"language=en", "https://other.test", 403},
+		{"language=xx", "", 400}, {"language=en", "https://other.test", 403},
 		{"language=en&next=" + strings.Repeat("x", 5000), "", 400},
 	} {
 		r := httptest.NewRequest("POST", "/language", strings.NewReader(tc.body))
@@ -157,7 +152,7 @@ func TestConcurrentLanguageRendering(t *testing.T) {
 			defer workers.Done()
 			lang := []string{"el", "en"}[i%2]
 			r := httptest.NewRequest("GET", "/", nil)
-			r.Header.Set("Accept-Language", lang)
+			r.AddCookie(&http.Cookie{Name: languageCookieName, Value: lang})
 			w := httptest.NewRecorder()
 			h.ServeHTTP(w, r)
 			if w.Code != 200 || !strings.Contains(w.Body.String(), "<h1 id=\"library-title\">"+translate(lang, "library.title")+"</h1>") {
@@ -172,7 +167,7 @@ func TestLocalizedErrorsAndStableJSON(t *testing.T) {
 	for _, lang := range []string{"el", "en"} {
 		for _, json := range []bool{false, true} {
 			r := httptest.NewRequest("POST", "/api/edit", nil)
-			r.Header.Set("Accept-Language", lang)
+			r.AddCookie(&http.Cookie{Name: languageCookieName, Value: lang})
 			if json {
 				r.Header.Set("Accept", "application/json")
 			}
@@ -216,10 +211,10 @@ func TestTranslationCatalogCoverage(t *testing.T) {
 
 func TestTranslationAssets(t *testing.T) {
 	h := testApplication(t).routes()
-	for _, lang := range []string{"el", "en", "fr"} {
+	for _, lang := range []string{"el", "en", "fr", "xx"} {
 		w := httptest.NewRecorder()
 		h.ServeHTTP(w, httptest.NewRequest("GET", "/assets/i18n/"+lang+".js", nil))
-		if lang == "fr" {
+		if lang == "xx" {
 			if w.Code != 404 {
 				t.Fatal("unsupported translation asset was served")
 			}
@@ -247,7 +242,7 @@ func catalogFixture(t *testing.T) fstest.MapFS {
 
 func TestAddingLocaleOnlyNeedsCatalog(t *testing.T) {
 	files := catalogFixture(t)
-	files["web/locales/de.json"] = &fstest.MapFile{Data: []byte(`{
+	files["web/locales/pt.json"] = &fstest.MapFile{Data: []byte(`{
 		"language.name":{"other":"Deutsch"},
 		"nav.library":{"other":"Bibliothek"},
 		"date.month.10":{"other":"Okt"},
@@ -261,22 +256,22 @@ func TestAddingLocaleOnlyNeedsCatalog(t *testing.T) {
 		t.Fatal("locale was not registered")
 	}
 	r := httptest.NewRequest("GET", "/", nil)
-	r.Header.Set("Accept-Language", "fr;q=1,de-AT;q=0.9,en;q=0.5")
-	if set.requestLanguage(r) != "de" {
-		t.Fatal("new locale not negotiated")
+	r.Header.Set("Accept-Language", "fr;q=1,pt-PT;q=0.9,en;q=0.5")
+	if set.requestLanguage(r) != "el" {
+		t.Fatal("default language not selected")
 	}
-	r.AddCookie(&http.Cookie{Name: languageCookieName, Value: "de"})
+	r.AddCookie(&http.Cookie{Name: languageCookieName, Value: "pt"})
 	r.Header.Set("Accept-Language", "el")
-	if set.requestLanguage(r) != "de" {
+	if set.requestLanguage(r) != "pt" {
 		t.Fatal("new locale cookie not accepted")
 	}
-	if set.text("de", "nav.library") != "Bibliothek" || set.text("de", "share.copy") != "Copy" || set.text("zz", "share.copy") != "Copy" {
+	if set.text("pt", "nav.library") != "Bibliothek" || set.text("pt", "share.copy") != "Copy" || set.text("zz", "share.copy") != "Copy" {
 		t.Fatal("translation or English fallback failed")
 	}
-	if set.text("de", "count.videos", "Count", 1) != "1 Video" || set.text("de", "count.videos", "Count", 2) != "2 Videos" {
+	if set.text("pt", "count.videos", "Count", 1) != "1 Video" || set.text("pt", "count.videos", "Count", 2) != "2 Videos" {
 		t.Fatal("new language plurals failed")
 	}
-	funcs := set.templateFuncs("de")
+	funcs := set.templateFuncs("pt")
 	if funcs["formatBytes"].(func(int64) string)(1536) != "1,5 KiB" || funcs["formatDate"].(func(string) string)("2026-10-25T12:00:00Z") != "25 Okt 2026" {
 		t.Fatal("locale formatting failed")
 	}
@@ -285,11 +280,11 @@ func TestAddingLocaleOnlyNeedsCatalog(t *testing.T) {
 		t.Fatal(err)
 	}
 	w := httptest.NewRecorder()
-	err = tmpl.ExecuteTemplate(w, "header", map[string]any{"Lang": "de", "Languages": set.languages, "LanguageReturn": "/"})
+	err = tmpl.ExecuteTemplate(w, "header", map[string]any{"Lang": "pt", "Languages": set.languages, "LanguageReturn": "/"})
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !strings.Contains(w.Body.String(), `value="de" lang="de" aria-label="Deutsch" class="is-selected" aria-current="true"`) || !strings.Contains(w.Body.String(), "Bibliothek") || !strings.Contains(w.Body.String(), `name="next"`) {
+	if !strings.Contains(w.Body.String(), `value="pt" lang="pt" aria-label="Deutsch" class="is-selected" aria-current="true"`) || !strings.Contains(w.Body.String(), "Bibliothek") || !strings.Contains(w.Body.String(), `name="next"`) {
 		t.Fatal("new locale not included in no-JavaScript selector")
 	}
 }
@@ -346,5 +341,15 @@ func TestCatalogValidation(t *testing.T) {
 	delete(files, "web/locales/en.json")
 	if _, err := loadTranslations(files); err == nil {
 		t.Fatal("missing English source was accepted")
+	}
+}
+
+func TestShippedCatalogsAreComplete(t *testing.T) {
+	for _, code := range []string{"el", "it", "es", "fr", "de", "zh"} {
+		for id := range appTranslations.catalogs["en"] {
+			if _, ok := appTranslations.catalogs[code][id]; !ok {
+				t.Errorf("%s is missing %s", code, id)
+			}
+		}
 	}
 }

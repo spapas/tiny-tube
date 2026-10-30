@@ -36,7 +36,7 @@ func TestHTMLLoginFlow(t *testing.T) {
 	// Wrong password re-renders with a vague error and no session.
 	w, r := postForm(t, "/login", url.Values{"username": {"tester"}, "password": {"wrong"}})
 	h.ServeHTTP(w, r)
-	if w.Code != 200 || !strings.Contains(w.Body.String(), "Incorrect credentials") {
+	if w.Code != 200 || !strings.Contains(w.Body.String(), translate("el", "auth.invalidCredentials")) {
 		t.Fatalf("bad login: %d %s", w.Code, w.Body.String())
 	}
 	if len(w.Result().Cookies()) != 0 {

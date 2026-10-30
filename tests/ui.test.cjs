@@ -102,7 +102,7 @@ test('upload and playback errors run in either language', () => {
     vm.runInContext(fs.readFileSync(path.join(__dirname, '../web/static/upload.js'), 'utf8'), context);
     handlers.submit({ preventDefault() {} });
     assert.equal(error.hidden, false);
-    assert.equal(error.textContent, catalogs[lang]["upload.invalidFormat"].other);
+    assert.equal(error.textContent, (catalogs[lang]["upload.invalidFormat"] || catalogs.en["upload.invalidFormat"]).other);
 
     const video = { dataset: { id: 'video', hls: '', original: 'original.mp4' }, addEventListener(name, fn) { handlers[name] = fn; }, load() {} };
     document.getElementById = id => id === 'v' ? video : error;
@@ -110,7 +110,7 @@ test('upload and playback errors run in either language', () => {
     vm.runInContext(fs.readFileSync(path.join(__dirname, '../web/static/player.js'), 'utf8'), context);
     assert.equal(video.src, '/videos/video/original.mp4');
     handlers.error();
-    assert.equal(error.textContent, catalogs[lang]["player.unsupported"].other);
+    assert.equal(error.textContent, (catalogs[lang]["player.unsupported"] || catalogs.en["player.unsupported"]).other);
   }
 });
 

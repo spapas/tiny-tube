@@ -285,7 +285,7 @@ func TestLockedShareRequiresCapabilityAndEditKeepsGreekValues(t *testing.T) {
 	id := uploadWithAccessList(t, a, "Private meeting", "", list)
 	cookie := testSession(t, a, "tester")
 	rec := serve(t, a, "GET", "/watch?id="+id, cookie)
-	if strings.Contains(rec.Body.String(), "data-copy-link") || !strings.Contains(rec.Body.String(), "original locked-list link") {
+	if strings.Contains(rec.Body.String(), "data-copy-link") || !strings.Contains(rec.Body.String(), translate("el", "share.lockedHint")) {
 		t.Fatal("unusable locked URL offered for copying")
 	}
 	rec = serve(t, a, "GET", "/watch?id="+id+"&key="+key)

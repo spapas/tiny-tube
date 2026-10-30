@@ -1,0 +1,892 @@
+{
+  "language.name": {
+    "other": "Italiano"
+  },
+  "admin.title": {
+    "other": "Amministrazione"
+  },
+  "admin.overview": {
+    "other": "Panoramica"
+  },
+  "common.status": {
+    "other": "Stato"
+  },
+  "common.videos": {
+    "other": "Video"
+  },
+  "admin.users": {
+    "other": "Utenti"
+  },
+  "admin.storage": {
+    "other": "Archiviazione"
+  },
+  "common.unavailable": {
+    "other": "Non disponibile"
+  },
+  "common.user": {
+    "other": "Utente"
+  },
+  "admin.role": {
+    "other": "Ruolo"
+  },
+  "admin.active": {
+    "other": "Attivo"
+  },
+  "common.actions": {
+    "other": "Azioni"
+  },
+  "common.update": {
+    "other": "Aggiorna"
+  },
+  "admin.deactivate": {
+    "other": "Disattiva"
+  },
+  "admin.activate": {
+    "other": "Attiva"
+  },
+  "admin.newPassword": {
+    "other": "Nuova password"
+  },
+  "common.delete": {
+    "other": "Elimina"
+  },
+  "auth.username": {
+    "other": "Nome utente"
+  },
+  "auth.password": {
+    "other": "Password"
+  },
+  "common.create": {
+    "other": "Crea"
+  },
+  "common.list": {
+    "other": "Elenco"
+  },
+  "common.rename": {
+    "other": "Rinomina"
+  },
+  "common.name": {
+    "other": "Nome"
+  },
+  "common.action": {
+    "other": "Azione"
+  },
+  "nav.backToVideo": {
+    "other": "Torna al video"
+  },
+  "edit.title": {
+    "other": "Modifica video"
+  },
+  "field.title": {
+    "other": "Titolo"
+  },
+  "field.description": {
+    "other": "Descrizione"
+  },
+  "field.optional": {
+    "other": "facoltativo"
+  },
+  "field.category": {
+    "other": "Categoria"
+  },
+  "field.visibility": {
+    "other": "Visibilità"
+  },
+  "common.cancel": {
+    "other": "Annulla"
+  },
+  "edit.save": {
+    "other": "Salva modifiche"
+  },
+  "library.title": {
+    "other": "Libreria video"
+  },
+  "upload.title": {
+    "other": "Carica video"
+  },
+  "library.sortLabel": {
+    "other": "Ordina:"
+  },
+  "search.videos": {
+    "other": "Cerca video"
+  },
+  "search.submit": {
+    "other": "Cerca"
+  },
+  "search.all": {
+    "other": "Tutti"
+  },
+  "search.sortOrder": {
+    "other": "Ordine"
+  },
+  "search.sortTitle": {
+    "other": "Titolo A–Z"
+  },
+  "search.sortRecent": {
+    "other": "Più recenti"
+  },
+  "search.sortPopular": {
+    "other": "Più visualizzati"
+  },
+  "search.clear": {
+    "other": "Cancella filtri"
+  },
+  "video.uncategorized": {
+    "other": "Senza categoria"
+  },
+  "video.watch": {
+    "other": "Guarda"
+  },
+  "search.noResults": {
+    "other": "Nessun video trovato"
+  },
+  "library.allVideos": {
+    "other": "Tutti i video"
+  },
+  "library.empty": {
+    "other": "Nessun video"
+  },
+  "auth.login": {
+    "other": "Accedi"
+  },
+  "auth.logout": {
+    "other": "Esci"
+  },
+  "nav.library": {
+    "other": "Libreria"
+  },
+  "theme.dark": {
+    "other": "Scuro"
+  },
+  "theme.light": {
+    "other": "Chiaro"
+  },
+  "pagination.previous": {
+    "other": "Precedente"
+  },
+  "pagination.next": {
+    "other": "Successivo"
+  },
+  "nav.backToLibrary": {
+    "other": "Torna alla libreria"
+  },
+  "upload.file": {
+    "other": "File video"
+  },
+  "upload.chooseFile": {
+    "other": "Scegli file"
+  },
+  "video.details": {
+    "other": "Dettagli video"
+  },
+  "upload.uploading": {
+    "other": "Caricamento video…"
+  },
+  "upload.saving": {
+    "other": "Salvataggio video…"
+  },
+  "upload.progress": {
+    "other": "Avanzamento caricamento"
+  },
+  "player.speed": {
+    "other": "Velocità"
+  },
+  "common.refresh": {
+    "other": "Aggiorna"
+  },
+  "watch.description": {
+    "other": "Descrizione video"
+  },
+  "share.title": {
+    "other": "Condividi"
+  },
+  "share.videoLink": {
+    "other": "Link video"
+  },
+  "share.copy": {
+    "other": "Copia"
+  },
+  "video.original": {
+    "other": "File originale"
+  },
+  "video.information": {
+    "other": "Informazioni video"
+  },
+  "video.added": {
+    "other": "Aggiunto"
+  },
+  "video.viewsLabel": {
+    "other": "Visualizzazioni"
+  },
+  "video.manage": {
+    "other": "Gestisci video"
+  },
+  "video.editDetails": {
+    "other": "Modifica dettagli"
+  },
+  "video.delete": {
+    "other": "Elimina video"
+  },
+  "language.label": {
+    "other": "Lingua"
+  },
+  "date.unknown": {
+    "other": "Nessuna data"
+  },
+  "status.ready": {
+    "other": "Pronto"
+  },
+  "status.queued": {
+    "other": "In coda"
+  },
+  "status.processing": {
+    "other": "Elaborazione"
+  },
+  "status.failed": {
+    "other": "Richiede attenzione"
+  },
+  "status.unknown": {
+    "other": "Sconosciuto"
+  },
+  "role.viewer": {
+    "other": "Visualizzatore"
+  },
+  "role.editor": {
+    "other": "Editor"
+  },
+  "role.admin": {
+    "other": "Amministratore"
+  },
+  "language.apply": {
+    "other": "Applica"
+  },
+  "admin.overviewDescription": {
+    "other": "Stato del servizio e collegamenti di amministrazione."
+  },
+  "admin.ffmpegMissing": {
+    "other": "Non trovato — riproduzione originale"
+  },
+  "admin.serviceChecks": {
+    "other": "Controlli del servizio:"
+  },
+  "admin.navigation": {
+    "other": "Sezioni di amministrazione"
+  },
+  "admin.newUser": {
+    "other": "Nuovo utente"
+  },
+  "admin.lockedLists": {
+    "other": "Elenchi riservati"
+  },
+  "admin.usersDescription": {
+    "other": "Ruoli e stato degli account. Gli editor caricano e modificano video. Gli amministratori eliminano video e gestiscono utenti. Gli utenti LDAP vengono creati al primo accesso e ricevono qui i permessi."
+  },
+  "admin.source": {
+    "other": "Origine"
+  },
+  "admin.userRole": {
+    "other": "Ruolo di {{.Username}}"
+  },
+  "admin.userNewPassword": {
+    "other": "Nuova password per {{.Username}}"
+  },
+  "admin.newLocalUser": {
+    "other": "Nuovo utente locale"
+  },
+  "admin.newUserDescription": {
+    "other": "Crea un account con password. Gli utenti LDAP vengono creati al primo accesso e non richiedono registrazione."
+  },
+  "admin.displayName": {
+    "other": "Nome visualizzato (facoltativo)"
+  },
+  "admin.listsDescription": {
+    "other": "Gruppi di video visibili solo tramite un link lungo ({{.Link}}). La chiave completa viene mostrata solo alla creazione o alla rotazione. La rotazione invalida immediatamente i vecchi link."
+  },
+  "admin.newListKey": {
+    "other": "Nuova chiave per “{{.Name}}” — copiala ora; non verrà più mostrata:"
+  },
+  "admin.listName": {
+    "other": "Nome elenco"
+  },
+  "admin.rotateKey": {
+    "other": "Ruota chiave"
+  },
+  "admin.noLists": {
+    "other": "Non ci sono elenchi riservati."
+  },
+  "admin.newListName": {
+    "other": "Nome del nuovo elenco (es. Audit, Sicurezza)"
+  },
+  "admin.createList": {
+    "other": "Crea elenco"
+  },
+  "admin.keysDescription": {
+    "other": "Per l'automazione senza cookie: invia come {{.Header}} per usare i permessi dell'utente. La chiave completa viene mostrata solo alla creazione."
+  },
+  "admin.newUserKey": {
+    "other": "Nuova chiave per {{.Username}} — copiala ora; non verrà più mostrata:"
+  },
+  "admin.keyPrefix": {
+    "other": "Prefisso"
+  },
+  "admin.lastUsed": {
+    "other": "Ultimo utilizzo"
+  },
+  "common.never": {
+    "other": "mai"
+  },
+  "admin.revoke": {
+    "other": "Revoca"
+  },
+  "admin.noKeys": {
+    "other": "Non ci sono chiavi API."
+  },
+  "admin.keyName": {
+    "other": "Nome chiave (es. script di caricamento)"
+  },
+  "admin.createKey": {
+    "other": "Crea chiave"
+  },
+  "edit.eyebrow": {
+    "other": "GESTISCI CONTENUTI"
+  },
+  "edit.description": {
+    "other": "Aggiorna i dettagli del video nella libreria."
+  },
+  "visibility.public": {
+    "other": "Pubblico — visibile a tutti"
+  },
+  "visibility.locked": {
+    "other": "Riservato — {{.Name}}"
+  },
+  "visibility.hint": {
+    "other": "I video riservati sono visibili solo tramite il link dell'elenco."
+  },
+  "library.eyebrow": {
+    "other": "CONTENUTI DEL TEAM"
+  },
+  "library.description": {
+    "other": "Formazione, presentazioni e riunioni registrate, organizzate in un unico luogo."
+  },
+  "library.sortPopularNote": {
+    "other": "più visualizzati"
+  },
+  "library.sortTitleNote": {
+    "other": "titolo"
+  },
+  "library.sortRecentNote": {
+    "other": "più recenti"
+  },
+  "search.placeholder": {
+    "other": "Cerca per titolo, descrizione o categoria…"
+  },
+  "search.categoryFilters": {
+    "other": "Filtri categoria"
+  },
+  "video.coverLabel": {
+    "other": "VIDEO"
+  },
+  "video.locked": {
+    "other": "· Riservato"
+  },
+  "video.noDescription": {
+    "other": "Nessuna descrizione aggiunta."
+  },
+  "search.noResultsHint": {
+    "other": "Prova altri termini di ricerca o rimuovi i filtri."
+  },
+  "library.emptyHint": {
+    "other": "Aggiungi il primo video alla libreria del team."
+  },
+  "auth.loginDescription": {
+    "other": "Accedi per caricare e gestire video. I video pubblici sono visibili senza accesso."
+  },
+  "auth.loginDetails": {
+    "other": "Dati di accesso"
+  },
+  "nav.skipContent": {
+    "other": "Vai al contenuto"
+  },
+  "nav.home": {
+    "other": "Tiny Tube — Home"
+  },
+  "nav.main": {
+    "other": "Navigazione principale"
+  },
+  "theme.enableDark": {
+    "other": "Passa al tema scuro"
+  },
+  "theme.enableLight": {
+    "other": "Passa al tema chiaro"
+  },
+  "footer.description": {
+    "other": "Una libreria video per i team."
+  },
+  "pagination.label": {
+    "other": "Pagine video"
+  },
+  "pagination.page": {
+    "other": "Pagina {{.Page}} di {{.Pages}}"
+  },
+  "upload.eyebrow": {
+    "other": "AGGIUNGI CONTENUTI"
+  },
+  "upload.description": {
+    "other": "Aggiungi un file alla libreria con titolo, descrizione e categoria."
+  },
+  "upload.chooseHint": {
+    "other": "Scegli un file dal dispositivo."
+  },
+  "upload.chooseVideo": {
+    "other": "Scegli un file video"
+  },
+  "upload.dropHere": {
+    "other": "Trascina qui il file"
+  },
+  "upload.pickerHint": {
+    "other": "oppure usa la selezione file"
+  },
+  "upload.limit": {
+    "other": "MP4, MOV, MKV o WEBM · Limite totale {{.Limit}}, dettagli inclusi."
+  },
+  "upload.removeFile": {
+    "other": "Rimuovi il file selezionato"
+  },
+  "upload.detailsHint": {
+    "other": "Dettagli per trovare e organizzare il contenuto."
+  },
+  "upload.titleExample": {
+    "other": "es. Formazione nuovi assunti"
+  },
+  "upload.titleHint": {
+    "other": "Usa un titolo breve e descrittivo."
+  },
+  "upload.categoryExample": {
+    "other": "es. Formazione"
+  },
+  "upload.descriptionHint": {
+    "other": "Argomento, contenuto e dettagli utili sul video."
+  },
+  "upload.keepOpen": {
+    "other": "Tieni aperta questa pagina fino al termine del caricamento."
+  },
+  "nav.returnToLibrary": {
+    "other": "Torna alla libreria"
+  },
+  "upload.guidance": {
+    "other": "Guida al caricamento"
+  },
+  "upload.instructions": {
+    "other": "Aggiungere un video"
+  },
+  "upload.instructionsHint": {
+    "other": "Un titolo chiaro e la categoria giusta aiutano il team a trovare i contenuti."
+  },
+  "upload.checkFile": {
+    "other": "Controlla formato e dimensione del video."
+  },
+  "upload.addDetails": {
+    "other": "Aggiungi dettagli"
+  },
+  "upload.addDetailsHint": {
+    "other": "Aggiungi argomento, descrizione e categoria."
+  },
+  "upload.shareLink": {
+    "other": "Condividi il link"
+  },
+  "upload.shareHint": {
+    "other": "Il link è disponibile nella pagina del video."
+  },
+  "upload.visibilityHint": {
+    "other": "I video pubblici sono visibili a tutti. Per contenuti sensibili scegli un elenco riservato e condividi solo il suo link."
+  },
+  "list.eyebrow": {
+    "other": "ELENCO RISERVATO"
+  },
+  "list.title": {
+    "other": "Video riservati"
+  },
+  "list.description": {
+    "other": "Video visibili solo tramite il link di questo elenco."
+  },
+  "list.sortNote": {
+    "other": "Ordine: più recenti"
+  },
+  "list.shareLink": {
+    "other": "Link elenco"
+  },
+  "list.shareHint": {
+    "other": "Chiunque abbia questo link può vedere questi video. Condividilo solo tramite un canale sicuro."
+  },
+  "list.empty": {
+    "other": "Non ci sono video in questo elenco"
+  },
+  "list.emptyHint": {
+    "other": "Assegna video all'elenco dalla pagina di modifica."
+  },
+  "player.speedLabel": {
+    "other": "Velocità di riproduzione"
+  },
+  "player.queued": {
+    "other": "Il video è in coda per la preparazione"
+  },
+  "player.processing": {
+    "other": "Il video è in preparazione"
+  },
+  "player.pendingHint": {
+    "other": "Prova il file originale o aggiorna la pagina tra poco."
+  },
+  "player.failed": {
+    "other": "Preparazione non completata"
+  },
+  "player.failedHint": {
+    "other": "Prova il file originale o contatta l'amministratore."
+  },
+  "watch.eyebrow": {
+    "other": "DALLA LIBRERIA"
+  },
+  "video.noFullDescription": {
+    "other": "Nessuna descrizione aggiunta per questo video."
+  },
+  "share.lockedHint": {
+    "other": "Per condividere serve il link originale dell'elenco riservato. Apri il video tramite quel link o chiedilo all'amministratore."
+  },
+  "visibility.videoPublic": {
+    "other": "Questo video è pubblico."
+  },
+  "video.editDelete": {
+    "other": "Modifica ed elimina."
+  },
+  "video.editOnly": {
+    "other": "Modifica dettagli."
+  },
+  "library.more": {
+    "other": "Altri contenuti"
+  },
+  "library.exploreHint": {
+    "other": "Trova formazione, presentazioni e riunioni nella libreria."
+  },
+  "auth.invalidForm": {
+    "other": "Modulo non valido."
+  },
+  "auth.invalidCredentials": {
+    "other": "Credenziali errate. Riprova."
+  },
+  "edit.invalidFields": {
+    "other": "Inserisci un titolo e abbrevia i campi lunghi. Alcuni caratteri occupano più di un byte."
+  },
+  "confirm.deleteUser": {
+    "other": "Eliminare definitivamente questo utente e revocarne l'accesso?"
+  },
+  "confirm.deleteList": {
+    "other": "Eliminare definitivamente questo elenco riservato?"
+  },
+  "confirm.deleteVideo": {
+    "other": "Eliminare definitivamente questo video e tutti i suoi file?"
+  },
+  "edit.fieldTooLong": {
+    "other": "Il campo “{{.Field}}” è troppo lungo. Usa meno caratteri."
+  },
+  "share.copied": {
+    "other": "Link copiato."
+  },
+  "share.copyFallback": {
+    "other": "Link selezionato. Copialo dal campo."
+  },
+  "upload.invalidFormat": {
+    "other": "Scegli un video in formato MP4, MOV, MKV o WEBM."
+  },
+  "upload.invalidSize": {
+    "other": "Il file non deve essere vuoto e deve essere inferiore a {{.Limit}}."
+  },
+  "upload.pickerError": {
+    "other": "Usa la selezione file per aggiungere il video."
+  },
+  "upload.selectFirst": {
+    "other": "Scegli prima un video."
+  },
+  "upload.titleTooLong": {
+    "other": "Il titolo è troppo lungo."
+  },
+  "upload.descriptionTooLong": {
+    "other": "La descrizione è troppo lunga."
+  },
+  "upload.categoryTooLong": {
+    "other": "La categoria è troppo lunga."
+  },
+  "validation.fewerCharacters": {
+    "other": "Usa meno caratteri."
+  },
+  "upload.checkDetails": {
+    "other": "Controlla il titolo e i dettagli del video."
+  },
+  "auth.sessionExpired": {
+    "other": "La sessione è scaduta. Aggiorna la pagina e accedi di nuovo."
+  },
+  "upload.forbidden": {
+    "other": "Caricamento non consentito. Riapri la pagina di caricamento dalla libreria."
+  },
+  "upload.timeout": {
+    "other": "Caricamento scaduto. Controlla la connessione e riprova."
+  },
+  "upload.tooLarge": {
+    "other": "La dimensione totale supera il limite di {{.Limit}}."
+  },
+  "upload.unsupportedVideo": {
+    "other": "Il file non è riconosciuto come video supportato."
+  },
+  "auth.tooManyAttempts": {
+    "other": "Troppi tentativi. Attendi un minuto e riprova."
+  },
+  "upload.notSaved": {
+    "other": "Il video non è stato salvato. Riprova tra poco."
+  },
+  "upload.connectionLost": {
+    "other": "La connessione è stata interrotta. Controlla la libreria prima di caricare di nuovo."
+  },
+  "upload.cancelled": {
+    "other": "Caricamento annullato."
+  },
+  "upload.sendFailed": {
+    "other": "Impossibile inviare il caricamento. Riprova."
+  },
+  "player.unsupported": {
+    "other": "Il browser non può riprodurre questo file. Prova un altro browser o scarica il video originale."
+  },
+  "player.originalFallback": {
+    "other": "Anteprima non disponibile. Si prova il video originale."
+  },
+  "admin.apiKeys": {
+    "other": "Chiavi API"
+  },
+  "common.ok": {
+    "other": "OK"
+  },
+  "admin.metadata": {
+    "other": "Metadati"
+  },
+  "admin.metadataUnavailable": {
+    "other": "Non disponibile"
+  },
+  "error.invalidForm": {
+    "other": "modulo non valido"
+  },
+  "error.invalidUsername": {
+    "other": "nome utente non valido"
+  },
+  "error.invalidKey": {
+    "other": "chiave non valida"
+  },
+  "error.authRateLimit": {
+    "other": "troppe richieste di autenticazione; riprova più tardi"
+  },
+  "error.editorRequired": {
+    "other": "richiesto ruolo editor"
+  },
+  "error.adminRequired": {
+    "other": "richiesto ruolo amministratore"
+  },
+  "error.invalidPagination": {
+    "other": "paginazione non valida"
+  },
+  "error.unknownList": {
+    "other": "elenco di accesso sconosciuto"
+  },
+  "error.formTooLarge": {
+    "other": "modulo troppo grande"
+  },
+  "error.idRequired": {
+    "other": "ID richiesto"
+  },
+  "error.deletionInProgress": {
+    "other": "eliminazione video in corso"
+  },
+  "error.invalidFields": {
+    "other": "titolo richiesto; massimo byte: titolo 512, descrizione 8192, categoria 256"
+  },
+  "error.conversionNotStopped": {
+    "other": "conversione non interrotta; riprova a eliminare"
+  },
+  "error.mediaAuthorization": {
+    "other": "autorizzazione media non disponibile"
+  },
+  "error.crossOrigin": {
+    "other": "operazione tra origini diverse vietata"
+  },
+  "error.internal": {
+    "other": "errore interno del server"
+  },
+  "error.render": {
+    "other": "rendering della pagina non riuscito"
+  },
+  "error.uploadTooLarge": {
+    "other": "caricamento superiore a MAX_UPLOAD_BYTES"
+  },
+  "error.uploadTimeout": {
+    "other": "caricamento scaduto"
+  },
+  "error.multipart": {
+    "other": "caricamento multipart non valido"
+  },
+  "error.fileRequired": {
+    "other": "file richiesto"
+  },
+  "error.formats": {
+    "other": "formati supportati: mp4, mov, mkv, webm"
+  },
+  "error.mediaHeader": {
+    "other": "intestazione del file multimediale non supportata"
+  },
+  "error.unsupportedLanguage": {
+    "other": "lingua non supportata"
+  },
+  "error.unknownRole": {
+    "other": "ruolo sconosciuto"
+  },
+  "error.passwordRequired": {
+    "other": "password richiesta"
+  },
+  "error.userExists": {
+    "other": "utente già esistente"
+  },
+  "notice.userCreated": {
+    "other": "utente creato"
+  },
+  "error.ownAdminRole": {
+    "other": "non puoi rimuovere il tuo ruolo di amministratore"
+  },
+  "error.userNotFound": {
+    "other": "utente non trovato"
+  },
+  "error.lastAdmin": {
+    "other": "è richiesto almeno un amministratore attivo"
+  },
+  "notice.roleUpdated": {
+    "other": "ruolo aggiornato"
+  },
+  "error.ownDeactivate": {
+    "other": "non puoi disattivare il tuo account"
+  },
+  "notice.userUpdated": {
+    "other": "utente aggiornato"
+  },
+  "error.ldapPassword": {
+    "other": "gli utenti LDAP si autenticano nella directory"
+  },
+  "notice.passwordReset": {
+    "other": "password reimpostata; sessioni revocate"
+  },
+  "error.ownDelete": {
+    "other": "non puoi eliminare il tuo account"
+  },
+  "notice.userDeleted": {
+    "other": "utente eliminato"
+  },
+  "error.listName": {
+    "other": "nome elenco richiesto (massimo 100 caratteri)"
+  },
+  "error.listOrName": {
+    "other": "elenco o nome non valido"
+  },
+  "error.listNotFound": {
+    "other": "elenco non trovato"
+  },
+  "notice.listRenamed": {
+    "other": "elenco rinominato"
+  },
+  "error.invalidList": {
+    "other": "elenco non valido"
+  },
+  "error.listHasVideos": {
+    "other": "l'elenco contiene ancora video; spostali prima in un altro elenco o rendili pubblici"
+  },
+  "notice.listDeleted": {
+    "other": "elenco eliminato"
+  },
+  "error.keyName": {
+    "other": "nome chiave richiesto (massimo 100 caratteri)"
+  },
+  "error.keyNotFound": {
+    "other": "chiave non trovata"
+  },
+  "notice.keyRevoked": {
+    "other": "chiave API revocata"
+  },
+  "auth.source.local": {
+    "other": "Locale"
+  },
+  "auth.source.ldap": {
+    "other": "LDAP"
+  },
+  "admin.resetPassword": {
+    "other": "Reimposta password"
+  },
+  "search.resultsForQueryAndCategory": {
+    "other": "Risultati per “{{.Query}}” nella categoria “{{.Category}}”"
+  },
+  "search.resultsForQuery": {
+    "other": "Risultati per “{{.Query}}”"
+  },
+  "search.resultsForCategory": {
+    "other": "Risultati nella categoria “{{.Category}}”"
+  },
+  "visibility.lockedVideo": {
+    "other": "Questo video è riservato — visibile solo tramite il link dell'elenco."
+  },
+  "visibility.lockedVideoInList": {
+    "other": "Questo video è riservato (elenco “{{.Name}}”) — visibile solo tramite il link dell'elenco."
+  },
+  "date.month.1": {
+    "other": "gen"
+  },
+  "date.month.2": {
+    "other": "feb"
+  },
+  "date.month.3": {
+    "other": "mar"
+  },
+  "date.month.4": {
+    "other": "apr"
+  },
+  "date.month.5": {
+    "other": "mag"
+  },
+  "date.month.6": {
+    "other": "giu"
+  },
+  "date.month.7": {
+    "other": "lug"
+  },
+  "date.month.8": {
+    "other": "ago"
+  },
+  "date.month.9": {
+    "other": "set"
+  },
+  "date.month.10": {
+    "other": "ott"
+  },
+  "date.month.11": {
+    "other": "nov"
+  },
+  "date.month.12": {
+    "other": "dic"
+  },
+  "date.format": {
+    "other": "{{.Day}} {{.Month}} {{.Year}}"
+  },
+  "count.videos": {
+    "other": "{{.Count}} video",
+    "one": "{{.Count}} video"
+  },
+  "count.views": {
+    "other": "{{.Count}} visualizzazioni",
+    "one": "{{.Count}} visualizzazione"
+  },
+  "size.bytes": {
+    "other": "{{.Count}} byte"
+  },
+  "size.value": {
+    "other": "{{.Value}} {{.Unit}}"
+  }
+}

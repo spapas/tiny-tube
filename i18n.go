@@ -43,7 +43,6 @@ type translationSet struct {
 	languages  []languageOption
 	localizers map[string]*i18n.Localizer
 	printers   map[string]*message.Printer
-	matcher    language.Matcher
 }
 
 var messageIDPattern = regexp.MustCompile(`^[a-z][A-Za-z0-9]*(\.[A-Za-z0-9]+)+$`)
@@ -105,7 +104,6 @@ func loadTranslations(files fs.FS) (*translationSet, error) {
 	slices.Sort(codes[1:])
 	bundle := i18n.NewBundle(language.English)
 	bundle.RegisterUnmarshalFunc("json", json.Unmarshal)
-	var tags []language.Tag
 	for _, code := range codes {
 		for id, msg := range set.catalogs[code] {
 			if err := validateCatalogMessage(id, msg, set.catalogs[defaultLanguage]); err != nil {
@@ -120,14 +118,12 @@ func loadTranslations(files fs.FS) (*translationSet, error) {
 			return nil, err
 		}
 		tag := language.Make(code)
-		tags = append(tags, tag)
 		set.languages = append(set.languages, languageOption{code, set.catalogs[code]["language.name"].Other})
 		set.printers[code] = message.NewPrinter(tag)
 	}
 	for _, code := range codes {
 		set.localizers[code] = i18n.NewLocalizer(bundle, code)
 	}
-	set.matcher = language.NewMatcher(tags)
 	return set, nil
 }
 
@@ -207,12 +203,10 @@ func (set *translationSet) requestLanguage(r *http.Request) string {
 			return cookie.Value
 		}
 	}
-	tags, _, err := language.ParseAcceptLanguage(r.Header.Get("Accept-Language"))
-	if err != nil {
-		return defaultLanguage
+	if _, ok := set.catalogs["el"]; ok {
+		return "el"
 	}
-	_, index, _ := set.matcher.Match(tags...)
-	return set.languages[index].Code
+	return defaultLanguage
 }
 
 func requestLanguage(r *http.Request) string { return appTranslations.requestLanguage(r) }
@@ -259,7 +253,7 @@ func localizedHTTP(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if !strings.HasPrefix(r.URL.Path, "/assets/") && !strings.HasPrefix(r.URL.Path, "/videos/") && r.URL.Path != "/healthz" && r.URL.Path != "/readyz" {
 			w.Header().Set("Content-Language", requestLanguage(r))
-			w.Header().Add("Vary", "Accept-Language")
+			w.Header().Add("Vary", "Cookie")
 		}
 		next.ServeHTTP(w, r)
 	})
