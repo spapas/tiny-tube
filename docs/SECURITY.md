@@ -19,7 +19,7 @@ Login bookkeeping updates only its timestamp.
 Failed list-picker loads block upload/edit forms. Omitted API-edit visibility
 preserves its value. Pages, APIs, secret-creation responses and media carry no-store
 policies so they cannot be reused after authorization changes. Locked lists protect
-originals, HLS, posters, pages and metadata; public videos remain public. Shared-list
+originals, HLS, posters, subtitles, pages and metadata; public videos remain public. Shared-list
 links are bearer credentials, not per-person access.
 
 Historical results below refer to earlier snapshots. In this follow-up module

@@ -17,6 +17,7 @@ func init() {
 	// HLS mime types missing on plain Windows Go installs
 	_ = mime.AddExtensionType(".m3u8", "application/vnd.apple.mpegurl")
 	_ = mime.AddExtensionType(".ts", "video/mp2t")
+	_ = mime.AddExtensionType(".vtt", "text/vtt; charset=utf-8")
 }
 
 func main() {

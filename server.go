@@ -190,6 +190,8 @@ func (a *application) routes() http.Handler {
 	mux.Handle("POST /api/upload", a.limited(a.withUser(a.requireEditor(http.HandlerFunc(a.handleUpload)))))
 	mux.Handle("GET /edit", a.limited(a.withUser(a.requireEditor(http.HandlerFunc(a.handleEditPage)))))
 	mux.Handle("POST /api/edit", a.limited(a.withUser(a.requireEditor(http.HandlerFunc(a.handleEdit)))))
+	mux.Handle("POST /api/subtitles/upload", a.limited(a.withUser(a.requireEditor(http.HandlerFunc(a.handleSubtitleUpload)))))
+	mux.Handle("POST /api/subtitles/delete", a.limited(a.withUser(a.requireEditor(http.HandlerFunc(a.handleSubtitleDelete)))))
 	mux.Handle("POST /api/delete", a.limited(a.withUser(a.requireAdmin(http.HandlerFunc(a.handleDelete)))))
 	mux.Handle("GET /login", a.withUser(http.HandlerFunc(a.handleLoginPage)))
 	mux.Handle("POST /login", a.limited(a.withUser(http.HandlerFunc(a.handleLogin))))
@@ -331,6 +333,11 @@ func (a *application) handleWatch(w http.ResponseWriter, r *http.Request) {
 	}
 	m.Views = a.countView(r, m.ID, m.Views)
 	data := map[string]any{"Page": "watch", "Title": m.Title, "Video": m}
+	if tracks, err := a.subtitleTracks(m.ID); err != nil {
+		log.Printf("read subtitles for %s: %v", m.ID, err)
+	} else {
+		data["Subtitles"] = tracks
+	}
 	if m.AccessList != "" {
 		w.Header().Set("Cache-Control", "no-store")
 		if l, err := a.fs.GetAccessList(m.AccessList); err == nil {

@@ -185,6 +185,9 @@
   "field.title": {
     "other": "Title"
   },
+  "field.chapterHint": {
+    "other": "Add chapter lines such as “05:30 Demo” or “1:05:30 Questions”."
+  },
   "field.description": {
     "other": "Description"
   },
@@ -464,6 +467,39 @@
   "list.emptyHint": {
     "other": "Assign videos to the list from their edit page."
   },
+  "subtitle.title": {
+    "other": "Subtitles"
+  },
+  "subtitle.help": {
+    "other": "Choose a UTF-8 WebVTT file up to 1 MiB and enter a language code, such as en or en-US. Uploading the same language replaces its subtitles."
+  },
+  "subtitle.file": {
+    "other": "WebVTT file"
+  },
+  "subtitle.upload": {
+    "other": "Upload subtitles"
+  },
+  "confirm.deleteSubtitle": {
+    "other": "Delete these subtitles?"
+  },
+  "error.subtitleLanguage": {
+    "other": "Enter a valid subtitle language code."
+  },
+  "error.subtitleFormat": {
+    "other": "Choose a UTF-8 .vtt file with a valid WebVTT header."
+  },
+  "error.subtitleTooLarge": {
+    "other": "The subtitle upload exceeds the size limit."
+  },
+  "error.subtitleNotFound": {
+    "other": "Subtitles for that language were not found."
+  },
+  "player.resume": {
+    "other": "Resume from {{.Time}}"
+  },
+  "player.startOver": {
+    "other": "Start over"
+  },
   "player.speedLabel": {
     "other": "Playback speed"
   },
@@ -505,6 +541,9 @@
   },
   "share.copy": {
     "other": "Copy"
+  },
+  "share.copyTimestamp": {
+    "other": "Copy link from here"
   },
   "share.lockedHint": {
     "other": "Sharing requires the original locked-list link. Open the video through that link or ask your administrator for it."

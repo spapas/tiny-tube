@@ -80,6 +80,9 @@
   "field.title": {
     "other": "标题"
   },
+  "field.chapterHint": {
+    "other": "每行添加一个章节，例如“05:30 演示”或“1:05:30 问答”。"
+  },
   "field.description": {
     "other": "描述"
   },
@@ -524,6 +527,39 @@
   "list.emptyHint": {
     "other": "在视频编辑页面将视频分配给此列表。"
   },
+  "subtitle.title": {
+    "other": "字幕"
+  },
+  "subtitle.help": {
+    "other": "选择不超过 1 MiB 的 UTF-8 WebVTT 文件，并输入语言代码，例如 zh 或 en-US。上传同一语言的文件会替换原有字幕。"
+  },
+  "subtitle.file": {
+    "other": "WebVTT 文件"
+  },
+  "subtitle.upload": {
+    "other": "上传字幕"
+  },
+  "confirm.deleteSubtitle": {
+    "other": "要删除这些字幕吗？"
+  },
+  "error.subtitleLanguage": {
+    "other": "请输入有效的字幕语言代码。"
+  },
+  "error.subtitleFormat": {
+    "other": "请选择具有有效 WebVTT 标头的 UTF-8 .vtt 文件。"
+  },
+  "error.subtitleTooLarge": {
+    "other": "字幕上传超出大小限制。"
+  },
+  "error.subtitleNotFound": {
+    "other": "未找到该语言的字幕。"
+  },
+  "player.resume": {
+    "other": "从 {{.Time}} 继续播放"
+  },
+  "player.startOver": {
+    "other": "从头播放"
+  },
   "player.speedLabel": {
     "other": "播放速度"
   },
@@ -547,6 +583,9 @@
   },
   "video.noFullDescription": {
     "other": "尚未为此视频添加描述。"
+  },
+  "share.copyTimestamp": {
+    "other": "复制从此处播放的链接"
   },
   "share.lockedHint": {
     "other": "分享需要原始的受限列表链接。请通过该链接打开视频或向管理员索取。"

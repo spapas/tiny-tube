@@ -50,7 +50,22 @@ func (a *application) handleEditPage(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
-	a.renderPage(w, r, editTmpl, map[string]any{"Page": "edit", "Title": "edit.title", "Video": m, "AccessLists": lists})
+	a.renderEditPage(w, r, m, lists, "")
+}
+
+func (a *application) renderEditPage(w http.ResponseWriter, r *http.Request, m store.Meta, lists []store.AccessList, formError string) {
+	tracks, err := a.subtitleTracks(m.ID)
+	if err != nil {
+		a.apiServerError(w, r, "read subtitles", err)
+		return
+	}
+	data := map[string]any{"Page": "edit", "Title": "edit.title", "Video": m, "AccessLists": lists, "Subtitles": tracks}
+	if formError != "" {
+		data["Error"] = formError
+		w.Header().Set("Content-Type", "text/html; charset=utf-8")
+		w.WriteHeader(http.StatusBadRequest)
+	}
+	a.renderPage(w, r, editTmpl, data)
 }
 
 func parseManagementForm(w http.ResponseWriter, r *http.Request) bool {
@@ -96,9 +111,7 @@ func (a *application) handleEdit(w http.ResponseWriter, r *http.Request) {
 				return
 			}
 			m.Title, m.Desc, m.Category = title, desc, category
-			w.Header().Set("Content-Type", "text/html; charset=utf-8")
-			w.WriteHeader(http.StatusBadRequest)
-			a.renderPage(w, r, editTmpl, map[string]any{"Page": "edit", "Title": "edit.title", "Video": m, "AccessLists": lists, "Error": "edit.invalidFields"})
+			a.renderEditPage(w, r, m, lists, "edit.invalidFields")
 		}
 		return
 	}

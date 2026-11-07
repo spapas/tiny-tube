@@ -24,6 +24,13 @@ func publicMediaPath(name string) bool {
 			return false
 		}
 	}
+	if parts[1] == subtitleDir {
+		if len(parts) != 3 {
+			return false
+		}
+		_, ok := subtitleTrackFromFile(parts[2])
+		return ok
+	}
 	switch strings.ToLower(filepath.Ext(name)) {
 	case ".mp4", ".mov", ".mkv", ".webm", ".m3u8", ".ts", ".jpg", ".jpeg", ".png":
 		return true
@@ -41,7 +48,17 @@ func (s publicMediaFS) Open(name string) (fs.File, error) {
 		return nil, fs.ErrNotExist
 	}
 	// Root does not follow links outside the media directory, unlike http.Dir.
-	f, err := s.root.Open(filepath.FromSlash(name))
+	root := s.root
+	if id, local, _ := strings.Cut(name, "/"); strings.HasPrefix(local, subtitleDir+"/") {
+		// Keep subtitle paths inside the video whose policy authorized the request.
+		video, err := root.OpenRoot(id)
+		if err != nil {
+			return nil, fs.ErrNotExist
+		}
+		defer video.Close()
+		root, name = video, local
+	}
+	f, err := root.Open(filepath.FromSlash(name))
 	if err != nil {
 		return nil, fs.ErrNotExist
 	}
@@ -94,6 +111,9 @@ func (a *application) serveVideo(w http.ResponseWriter, r *http.Request) {
 			// Private content must not linger in shared caches.
 			w.Header().Set("Cache-Control", "no-store")
 		}
+	}
+	if strings.HasSuffix(name, ".vtt") {
+		w.Header().Set("Cache-Control", "no-store")
 	}
 	a.mediaServer.ServeHTTP(w, r)
 }

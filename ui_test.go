@@ -107,3 +107,30 @@ func TestWatchMetadataEscapesHTMLAndPlayerAttributes(t *testing.T) {
 		t.Fatal("player source data was lost")
 	}
 }
+
+func TestWatchDescriptionChapterLinks(t *testing.T) {
+	a := testApplication(t)
+	m := store.Meta{ID: "chapters", Title: "Training", Original: "original.mp4", Status: "ready",
+		Desc: "Meeting notes\r\n\r\n00:00 Start\r\n05:30 <script>Demo</script>\r\n1:05:30 Questions\r\n01:60 Bad time\r\n02:30"}
+	if err := a.fs.Put(m); err != nil {
+		t.Fatal(err)
+	}
+	w := httptest.NewRecorder()
+	a.routes().ServeHTTP(w, httptest.NewRequest("GET", "/watch?id=chapters", nil))
+	body := w.Body.String()
+	if w.Code != 200 || strings.Count(body, "data-chapter>") != 3 || strings.Contains(body, "<script>Demo") {
+		t.Fatal("watch page did not render exactly three escaped chapter links", w.Code)
+	}
+	for _, want := range []string{
+		`href="#t=0" data-chapter>00:00 Start`,
+		`href="#t=330" data-chapter>05:30 &lt;script&gt;Demo&lt;/script&gt;`,
+		`href="#t=3930" data-chapter>1:05:30 Questions`,
+		"01:60 Bad time\r\n02:30</p>",
+		"Meeting notes\r\n\r\n",
+		`data-copy-timestamp`,
+	} {
+		if !strings.Contains(body, want) {
+			t.Errorf("watch page missing %q", want)
+		}
+	}
+}

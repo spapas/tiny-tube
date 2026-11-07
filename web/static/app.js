@@ -20,7 +20,8 @@
   document.querySelectorAll('[data-delete-video]').forEach(form => form.addEventListener('submit', event => {
     const messages = {
       '/api/admin/users/delete': t('confirm.deleteUser'),
-      '/api/admin/lists/delete': t('confirm.deleteList')
+      '/api/admin/lists/delete': t('confirm.deleteList'),
+      '/api/subtitles/delete': t('confirm.deleteSubtitle')
     };
     const path = new URL(form.action, window.location.href).pathname;
     if (!window.confirm(messages[path] || t('confirm.deleteVideo'))) event.preventDefault();
@@ -61,17 +62,28 @@
   if (shareInput) {
     const sharedURL = new URL(shareInput.dataset.sharePath || window.location.href, window.location.origin);
     sharedURL.username = ''; sharedURL.password = '';
+    sharedURL.hash = '';
     shareInput.value = sharedURL.href;
+    const copyLink = async () => {
+      const status = document.querySelector('[data-share-status]');
+      shareInput.value = sharedURL.href;
+      try {
+        await navigator.clipboard.writeText(shareInput.value);
+        status.textContent = t('share.copied');
+      } catch (_) {
+        shareInput.focus();
+        shareInput.select();
+        status.textContent = t('share.copyFallback');
+      }
+    };
+    document.querySelector('[data-copy-link]')?.addEventListener('click', () => {
+      sharedURL.hash = '';
+      return copyLink();
+    });
+    document.querySelector('[data-copy-timestamp]')?.addEventListener('click', () => {
+      const video = document.getElementById('v');
+      sharedURL.hash = `t=${Math.floor(video.currentTime)}`;
+      return copyLink();
+    });
   }
-  document.querySelector('[data-copy-link]')?.addEventListener('click', async () => {
-    const status = document.querySelector('[data-share-status]');
-    try {
-      await navigator.clipboard.writeText(shareInput.value);
-      status.textContent = t('share.copied');
-    } catch (_) {
-      shareInput.focus();
-      shareInput.select();
-      status.textContent = t('share.copyFallback');
-    }
-  });
 })();

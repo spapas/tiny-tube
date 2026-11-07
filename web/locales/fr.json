@@ -80,6 +80,9 @@
   "field.title": {
     "other": "Titre"
   },
+  "field.chapterHint": {
+    "other": "Ajoutez un chapitre par ligne, par exemple « 05:30 Démonstration » ou « 1:05:30 Questions »."
+  },
   "field.description": {
     "other": "Description"
   },
@@ -524,6 +527,39 @@
   "list.emptyHint": {
     "other": "Ajoutez des vidéos à la liste depuis leur page de modification."
   },
+  "subtitle.title": {
+    "other": "Sous-titres"
+  },
+  "subtitle.help": {
+    "other": "Choisissez un fichier WebVTT en UTF-8 de 1 Mio maximum et saisissez un code de langue, par exemple fr ou en-US. Un nouvel envoi pour la même langue remplace ses sous-titres."
+  },
+  "subtitle.file": {
+    "other": "Fichier WebVTT"
+  },
+  "subtitle.upload": {
+    "other": "Ajouter les sous-titres"
+  },
+  "confirm.deleteSubtitle": {
+    "other": "Supprimer ces sous-titres ?"
+  },
+  "error.subtitleLanguage": {
+    "other": "Saisissez un code de langue valide pour les sous-titres."
+  },
+  "error.subtitleFormat": {
+    "other": "Choisissez un fichier .vtt en UTF-8 avec un en-tête WebVTT valide."
+  },
+  "error.subtitleTooLarge": {
+    "other": "L’envoi des sous-titres dépasse la taille maximale."
+  },
+  "error.subtitleNotFound": {
+    "other": "Aucun sous-titre trouvé pour cette langue."
+  },
+  "player.resume": {
+    "other": "Reprendre à {{.Time}}"
+  },
+  "player.startOver": {
+    "other": "Reprendre depuis le début"
+  },
   "player.speedLabel": {
     "other": "Vitesse de lecture"
   },
@@ -547,6 +583,9 @@
   },
   "video.noFullDescription": {
     "other": "Aucune description n'a été ajoutée pour cette vidéo."
+  },
+  "share.copyTimestamp": {
+    "other": "Copier le lien à partir d’ici"
   },
   "share.lockedHint": {
     "other": "Le partage nécessite le lien original de la liste protégée. Ouvrez la vidéo avec ce lien ou demandez-le à votre administrateur."

@@ -9,7 +9,8 @@ embedded web interface, SQLite metadata, and video files stored on disk.
 - **One binary:** runs on Windows, Linux, and macOS. No separate database server
   or frontend setup is required.
 - **A searchable video library:** categories, sorting, playback speed controls,
-  and original-file downloads, with a multilingual interface.
+  chapter links, links to a playback position, and original-file downloads,
+  with a multilingual interface.
 - **Optional HLS and posters:** add FFmpeg for conversion and preview images.
   Without it, play original files in browsers that support their codecs.
 - **Local or LDAP login:** editors upload and edit; administrators also delete
@@ -20,7 +21,7 @@ embedded web interface, SQLite metadata, and video files stored on disk.
 
 [Download a release](https://github.com/spapas/tiny-tube/releases) ·
 [Installation](#installation) · [Configuration](#configuration) ·
-[HTTP API](#http-api) · [License](#license)
+[HTTP API](#http-api) · [Changelog](CHANGELOG.md) · [License](#license)
 
 Run one server process per video directory. HLS currently provides a single
 720p rendition; backups, storage quotas, and adaptive quality are not built in.
@@ -36,10 +37,19 @@ The examples below use demonstration content.
 ![Video library with category filters and title sorting](docs/screenshots/library.jpg)
 
 **Watch:** play a video, adjust playback speed, and share or download the original.
+Use **Copy link from here** in the share menu to start the recipient at the
+current playback position. The link follows the same access rules as the video.
+When you return to an unfinished video in the same browser, choose **Resume from**
+the saved time or **Start over**.
+If subtitles are available, choose a language in the player's subtitle controls.
 
 ![Video watch page with playback controls and video details](docs/screenshots/watch.jpg)
 
 **Upload:** add a video and choose its title, category, description, and visibility.
+To add chapters, start a line in the description with `MM:SS` or `H:MM:SS`,
+followed by a space and a title. For example, `05:30 Demo` becomes a link that
+jumps to that point in the video. You can add chapters to existing videos by
+editing their descriptions.
 
 ![Video upload form and visibility options](docs/screenshots/upload.jpg)
 
@@ -59,18 +69,18 @@ database server are not required: SQLite and the web interface are included.
 You need a writable video directory with space for originals and generated media.
 
 To verify the download, compare its hash with the matching filename in the
-release's `SHA256SUMS`. For example, for the v1.0.3 amd64 archives:
+release's `SHA256SUMS`. For example, for the v1.1.0 amd64 archives:
 
 ```powershell
 # Windows PowerShell
-Get-FileHash .\tiny-tube-v1.0.3-windows-amd64.zip -Algorithm SHA256
+Get-FileHash .\tiny-tube-v1.1.0-windows-amd64.zip -Algorithm SHA256
 ```
 
 ```sh
 # Linux
-sha256sum tiny-tube-v1.0.3-linux-amd64.tar.gz
+sha256sum tiny-tube-v1.1.0-linux-amd64.tar.gz
 # macOS (use darwin-arm64 for Apple Silicon)
-shasum -a 256 tiny-tube-v1.0.3-darwin-amd64.tar.gz
+shasum -a 256 tiny-tube-v1.1.0-darwin-amd64.tar.gz
 ```
 
 Use the filename for the version and platform you downloaded.
@@ -147,8 +157,9 @@ Existing videos stay public unless moved.
 
 - Holders of `/view_list?key=…` see exactly that list; without the key its
   videos are excluded from the library, search, category counts, and API listings.
-  Direct requests for their watch page, metadata, originals, HLS segments, or
-  posters return 404 unless an unlock cookie or editor/administrator access applies.
+  Direct requests for their watch page, metadata, originals, HLS segments,
+  posters or subtitles return 404 unless a valid key, an unlock cookie or
+  editor/administrator access applies.
 - The first key visit sets an unlock cookie so posters, HLS segments and
   later pages keep working without repeating the key.
 - Editors and administrators see every video without a key, so lost links
@@ -278,14 +289,23 @@ copying and access to the original file. The interface uses restrained colors an
 task-oriented wording for workplace use. Cards display an extracted poster when
 available and a neutral placeholder otherwise. The player offers speeds from
 0.5× to 2× and attempts playback with sound; where the browser blocks
-it, the viewer presses play. The video is never muted.
+it, the viewer presses play. The video is never muted. Playback positions are
+stored locally in the browser and work for anonymous viewers. Returning to an
+unfinished video offers a choice before autoplay. A valid timestamp link takes
+precedence, and finishing the video clears its saved position.
 
 The watch page links to `/edit?id=<id>` and provides deletion with a confirmation
 prompt. `GET /edit` and `POST /api/edit` require an editor or administrator login;
 `POST /api/delete` and `/admin` require an administrator. The watch page shows
 management actions only to users holding the matching role. Editing changes title/description/category/visibility while
 preserving playback data. Deletion cancels and waits for active conversion, then
-removes the original, HLS, poster and metadata. There is no undo.
+removes the original, HLS, poster, subtitles and metadata. There is no undo.
+
+Editors and administrators can add subtitles from **Edit video**. Choose a
+UTF-8 [WebVTT](https://www.w3.org/TR/webvtt1/) file (`.vtt`, up to 1 MiB) and enter
+a language code such as `el`, `en` or `en-US`. Upload again with the same language
+code to replace its file, or delete it from the list. Subtitles follow the video's
+visibility and are available with both HLS and original-file playback.
 
 Each authorized watch-page load counts one view, debounced to one per viewer
 address per video every 24 hours so refreshes do not inflate totals; denied
@@ -360,6 +380,8 @@ requires the matching role.
 | `GET` | `/api/videos?q=&category=&page=1&page_size=50` | none | JSON fields `total`, `filtered`, `count`, `page`, `page_size`, `pages`, `q`, `category`, `sort`, and `items`, with the same filtering as the library page. Locked videos are excluded unless `?key=…`, an unlock cookie, or an editor/administrator credential is presented. `total` counts all visible videos; `filtered` counts matches; `count` counts this page's items. Use `sort=views` for view count or `sort=title` for title; the default is recency. |
 | `GET` | `/api/video?id=<id>` | none | JSON metadata for one video, including `status` (`queued`/`processing`/`ready`/`failed`), `access_list` and `views`. `404` when missing or locked without access. |
 | `POST` | `/api/edit` | editor | Form fields `id`, `title`, `desc`, `category`, `access_list`. JSON clients get `200` with `id`, `title`, `watch_url`, `api_url`. |
+| `POST` | `/api/subtitles/upload` | editor | Multipart fields `id`, `language`, `file`. Adds or replaces the track for that language. The file limit is 1 MiB and the request also respects `MAX_UPLOAD_BYTES`. JSON clients get `200` with `id` and the canonical `language`. |
+| `POST` | `/api/subtitles/delete` | editor | Form fields `id`, `language`. JSON clients get `200` with `id` and `language`, or `404` if the video or track is missing. |
 | `POST` | `/api/delete` | admin | Form field `id`. JSON clients get `200` with `{"id", "deleted": true}`. |
 
 Poll `GET /api/video?id=<id>` until `status` is `ready` (or `failed`), then
@@ -411,6 +433,8 @@ videos/
   <id>/
     original.mp4     # or .mov, .mkv, .webm
     meta.json        # legacy FS mode, or retained migration source
+    subtitles/       # optional, with one .vtt file per language code
+      track-el.vtt
     hls-<generated>/ # published after successful conversion
       index.m3u8
       seg000.ts
@@ -513,7 +537,9 @@ and can also be started manually from the Actions tab:
 Pushing a version tag such as `v1.0` or `v1.0.1` runs these same checks first,
 then cross-builds six CGO-free platform packages and publishes a GitHub Release
 with all archives and `SHA256SUMS`. A failed check or platform build blocks release
-publication. Linux/Windows tests execute natively; macOS and ARM packages are
+publication. Add a heading such as `## v1.1.0` to [CHANGELOG.md](CHANGELOG.md)
+before tagging. The matching section supplies the release notes, and every archive
+includes the changelog. Linux/Windows tests execute natively; macOS and ARM packages are
 cross-compiled, without native runtime tests for every target. Ordinary branch
 pushes and pull requests do not publish releases.
 
