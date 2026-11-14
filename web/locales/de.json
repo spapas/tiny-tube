@@ -1053,5 +1053,14 @@
   },
   "player.storyboard": {
     "other": "Vorschau"
+  },
+  "admin.conversions": {
+    "other": "Konvertierungen"
+  },
+  "admin.conversionsDescription": {
+    "other": "Anstehende, laufende und fehlgeschlagene Konvertierungen."
+  },
+  "admin.noConversions": {
+    "other": "Keine Videos in diesem Status."
   }
 }

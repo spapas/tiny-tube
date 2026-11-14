@@ -2,4 +2,4 @@ package main
 
 // appVersion is the application version shown in the page footer.
 // Bump it with every release alongside CHANGELOG.md.
-const appVersion = "2.0.0"
+const appVersion = "2.0.1"

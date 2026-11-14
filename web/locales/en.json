@@ -1054,5 +1054,14 @@
   },
   "player.storyboard": {
     "other": "Seek preview"
+  },
+  "admin.conversions": {
+    "other": "Conversions"
+  },
+  "admin.conversionsDescription": {
+    "other": "Queued, active and failed conversions."
+  },
+  "admin.noConversions": {
+    "other": "No videos in this state."
   }
 }

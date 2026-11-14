@@ -6,6 +6,7 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"sort"
 	"strings"
 
 	"tiny-tube/store"
@@ -103,6 +104,40 @@ func (a *application) handleAdminAudit(w http.ResponseWriter, r *http.Request) {
 	}
 	data["AuditEntries"] = entries
 	a.renderPage(w, r, adminAuditTmpl, data)
+}
+
+func (a *application) handleAdminConversions(w http.ResponseWriter, r *http.Request) {
+	data, err := a.adminData(r, "conversions")
+	if err != nil {
+		a.serverError(w, "admin data", err)
+		return
+	}
+	videos, err := a.fs.List("")
+	if err != nil {
+		a.serverError(w, "list videos", err)
+		return
+	}
+	// Newest conversions first; the page is bounded like the library.
+	sort.Slice(videos, func(i, j int) bool { return videos[i].Created > videos[j].Created })
+	const maxConversionRows = 200
+	if len(videos) > maxConversionRows {
+		videos = videos[:maxConversionRows]
+	}
+	var queued, processing, failed []store.Meta
+	for _, m := range videos {
+		switch m.Status {
+		case "queued":
+			queued = append(queued, m)
+		case "processing":
+			processing = append(processing, m)
+		case "failed":
+			failed = append(failed, m)
+		}
+	}
+	data["QueuedVideos"] = queued
+	data["ProcessingVideos"] = processing
+	data["FailedVideos"] = failed
+	a.renderPage(w, r, adminConversionsTmpl, data)
 }
 
 func (a *application) parseAdminForm(w http.ResponseWriter, r *http.Request) bool {

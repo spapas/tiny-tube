@@ -1054,5 +1054,14 @@
   },
   "player.storyboard": {
     "other": "Προεπισκόπηση"
+  },
+  "admin.conversions": {
+    "other": "Μετατροπές"
+  },
+  "admin.conversionsDescription": {
+    "other": "Μετατροπές σε αναμονή, σε εξέλιξη και αποτυχημένες."
+  },
+  "admin.noConversions": {
+    "other": "Κανένα βίντεο σε αυτή την κατάσταση."
   }
 }

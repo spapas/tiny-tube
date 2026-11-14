@@ -212,6 +212,7 @@ func (a *application) routes() http.Handler {
 	mux.Handle("GET /admin/users/new", a.limited(a.withUser(a.requireAdmin(http.HandlerFunc(a.handleAdminUserNew)))))
 	mux.Handle("GET /admin/keys", a.limited(a.withUser(a.requireAdmin(http.HandlerFunc(a.handleAdminKeys)))))
 	mux.Handle("GET /admin/audit", a.limited(a.withUser(a.requireAdmin(http.HandlerFunc(a.handleAdminAudit)))))
+	mux.Handle("GET /admin/conversions", a.limited(a.withUser(a.requireAdmin(http.HandlerFunc(a.handleAdminConversions)))))
 	mux.Handle("POST /api/admin/users/create", a.limited(a.withUser(a.requireAdmin(http.HandlerFunc(a.handleAdminCreateUser)))))
 	mux.Handle("POST /api/admin/users/role", a.limited(a.withUser(a.requireAdmin(http.HandlerFunc(a.handleAdminSetRole)))))
 	mux.Handle("POST /api/admin/users/active", a.limited(a.withUser(a.requireAdmin(http.HandlerFunc(a.handleAdminSetActive)))))

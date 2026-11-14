@@ -1053,5 +1053,14 @@
   },
   "player.storyboard": {
     "other": "Anteprima"
+  },
+  "admin.conversions": {
+    "other": "Conversioni"
+  },
+  "admin.conversionsDescription": {
+    "other": "Conversioni in coda, in corso e non riuscite."
+  },
+  "admin.noConversions": {
+    "other": "Nessun video in questo stato."
   }
 }

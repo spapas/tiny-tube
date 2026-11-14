@@ -2,6 +2,7 @@ package main
 
 import (
 	"embed"
+	"fmt"
 	"html/template"
 	"io/fs"
 	"net/url"
@@ -14,8 +15,22 @@ import (
 var webFiles embed.FS
 
 var pageTemplates = template.Must(template.New("pages").Funcs(template.FuncMap{
-	"hlsScriptURL":     func() string { return hlsScriptURL },
-	"appVersion":       func() string { return appVersion },
+	"hlsScriptURL": func() string { return hlsScriptURL },
+	"appVersion":   func() string { return appVersion },
+	"dict": func(values ...any) (map[string]any, error) {
+		if len(values)%2 != 0 {
+			return nil, fmt.Errorf("dict needs an even number of arguments")
+		}
+		out := make(map[string]any, len(values)/2)
+		for i := 0; i < len(values); i += 2 {
+			key, ok := values[i].(string)
+			if !ok {
+				return nil, fmt.Errorf("dict keys must be strings")
+			}
+			out[key] = values[i+1]
+		}
+		return out, nil
+	},
 	"statusClass":      statusClass,
 	"descriptionLines": descriptionLines,
 	"filterURL": func(q, category string) string {
@@ -77,6 +92,7 @@ var (
 	adminKeysTmpl         = pageTemplates.Lookup("admin-keys")
 	adminListsTmpl        = pageTemplates.Lookup("admin-lists")
 	adminAuditTmpl        = pageTemplates.Lookup("admin-audit")
+	adminConversionsTmpl  = pageTemplates.Lookup("admin-conversions")
 	adminPlaylistsTmpl    = pageTemplates.Lookup("admin-playlists")
 	adminPlaylistEditTmpl = pageTemplates.Lookup("admin-playlist-edit")
 	playlistTmpl          = pageTemplates.Lookup("playlist")

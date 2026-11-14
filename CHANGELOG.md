@@ -1,5 +1,11 @@
 # Changelog
 
+## v2.0.1
+
+- Administration conversions page with queued, active and failed videos, per-video error messages and inline retry links.
+
+[Changes since v2.0.0](https://github.com/spapas/tiny-tube/compare/v2.0.0...v2.0.1)
+
 ## v2.0.0
 
 ### Operations

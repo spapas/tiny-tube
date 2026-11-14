@@ -1051,5 +1051,14 @@
   },
   "player.storyboard": {
     "other": "预览"
+  },
+  "admin.conversions": {
+    "other": "转码"
+  },
+  "admin.conversionsDescription": {
+    "other": "排队、进行中和失败的转码。"
+  },
+  "admin.noConversions": {
+    "other": "此状态下暂无视频。"
   }
 }

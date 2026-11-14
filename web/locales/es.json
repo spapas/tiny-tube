@@ -1053,5 +1053,14 @@
   },
   "player.storyboard": {
     "other": "Vista previa"
+  },
+  "admin.conversions": {
+    "other": "Conversiones"
+  },
+  "admin.conversionsDescription": {
+    "other": "Conversiones en cola, en curso y fallidas."
+  },
+  "admin.noConversions": {
+    "other": "Ningún vídeo en este estado."
   }
 }
