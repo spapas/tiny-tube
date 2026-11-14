@@ -96,6 +96,9 @@ async function run() {
     await cdp('Network.enable'); await cdp('Runtime.enable');
     // Select the hls.js branch even on Chromium versions with native HLS.
     await cdp('Page.addScriptToEvaluateOnNewDocument', {source: `{
+      window.smokeHLSErrors = [];
+      let hls;
+      Object.defineProperty(window,'Hls',{ configurable:true, get(){return hls;}, set(value){hls=value;const trigger=value.prototype.trigger;value.prototype.trigger=function(event,data){if(event===value.Events.ERROR){window.smokeHLSErrors.push([data?.type,data?.details,data?.fatal,data?.error?.message]);}return trigger.call(this,event,data);};} });
       const original = HTMLMediaElement.prototype.canPlayType;
       HTMLMediaElement.prototype.canPlayType = function(type) {
         return type === 'application/vnd.apple.mpegurl' ? '' : original.call(this, type);
@@ -118,9 +121,9 @@ async function run() {
       track.track.mode = 'showing';
       if (track.readyState === 0 || track.readyState === 1) await new Promise((ok,bad) => { track.onload=ok; track.onerror=bad; });
       return { src:v.currentSrc, time:v.currentTime, duration:v.duration, caption:track.track.cues[0]?.text,
-        supported:window.Hls.isSupported() };
+        supported:window.Hls.isSupported(), errors:window.smokeHLSErrors, fallback:document.getElementById('playback-error').textContent };
     })()`);
-    assert.ok(media.supported && media.src.startsWith('blob:') && media.time >= 0.9 && media.duration >= 4, JSON.stringify({...media,src:media.src.split(':')[0]}));
+    assert.ok(media.supported && media.src.startsWith('blob:') && media.time >= 0.9 && media.duration >= 4, JSON.stringify({...media,src:media.src.startsWith('blob:')?'blob':new URL(media.src).pathname.split('/').pop(), network:requests.filter(r=>/\.(m3u8|ts|mp4)$/.test(r.url)).map(r=>[new URL(r.url).pathname.split('/').pop(),r.status])}));
     assert.equal(media.caption, 'Chromium caption');
     assert.ok(requests.some(({url,status}) => url.endsWith('.m3u8') && (status===200 || status===206)));
     assert.ok(requests.some(({url,status}) => url.endsWith('.ts') && (status===200 || status===206)));
