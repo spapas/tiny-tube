@@ -143,3 +143,24 @@ func TestWatchManageCardRespectsRoles(t *testing.T) {
 		t.Fatal("admin lost management buttons")
 	}
 }
+
+func TestWatchShowsStatsToEditors(t *testing.T) {
+	a := testApplication(t)
+	id := uploadWithAccessList(t, a, "Stats", "C", "")
+	target := "/watch?id=" + id
+	editor := testSession(t, a, "tester")
+	watchAs(t, a, target, "10.3.0.1:1", editor)
+	watchAs(t, a, target, "10.3.0.2:1", editor)
+	rec := watchAs(t, a, target, "10.3.0.3:1", editor)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("watch: %d", rec.Code)
+	}
+	for _, want := range []string{translate("el", "video.stats"), translate("el", "stats.day"), translate("el", "stats.views"), translate("el", "count.views", "Count", 3)} {
+		if !strings.Contains(rec.Body.String(), want) {
+			t.Fatalf("stats table missing %q", want)
+		}
+	}
+	if anon := watchAs(t, a, target, "10.3.0.9:1"); strings.Contains(anon.Body.String(), translate("el", "video.stats")) {
+		t.Fatal("stats leak to anonymous viewers")
+	}
+}

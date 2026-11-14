@@ -44,6 +44,7 @@ func main() {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 	a.startWorkers(ctx)
+	a.startBackupScheduler(ctx)
 	server := a.httpServer()
 	shutdownDone := make(chan struct{})
 	go func() {

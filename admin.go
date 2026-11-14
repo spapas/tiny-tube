@@ -51,6 +51,11 @@ func (a *application) handleAdmin(w http.ResponseWriter, r *http.Request) {
 	data["ConversionStatuses"] = []string{"queued", "processing", "failed"}
 	videoFree, videoErr := availableDiskBytes(a.videoDir)
 	data["VideoFree"], data["VideoFreeOK"] = videoFree, videoErr == nil
+	videoUsed, usedErr := dirUsage(a.videoDir)
+	data["VideoUsed"], data["VideoUsedOK"] = videoUsed, usedErr == nil
+	data["QuotaBytes"] = a.cfg.QuotaBytes
+	backupDir, lastBackup, lastBackupErr := a.backupStatus()
+	data["BackupDir"], data["LastBackup"], data["LastBackupError"] = backupDir, lastBackup, lastBackupErr
 	if a.cfg.Store != "fs" && filepath.Dir(a.cfg.DBPath) != a.videoDir {
 		dbFree, dbErr := availableDiskBytes(filepath.Dir(a.cfg.DBPath))
 		data["SeparateDB"], data["DBFree"], data["DBFreeOK"] = true, dbFree, dbErr == nil
@@ -83,6 +88,21 @@ func (a *application) handleAdminKeys(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	a.renderPage(w, r, adminKeysTmpl, data)
+}
+
+func (a *application) handleAdminAudit(w http.ResponseWriter, r *http.Request) {
+	data, err := a.adminData(r, "audit")
+	if err != nil {
+		a.serverError(w, "admin data", err)
+		return
+	}
+	entries, err := a.fs.ListAudit(store.AuditPageSize)
+	if err != nil {
+		a.serverError(w, "audit log", err)
+		return
+	}
+	data["AuditEntries"] = entries
+	a.renderPage(w, r, adminAuditTmpl, data)
 }
 
 func (a *application) parseAdminForm(w http.ResponseWriter, r *http.Request) bool {
@@ -162,6 +182,7 @@ func (a *application) handleAdminCreateUser(w http.ResponseWriter, r *http.Reque
 		return
 	}
 	log.Printf("admin %q created user %q (%s)", currentUser(r).Username, username, role)
+	a.audit(r, auditUserCreate, username, role)
 	adminRedirectNotice(w, r, "/admin/users", "notice.userCreated")
 }
 
@@ -205,6 +226,7 @@ func (a *application) handleAdminSetRole(w http.ResponseWriter, r *http.Request)
 		return
 	}
 	log.Printf("admin %q set %q role to %s", me, username, role)
+	a.audit(r, auditUserRole, username, role)
 	adminRedirectNotice(w, r, "/admin/users", "notice.roleUpdated")
 }
 
@@ -248,6 +270,11 @@ func (a *application) handleAdminSetActive(w http.ResponseWriter, r *http.Reques
 		_ = a.fs.DeleteUserSessions(username)
 	}
 	log.Printf("admin %q set %q active=%v", me, username, active)
+	state := "inactive"
+	if active {
+		state = "active"
+	}
+	a.audit(r, auditUserActive, username, state)
 	adminRedirectNotice(w, r, "/admin/users", "notice.userUpdated")
 }
 
@@ -287,6 +314,7 @@ func (a *application) handleAdminSetPassword(w http.ResponseWriter, r *http.Requ
 	}
 	_ = a.fs.DeleteUserSessions(username)
 	log.Printf("admin %q reset password for %q", currentUser(r).Username, username)
+	a.audit(r, auditUserPassword, username, "")
 	adminRedirectNotice(w, r, "/admin/users", "notice.passwordReset")
 }
 
@@ -326,5 +354,6 @@ func (a *application) handleAdminDeleteUser(w http.ResponseWriter, r *http.Reque
 		return
 	}
 	log.Printf("admin %q deleted user %q", me, username)
+	a.audit(r, auditUserDelete, username, "")
 	adminRedirectNotice(w, r, "/admin/users", "notice.userDeleted")
 }

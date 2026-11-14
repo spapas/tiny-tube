@@ -41,6 +41,9 @@ type Store interface {
 	IncrementViews(id string) (int64, error)
 	AuthStore
 	AccessListStore
+	AuditStore
+	ViewStatsStore
+	PlaylistStore
 }
 
 type FS struct {
@@ -58,7 +61,15 @@ func (s *FS) Delete(id string) error {
 	if !ValidID(id) {
 		return os.ErrInvalid
 	}
-	return removeAllRetry(s.Dir(id))
+	if err := removeAllRetry(s.Dir(id)); err != nil {
+		return err
+	}
+	// Stats cleanup is best-effort: the video itself is already gone.
+	if stats, err := s.readStatsLocked(); err == nil {
+		dropVideoStats(stats, id)
+		_ = s.writeJSONFile(s.statsPath(), stats)
+	}
+	return nil
 }
 
 // Windows can briefly retain media handles after cancellation of FFmpeg.
@@ -169,7 +180,7 @@ func (s *FS) List(q string) ([]Meta, error) {
 		}
 		if q != "" {
 			hay := strings.ToLower(m.Title + " " + m.Desc + " " + m.Category)
-			if !strings.Contains(hay, q) {
+			if !matchTokens(hay, queryTokens(q)) {
 				continue
 			}
 		}
@@ -217,6 +228,9 @@ func (s *FS) IncrementViews(id string) (int64, error) {
 	}
 	m.Views++
 	if err := s.putLocked(m); err != nil {
+		return 0, err
+	}
+	if err := s.recordViewDay(id, todayUTC()); err != nil {
 		return 0, err
 	}
 	return m.Views, nil

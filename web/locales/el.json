@@ -949,5 +949,110 @@
   },
   "visibility.lockedVideoInList": {
     "other": "Αυτό το βίντεο είναι κλειδωμένο (λίστα «{{.Name}}») — ορατό μόνο με τον σύνδεσμο της λίστας."
+  },
+  "admin.audit": {
+    "other": "Αρχείο ελέγχου"
+  },
+  "admin.auditDescription": {
+    "other": "Πρόσφατες ενέργειες διαχειριστών και χρηστών."
+  },
+  "admin.auditTime": {
+    "other": "Ώρα"
+  },
+  "admin.auditTarget": {
+    "other": "Στόχος"
+  },
+  "admin.auditDetail": {
+    "other": "Λεπτομέρεια"
+  },
+  "admin.noAudit": {
+    "other": "Δεν υπάρχουν καταγραφές ακόμη."
+  },
+  "error.quotaExceeded": {
+    "other": "Υπέρβαση του ορίου αποθήκευσης."
+  },
+  "admin.videoDiskUsed": {
+    "other": "Χώρος βίντεο σε χρήση"
+  },
+  "admin.videoQuota": {
+    "other": "Όριο αποθήκευσης"
+  },
+  "admin.backups": {
+    "other": "Αντίγραφα ασφαλείας"
+  },
+  "admin.lastBackup": {
+    "other": "Τελευταίο αντίγραφο"
+  },
+  "video.stats": {
+    "other": "Στατιστικά προβολών"
+  },
+  "stats.day": {
+    "other": "Ημέρα"
+  },
+  "stats.views": {
+    "other": "Προβολές"
+  },
+  "admin.playlists": {
+    "other": "Λίστες αναπαραγωγής"
+  },
+  "admin.playlistsDescription": {
+    "other": "Βίντεο σε σειρά."
+  },
+  "admin.playlistName": {
+    "other": "Όνομα λίστας"
+  },
+  "admin.noPlaylists": {
+    "other": "Δεν υπάρχουν λίστες ακόμη."
+  },
+  "admin.createPlaylist": {
+    "other": "Δημιουργία λίστας"
+  },
+  "admin.playlistItems": {
+    "other": "Βίντεο σειράς"
+  },
+  "admin.playlistVideoID": {
+    "other": "ID βίντεο"
+  },
+  "playlist.empty": {
+    "other": "Αυτή η λίστα δεν έχει βίντεο ακόμη."
+  },
+  "playlist.series": {
+    "other": "Σειρά"
+  },
+  "common.up": {
+    "other": "Επάνω"
+  },
+  "common.down": {
+    "other": "Κάτω"
+  },
+  "common.add": {
+    "other": "Προσθήκη"
+  },
+  "notice.playlistUpdated": {
+    "other": "η λίστα ενημερώθηκε"
+  },
+  "error.playlistNotFound": {
+    "other": "η λίστα δεν βρέθηκε"
+  },
+  "error.videoNotFound": {
+    "other": "το βίντεο δεν βρέθηκε"
+  },
+  "error.playlistFull": {
+    "other": "η λίστα είναι γεμάτη"
+  },
+  "error.playlistDuplicate": {
+    "other": "το βίντεο υπάρχει ήδη στη λίστα"
+  },
+  "error.unknownUpload": {
+    "other": "άγνωστο ανέβασμα"
+  },
+  "error.uploadIncomplete": {
+    "other": "το ανέβασμα είναι ελλιπές, ξαναστείλε τα κομμάτια που λείπουν"
+  },
+  "upload.resuming": {
+    "other": "Συνέχεια ανεβάσματος"
+  },
+  "player.storyboard": {
+    "other": "Προεπισκόπηση"
   }
 }

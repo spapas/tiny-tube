@@ -196,6 +196,11 @@ func (a *application) changeSubtitle(w http.ResponseWriter, r *http.Request, tra
 		}
 		return
 	}
+	action := auditSubtitleUpload
+	if data == nil {
+		action = auditSubtitleDelete
+	}
+	a.audit(r, action, id, track.Language)
 	if wantsJSON(r) {
 		writeJSON(w, http.StatusOK, map[string]string{"id": id, "language": track.Language})
 		return

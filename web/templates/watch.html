@@ -9,6 +9,7 @@
       <div class="player-shell"><video id="v" controls playsinline preload="metadata" {{if .Poster}}poster="/videos/{{.ID}}/{{.Poster}}"{{end}} data-id="{{.ID}}" data-hls="{{.HLS}}" data-original="{{.Original}}" aria-label="{{.Title}}">
         {{range $.Subtitles}}<track kind="subtitles" src="/videos/{{$.Video.ID}}/subtitles/{{.File}}" srclang="{{.Language}}" label="{{.Label}}">{{end}}
       </video></div>
+      {{if $.Thumbnails}}<div class="storyboard" data-storyboard data-vtt="/videos/{{.ID}}/{{$.Thumbnails}}" hidden><span class="storyboard-label">{{t "player.storyboard"}}</span><div class="storyboard-strip" data-storyboard-strip></div></div>{{end}}
       <div id="playback-resume" class="playback-resume" hidden>
         <button class="button button-primary" type="button" data-resume></button>
         <button class="button button-secondary" type="button" data-start-over>{{t "player.startOver"}}</button>
@@ -41,8 +42,17 @@
     </section>
     <aside class="watch-sidebar" aria-label="{{t "video.information"}}">
       <div class="info-card"><span class="small-icon">{{template "film"}}</span><h2>{{t "video.details"}}</h2><dl><div><dt>{{t "field.category"}}</dt><dd>{{if .Category}}{{.Category}}{{else}}{{t "video.uncategorized"}}{{end}}</dd></div><div><dt>{{t "video.added"}}</dt><dd>{{formatDate .Created}}</dd></div><div><dt>{{t "video.viewsLabel"}}</dt><dd>{{viewCount .Views}}</dd></div>{{if $.CurrentUser}}{{if $.CurrentUser.CanEdit}}<div><dt>{{t "common.status"}}</dt><dd>{{statusLabel .Status}}</dd></div>{{end}}{{end}}</dl><p class="field-hint">{{template "info"}} {{if .AccessList}}{{if $.LockedListName}}{{t "visibility.lockedVideoInList" "Name" $.LockedListName}}{{else}}{{t "visibility.lockedVideo"}}{{end}}{{else}}{{t "visibility.videoPublic"}}{{end}}</p></div>
+      {{if or $.PrevVideo $.NextVideo}}<nav class="pagination" aria-label="{{t "playlist.series"}}">{{if $.PrevVideo}}<a class="button button-secondary" href="/watch?id={{$.PrevVideo.ID}}&amp;playlist={{$.PlaylistID}}">{{t "pagination.previous"}}: {{$.PrevVideo.Title}}</a>{{end}}{{if $.NextVideo}}<a class="button button-secondary" href="/watch?id={{$.NextVideo.ID}}&amp;playlist={{$.PlaylistID}}">{{$.NextVideo.Title}}: {{t "pagination.next"}}</a>{{end}}</nav>{{end}}
       {{if $.CurrentUser}}{{if $.CurrentUser.CanEdit}}
       <div class="info-card manage-card"><h2>{{t "video.manage"}}</h2>{{if $.CurrentUser.IsAdmin}}<p class="field-hint">{{t "video.editDelete"}}</p><a class="button button-secondary" href="/edit?id={{.ID}}">{{t "video.editDetails"}}</a><form method="POST" action="/api/delete" data-delete-video><input type="hidden" name="id" value="{{.ID}}"><button class="button button-danger" type="submit">{{t "video.delete"}}</button></form>{{else}}<p class="field-hint">{{t "video.editOnly"}}</p><a class="button button-secondary" href="/edit?id={{.ID}}">{{t "video.editDetails"}}</a>{{end}}</div>
+      {{if $.ViewStats}}
+      <div class="info-card"><h2>{{t "video.stats"}}</h2><div class="table-wrap"><table>
+        <thead><tr><th>{{t "stats.day"}}</th><th>{{t "stats.views"}}</th></tr></thead>
+        <tbody>
+        {{range $.ViewStats}}<tr><td>{{formatDate .Day}}</td><td>{{viewCount .Views}}</td></tr>{{end}}
+        </tbody>
+      </table></div></div>
+      {{end}}
       {{end}}{{end}}
       <a class="explore-card" href="/"><h2>{{t "library.more"}}</h2><p>{{t "library.exploreHint"}}</p><span>{{t "nav.backToLibrary"}} {{template "arrow"}}</span></a>
     </aside>

@@ -13,8 +13,6 @@ import (
 	"path/filepath"
 	"strings"
 	"time"
-
-	"tiny-tube/store"
 )
 
 const multipartMemory = 8 << 20
@@ -77,6 +75,21 @@ func (a *application) handleUpload(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
+	if a.cfg.QuotaBytes > 0 {
+		var extra int64
+		if r.ContentLength > 0 {
+			extra = r.ContentLength
+		}
+		exceeded, err := a.quotaExceeded(extra)
+		if err != nil {
+			a.apiServerError(w, r, "measure storage usage", err)
+			return
+		}
+		if exceeded {
+			writeAPIError(w, r, http.StatusRequestEntityTooLarge, "error.quotaExceeded")
+			return
+		}
+	}
 	f, hdr, err := r.FormFile("file")
 	if err != nil {
 		writeAPIError(w, r, http.StatusBadRequest, "error.fileRequired")
@@ -96,66 +109,17 @@ func (a *application) handleUpload(w http.ResponseWriter, r *http.Request) {
 		a.apiServerError(w, r, "rewind upload", err)
 		return
 	}
-	id, dir, err := reserveUploadDir(a.videoDir)
-	if err != nil {
-		a.apiServerError(w, r, "reserve upload", err)
-		return
-	}
-	keep := false
-	defer func() {
-		// dir is exclusively created by reserveUploadDir under our configured root.
-		if !keep {
-			if err := os.RemoveAll(dir); err != nil {
-				log.Printf("incomplete upload cleanup %s: %v", id, err)
-			}
-		}
-	}()
 	orig := "original" + ext
-	dst, err := os.OpenFile(filepath.Join(dir, orig), os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0o644)
-	if err != nil {
-		a.apiServerError(w, r, "create original", err)
-		return
-	}
-	_, copyErr := io.Copy(dst, f)
-	syncErr := dst.Sync()
-	closeErr := dst.Close()
-	if err = errors.Join(copyErr, syncErr, closeErr); err != nil {
-		a.apiServerError(w, r, "save original", err)
-		return
-	}
-	m := store.Meta{ID: id, Title: title, Desc: desc, Category: category, Original: orig, Status: "ready", Created: time.Now().UTC().Format(time.RFC3339Nano), AccessList: accessList}
-	if a.ffmpegBin != "" {
-		m.Status = "queued"
-	}
-	// Keep list validation and metadata publication atomic with list deletion.
-	a.claimMu.Lock()
-	if accessList != "" {
-		if _, ok := a.resolveAccessList(w, r); !ok {
-			a.claimMu.Unlock()
-			return
+	a.finishUpload(w, r, title, desc, category, accessList, orig, func(dir string) error {
+		dst, err := os.OpenFile(filepath.Join(dir, orig), os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0o644)
+		if err != nil {
+			return err
 		}
-	}
-	err = a.putMeta(m)
-	a.claimMu.Unlock()
-	if err != nil {
-		a.apiServerError(w, r, "save metadata", err)
-		return
-	}
-	keep = true
-	if m.Status == "queued" {
-		a.notifyWorkers()
-	}
-	if wantsJSON(r) {
-		writeJSON(w, http.StatusCreated, map[string]any{
-			"id": id, "title": title, "desc": desc, "category": category,
-			"status": m.Status, "original": orig, "access_list": accessList,
-			"watch_url": "/watch?id=" + id,
-			"video_url": "/videos/" + id + "/" + orig,
-			"api_url":   "/api/video?id=" + id,
-		})
-		return
-	}
-	http.Redirect(w, r, "/watch?id="+id, http.StatusSeeOther)
+		_, copyErr := io.Copy(dst, f)
+		syncErr := dst.Sync()
+		closeErr := dst.Close()
+		return errors.Join(copyErr, syncErr, closeErr)
+	})
 }
 
 // This checks container signatures, not codec validity or the complete file.

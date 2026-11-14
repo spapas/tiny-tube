@@ -358,6 +358,7 @@ func (a *application) handleAdminCreateList(w http.ResponseWriter, r *http.Reque
 		return
 	}
 	log.Printf("admin %q created access list %q (%s)", currentUser(r).Username, name, id)
+	a.audit(r, auditListCreate, id, name)
 	a.renderAdminLists(w, r, map[string]any{"NewListKey": raw, "NewListName": name, "NewListID": id})
 }
 
@@ -388,6 +389,7 @@ func (a *application) handleAdminRenameList(w http.ResponseWriter, r *http.Reque
 		return
 	}
 	log.Printf("admin %q renamed access list %q to %q", currentUser(r).Username, id, name)
+	a.audit(r, auditListRename, id, name)
 	adminRedirectNotice(w, r, "/admin/lists", "notice.listRenamed")
 }
 
@@ -424,6 +426,7 @@ func (a *application) handleAdminRotateList(w http.ResponseWriter, r *http.Reque
 		return
 	}
 	log.Printf("admin %q rotated key for access list %q (%s)", currentUser(r).Username, l.Name, id)
+	a.audit(r, auditListRotate, id, l.Name)
 	a.renderAdminLists(w, r, map[string]any{"NewListKey": raw, "NewListName": l.Name, "NewListID": id})
 }
 
@@ -461,5 +464,6 @@ func (a *application) handleAdminDeleteList(w http.ResponseWriter, r *http.Reque
 		return
 	}
 	log.Printf("admin %q deleted access list %q", currentUser(r).Username, id)
+	a.audit(r, auditListDelete, id, "")
 	adminRedirectNotice(w, r, "/admin/lists", "notice.listDeleted")
 }

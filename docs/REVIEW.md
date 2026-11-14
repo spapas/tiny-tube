@@ -237,7 +237,8 @@ claim. The README documents the current behavior and compatibility changes.
   persisted pending state once storage is usable.
 - Container signatures are a basic check, not complete media validation. Browsers
   may not support an original's codecs. Originals are not remuxed for MP4 faststart.
-- HLS is a single 720-pixel-high rendition, without adaptive quality. Reload the
+- HLS publishes 480p/720p/1080p renditions behind a variant master playlist with
+  measured bandwidths, so players switch quality automatically. Reload the
   watch page after a queued/processing conversion completes.
 - hls.js 1.6.19 is vendored (`web/static/hls.min.js`, Apache-2.0) and served
   from `/assets`; offline deployments work without external browser access.

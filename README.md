@@ -23,10 +23,10 @@ embedded web interface, SQLite metadata, and video files stored on disk.
 [Installation](#installation) · [Configuration](#configuration) ·
 [HTTP API](#http-api) · [Changelog](CHANGELOG.md) · [License](#license)
 
-Run one server process per video directory. HLS currently provides a single
-720p rendition; backups, storage quotas, and adaptive quality are not built in.
-See the [review and remaining limitations](docs/REVIEW.md#remaining-limits)
-for deployment details.
+Run one server process per video directory. HLS provides 480p/720p/1080p renditions
+with automatic quality selection; storage quotas and scheduled backups are
+configurable, while per-user private videos are not built in. See the [review
+and remaining limitations](docs/REVIEW.md#remaining-limits) for deployment details.
 
 ## Screenshots
 
@@ -181,6 +181,15 @@ Existing videos stay public unless moved.
 For scripts, pass the key as `?key=…` on `/api/videos`, `/api/video`,
 `/watch` and `/videos/…`, or reuse the unlock cookie from a link visit.
 
+## Playlists
+
+Editors can group videos into ordered series at `/admin/playlists`. Each
+playlist has its own page at `/playlist?id=…` that keeps the defined order,
+and the watch page offers previous/next links when opened with
+`?playlist=…`. Videos keep their own visibility: locked videos stay hidden
+without a key, missing videos are skipped, and editors always see the full
+order for management. Playlists hold up to 200 videos.
+
 ## Configuration
 
 The server loads `.env` from its working directory. Explicit environment variables
@@ -212,6 +221,10 @@ expansion or inline-comment support. `.env` is ignored by Git.
 | `LDAP_ATTR_LAST_NAME` | `sn` | Directory attribute for the display name. |
 | `LDAP_ALWAYS_UPDATE` | `true` | Refresh LDAP user records from the directory on every login. |
 | `MAX_UPLOAD_BYTES` | `2147483648` | Maximum **whole multipart request**, including form fields and overhead: 2 GiB. Larger requests return HTTP 413. |
+| `VIDEO_DIR_QUOTA_BYTES` | `0` | Optional on-disk quota for `VIDEO_DIR` in bytes; `0` means unlimited. Uploads that would exceed it return HTTP 413. |
+| `BACKUP_DIR` | unset | Optional automatic hot backups to `<dir>/tiny-tube-backup-<timestamp>/` (media copy plus a consistent SQLite snapshot); unset disables them. |
+| `BACKUP_INTERVAL_HOURS` | `24` | Hours between automatic backups, 1–168. The first backup runs a minute after startup. |
+| `BACKUP_KEEP` | `7` | Newest automatic backups retained, 1–100; older runs are pruned after each backup. |
 | `TRANSCODE_WORKERS` | `1` | Maximum concurrent FFmpeg processes, between 1 and 16. Pending jobs remain on disk. |
 | `AUTH_REQUESTS_PER_MINUTE` | `60` | Protected-route requests per source IP per minute, checked before authentication; 1–3600. Excess requests return 429 with `Retry-After`. |
 | `UPLOAD_TIMEOUT_SECONDS` | `1800` | Total authenticated multipart read deadline; 1–86400 seconds. Stalled uploads return 408 and are cleaned up. |
@@ -276,7 +289,8 @@ plural forms and validation. No frontend packages are required.
 The interface defaults to light mode. The theme button switches between light and
 dark and remembers the selection in browser-local storage; it does not follow the
 operating system's theme automatically. Library, watch, and upload pages adapt to
-mobile, tablet, and desktop screens. Categories can be combined with text search.
+mobile, tablet, and desktop screens. Categories can be combined with text search. Multi-word searches match videos
+containing every word, in any order and field.
 Library and locked-list pages show 24 videos by default, with Previous/Next
 navigation preserving search, category and sort. Long visibility labels fit narrow
 screens. Administrator deletion confirmations apply to every row and identify
@@ -311,12 +325,19 @@ Each authorized watch-page load counts one view, debounced to one per viewer
 address per video every 24 hours so refreshes do not inflate totals; denied
 requests never count. Totals appear on library cards and the watch page, and
 the library and locked-list pages offer most-viewed and title sorts alongside
-the default recency order. Title sorting is case-insensitive and orders numbers
+the default recency order. Editors also see a per-day table of the last 14
+days on the watch page. Title sorting is case-insensitive and orders numbers
 naturally, so Lesson 2 comes before Lesson 10. The library and API accept
 `sort=views` or `sort=title`; paging and filters preserve the selection.
 
 1. An authenticated `POST /api/upload` accepts multipart fields `title` (required),
-   `desc`, `category`, and `file`.
+   `desc`, `category`, and `file`. For large or unreliable uploads the browser
+   splits the file into 8 MiB chunks instead: `POST /api/uploads`
+   (`{"filename", "size"}`) reserves an upload, `POST /api/uploads/{id}/chunk?offset=N`
+   appends each chunk (a `409` reports the received bytes so the client can
+   resume), and `POST /api/uploads/{id}/complete` with the same fields
+   validates and publishes exactly like a single-shot upload. Stale chunk
+   staging older than a day is removed on startup.
 2. The original is saved to `VIDEO_DIR/<id>/`. Recognized filename extensions are
    `.mp4`, `.mov`, `.mkv`, and `.webm`; unsupported extensions or mismatched
    container signatures return HTTP 415. This is a basic header check, not full
@@ -325,7 +346,7 @@ naturally, so Lesson 2 comes before Lesson 10. The library and API accept
    incomplete uploads are removed if saving the original or metadata fails.
 3. If FFmpeg is available, metadata starts as `queued`. A bounded worker marks it
    `processing`, generates HLS in a staging directory, and publishes it only after
-   FFmpeg succeeds and produces a complete playlist. A JPEG poster is extracted
+   FFmpeg succeeds and produces complete playlists. A JPEG poster is extracted
    at one second, falling back to the first frame; poster failure is non-fatal.
    Status then becomes `ready`.
    Without FFmpeg, status is immediately `ready` for original-file playback.
@@ -441,20 +462,34 @@ videos/
     subtitles/       # optional, with one .vtt file per language code
       track-el.vtt
     hls-<generated>/ # published after successful conversion
-      index.m3u8
-      seg000.ts
+      master.m3u8    # variant playlist: 480p/720p/1080p with auto quality
+      480p/
+        index.m3u8
+        seg000.ts
+      720p/
+        ...
+      1080p/
+        ...
       poster.jpg     # optional preview frame
+      sprite-1.jpg   # storyboard sheets (10x10 grid of 160x90 frames)
+      thumbnails.vtt # seek-preview index pointing at each thumbnail
       ...
 ```
 
-HLS currently has a single rendition scaled to 720 pixels high, H.264 4:2:0 video,
-AAC audio, and a target segment duration of six seconds. It is not adaptive
-multi-quality streaming. Originals are kept after conversion.
+HLS is adaptive: every conversion publishes 480p, 720p and 1080p renditions
+(H.264 4:2:0 video, AAC audio, six-second segments) behind a `master.m3u8`
+variant playlist with measured per-rendition bandwidths, so Safari (native
+HLS) and hls.js browsers switch quality automatically. Sources smaller than a
+rendition are kept at their own height and never upscaled. Conversions also
+publish seek-preview storyboard sheets with a WebVTT index; the watch page
+shows a clickable thumbnail strip. Originals are kept
+after conversion.
 
 Original files support HTTP Range requests, but seeking also depends on the file
-layout and browser. The code does not apply MP4 `faststart` to originals. Multipart
-file parts use at most an 8 MiB memory threshold before spilling to temporary disk;
-the separate request limit is enforced by `http.MaxBytesReader`.
+layout and browser. MP4/MOV originals are remuxed with `faststart` during
+conversion so direct downloads start and seek without fetching the whole file.
+Multipart file parts use at most an 8 MiB memory threshold before spilling to
+temporary disk; the separate request limit is enforced by `http.MaxBytesReader`.
 
 Existing videos, including root-level `index.m3u8` and `poster.jpg`, remain compatible.
 SQLite startup imports legacy `meta.json` records whose IDs are absent from the

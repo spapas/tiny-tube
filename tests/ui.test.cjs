@@ -231,7 +231,7 @@ test('English confirmations and edit validation use the shared catalog', () => {
 test('all browser message literals refer to English source IDs', () => {
   for (const name of ['app.js', 'upload.js', 'player.js']) {
     const code = fs.readFileSync(path.join(__dirname, '../web/static', name), 'utf8');
-    for (const [, id] of code.matchAll(/t\('([^']*)'/g)) assert.ok(Object.hasOwn(catalogs.en, id), `Missing ${name} message: ${id}`);
+    for (const [, id] of code.matchAll(/(?<![A-Za-z0-9_$])t\('([^']*)'/g)) assert.ok(Object.hasOwn(catalogs.en, id), `Missing ${name} message: ${id}`);
   }
 });
 
@@ -276,4 +276,33 @@ test('new language catalogs use CLDR plurals and English fallbacks', () => {
   assert.equal(russian('share.copy'), 'Copy');
   const arabic = translator('ar', {'count.videos':{zero:'{{.Count}} zero',one:'{{.Count}} one',two:'{{.Count}} two',few:'{{.Count}} few',many:'{{.Count}} many',other:'{{.Count}} other'}});
   for(const [Count,form] of [[0,'zero'],[1,'one'],[2,'two'],[3,'few'],[11,'many'],[100,'other']]) assert.equal(arabic('count.videos',{Count}), `${new Intl.NumberFormat('ar').format(Count)} ${form}`);
+});
+
+test('storyboard builds seek buttons from the thumbnail track', async () => {
+  const vtt = 'WEBVTT\n\n00:00:00.000 --> 00:00:10.000\nsprite-1.jpg#xywh=0,0,160,90\n\n00:00:10.000 --> 00:00:20.000\nsprite-1.jpg#xywh=160,0,160,90\n';
+  const buttons = [];
+  const rail = { appendChild(button) { buttons.push(button); } };
+  const strip = { dataset: { vtt: '/videos/v/hls-x/thumbnails.vtt' }, hidden: true, querySelector: () => rail };
+  const makeElement = tag => ({
+    tag, children: [], width: 0, height: 0, textContent: '',
+    setAttribute() {}, appendChild(child) { this.children.push(child); }, addEventListener() {},
+  });
+  const inert = { addEventListener() {}, querySelector: () => ({ addEventListener() {} }) };
+  const video = { dataset: { id: 'v', hls: '', original: 'original.mp4' }, addEventListener() {}, load() {}, focus() {}, play() {} };
+  const document = {
+    documentElement: { lang: 'el' },
+    getElementById: id => id === 'v' ? video : inert,
+    querySelector: selector => selector === '[data-storyboard]' ? strip : null,
+    querySelectorAll: () => [],
+    addEventListener: () => {},
+    createElement: makeElement,
+  };
+  const window = { tinyTubeMessages: browserMessages('el'), addEventListener() {} };
+  const fetch = async () => ({ ok: true, text: async () => vtt });
+  vm.runInNewContext(i18nSource + '\n' + playerSource, { document, window, fetch });
+  await new Promise(resolve => setTimeout(resolve, 50));
+  assert.equal(buttons.length, 2);
+  assert.equal(buttons[0].children.length, 1);
+  assert.equal(buttons[0].children[0].width, 160);
+  assert.equal(strip.hidden, false);
 });

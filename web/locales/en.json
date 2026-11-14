@@ -949,5 +949,110 @@
   },
   "visibility.lockedVideoInList": {
     "other": "This video is locked (list “{{.Name}}”) — visible only through the list link."
+  },
+  "admin.audit": {
+    "other": "Audit log"
+  },
+  "admin.auditDescription": {
+    "other": "Recent operator and user actions."
+  },
+  "admin.auditTime": {
+    "other": "Time"
+  },
+  "admin.auditTarget": {
+    "other": "Target"
+  },
+  "admin.auditDetail": {
+    "other": "Detail"
+  },
+  "admin.noAudit": {
+    "other": "No audit entries yet."
+  },
+  "error.quotaExceeded": {
+    "other": "Storage quota exceeded."
+  },
+  "admin.videoDiskUsed": {
+    "other": "Used space for videos"
+  },
+  "admin.videoQuota": {
+    "other": "Storage quota"
+  },
+  "admin.backups": {
+    "other": "Backups"
+  },
+  "admin.lastBackup": {
+    "other": "Last backup"
+  },
+  "video.stats": {
+    "other": "Viewing statistics"
+  },
+  "stats.day": {
+    "other": "Day"
+  },
+  "stats.views": {
+    "other": "Views"
+  },
+  "admin.playlists": {
+    "other": "Playlists"
+  },
+  "admin.playlistsDescription": {
+    "other": "Ordered video series."
+  },
+  "admin.playlistName": {
+    "other": "Playlist name"
+  },
+  "admin.noPlaylists": {
+    "other": "No playlists yet."
+  },
+  "admin.createPlaylist": {
+    "other": "Create playlist"
+  },
+  "admin.playlistItems": {
+    "other": "Series videos"
+  },
+  "admin.playlistVideoID": {
+    "other": "Video ID"
+  },
+  "playlist.empty": {
+    "other": "This playlist has no videos yet."
+  },
+  "playlist.series": {
+    "other": "Series"
+  },
+  "common.up": {
+    "other": "Up"
+  },
+  "common.down": {
+    "other": "Down"
+  },
+  "common.add": {
+    "other": "Add"
+  },
+  "notice.playlistUpdated": {
+    "other": "playlist updated"
+  },
+  "error.playlistNotFound": {
+    "other": "playlist not found"
+  },
+  "error.videoNotFound": {
+    "other": "video not found"
+  },
+  "error.playlistFull": {
+    "other": "playlist is full"
+  },
+  "error.playlistDuplicate": {
+    "other": "video is already in the playlist"
+  },
+  "error.unknownUpload": {
+    "other": "unknown upload"
+  },
+  "error.uploadIncomplete": {
+    "other": "upload is incomplete, retry the missing chunks"
+  },
+  "upload.resuming": {
+    "other": "Resuming upload"
+  },
+  "player.storyboard": {
+    "other": "Seek preview"
   }
 }

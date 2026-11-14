@@ -17,6 +17,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"tiny-tube/store"
 )
@@ -195,6 +196,7 @@ func cmdSetRole(args []string) error {
 		return err
 	}
 	fmt.Printf("role updated: %s -> %s (src=%s active=%v)\n", username, role, u.AuthSource, u.Active)
+	auditCLI(s, "user.role", username, role)
 	return nil
 }
 
@@ -235,6 +237,7 @@ func cmdCreateAPIKey(args []string) error {
 	}
 	// Plaintext is shown once; only its hash is stored.
 	fmt.Printf("api key for %s (%s), prefix %s:\n%s\n", *u, name, prefix, raw)
+	auditCLI(s, "apikey.create", prefix, *u+"/"+name)
 	return nil
 }
 
@@ -287,6 +290,7 @@ func cmdRevokeAPIKey(args []string) error {
 		return err
 	}
 	fmt.Printf("api key revoked: %s\n", *p)
+	auditCLI(s, "apikey.revoke", *p, "")
 	return nil
 }
 
@@ -323,6 +327,20 @@ func getenv(k, def string) string {
 		return v
 	}
 	return def
+}
+
+// auditCLI records an operator action with the local-operator actor. It never
+// fails the command; stores that predate the audit log are simply skipped.
+func auditCLI(s store.AuthStore, action, target, detail string) {
+	if as, ok := s.(store.AuditStore); ok {
+		_ = as.AppendAudit(store.AuditEntry{
+			Time:   time.Now().UTC().Format(time.RFC3339Nano),
+			Actor:  "cli",
+			Action: action,
+			Target: target,
+			Detail: detail,
+		})
+	}
 }
 
 // loadDotEnv applies KEY=VALUE lines from path only for vars not already in

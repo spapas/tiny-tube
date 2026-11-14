@@ -69,6 +69,24 @@ func normalizeQuery(q VideoQuery) VideoQuery {
 	return q
 }
 
+// queryTokens splits normalized query text into whitespace-separated tokens.
+// Every token must appear (as a substring) for a video to match, so a
+// multi-word search finds "Learn Go workshop" for "go learn" on both
+// backends. Single-token queries behave exactly as before.
+func queryTokens(text string) []string {
+	return strings.Fields(text)
+}
+
+// matchTokens reports whether the lowercased haystack contains every token.
+func matchTokens(haystack string, tokens []string) bool {
+	for _, token := range tokens {
+		if !strings.Contains(haystack, token) {
+			return false
+		}
+	}
+	return true
+}
+
 func pageBounds(p *VideoPage, q VideoQuery) (int, int) {
 	pages := (p.Matches + q.PageSize - 1) / q.PageSize
 	if pages < 1 {
@@ -116,7 +134,7 @@ func BrowseVideos(s Store, q VideoQuery) (VideoPage, error) {
 		if q.Category != "" && m.Category != q.Category {
 			continue
 		}
-		if q.Text != "" && !strings.Contains(strings.ToLower(m.Title+" "+m.Desc+" "+m.Category), q.Text) {
+		if q.Text != "" && !matchTokens(strings.ToLower(m.Title+" "+m.Desc+" "+m.Category), queryTokens(q.Text)) {
 			continue
 		}
 		filtered = append(filtered, m)
@@ -189,9 +207,9 @@ func (s *SQLite) BrowseVideos(q VideoQuery) (VideoPage, error) {
 		where += " AND category=?"
 		args = append(args, q.Category)
 	}
-	if q.Text != "" {
+	for _, token := range queryTokens(q.Text) {
 		where += " AND instr(tt_fold(title||' '||description||' '||category),?)>0"
-		args = append(args, q.Text)
+		args = append(args, token)
 	}
 	if err = tx.QueryRow(`SELECT COUNT(*) FROM videos WHERE `+where, args...).Scan(&p.Matches); err != nil {
 		return p, err

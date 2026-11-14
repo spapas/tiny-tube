@@ -17,6 +17,10 @@ type config struct {
 	LDAPUserFilter, LDAPUserDN, LDAPAttrEmail, LDAPAttrFirst, LDAPAttrLast string
 	LDAPSearchBases                                                        []string
 	MaxUploadBytes                                                         int64
+	QuotaBytes                                                             int64
+	BackupDir                                                              string
+	BackupIntervalHours                                                    int
+	BackupKeep                                                             int
 	TranscodeWorkers                                                       int
 	CookieSecure, LDAPAlwaysUpdate                                         bool
 	AuthRequestsPerMinute, UploadTimeoutSeconds, TranscodeTimeoutSeconds   int
@@ -83,6 +87,24 @@ func loadConfig() (config, error) {
 	c.MaxUploadBytes, err = strconv.ParseInt(getenv("MAX_UPLOAD_BYTES", "2147483648"), 10, 64)
 	if err != nil || c.MaxUploadBytes <= 0 {
 		return c, fmt.Errorf("MAX_UPLOAD_BYTES must be a positive integer")
+	}
+	c.QuotaBytes, err = strconv.ParseInt(getenv("VIDEO_DIR_QUOTA_BYTES", "0"), 10, 64)
+	if err != nil || c.QuotaBytes < 0 {
+		return c, fmt.Errorf("VIDEO_DIR_QUOTA_BYTES must be zero (unlimited) or a positive integer")
+	}
+	c.BackupDir = os.Getenv("BACKUP_DIR")
+	for _, setting := range []struct {
+		name, fallback string
+		target         *int
+		max            int
+	}{
+		{"BACKUP_INTERVAL_HOURS", "24", &c.BackupIntervalHours, 168},
+		{"BACKUP_KEEP", "7", &c.BackupKeep, 100},
+	} {
+		*setting.target, err = strconv.Atoi(getenv(setting.name, setting.fallback))
+		if err != nil || *setting.target < 1 || *setting.target > setting.max {
+			return c, fmt.Errorf("%s must be between 1 and %d", setting.name, setting.max)
+		}
 	}
 	c.TranscodeWorkers, err = strconv.Atoi(getenv("TRANSCODE_WORKERS", "1"))
 	if err != nil || c.TranscodeWorkers < 1 || c.TranscodeWorkers > 16 {

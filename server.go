@@ -41,6 +41,9 @@ type application struct {
 	accessMu            sync.RWMutex
 	accessCache         map[string]string
 	userMu              sync.Mutex
+	backupMu            sync.Mutex
+	lastBackup          string
+	lastBackupErr       string
 }
 
 type conversionJob struct {
@@ -130,6 +133,7 @@ func newApplication(cfg config) (*application, error) {
 		a.close()
 		return nil, err
 	}
+	pruneStaleUploads(root)
 	if err = a.ensureAdmin(); err != nil {
 		a.close()
 		return nil, err
@@ -188,6 +192,10 @@ func (a *application) routes() http.Handler {
 		a.renderPage(w, r, uploadTmpl, map[string]any{"Page": "upload", "Title": "upload.title", "MaxUploadBytes": a.cfg.MaxUploadBytes, "AccessLists": lists})
 	})))))
 	mux.Handle("POST /api/upload", a.limited(a.withUser(a.requireEditor(http.HandlerFunc(a.handleUpload)))))
+	mux.Handle("POST /api/uploads", a.limited(a.withUser(a.requireEditor(http.HandlerFunc(a.handleUploadInit)))))
+	mux.Handle("GET /api/uploads/{id}", a.limited(a.withUser(a.requireEditor(http.HandlerFunc(a.handleUploadStatus)))))
+	mux.Handle("POST /api/uploads/{id}/chunk", a.limited(a.withUser(a.requireEditor(http.HandlerFunc(a.handleUploadChunk)))))
+	mux.Handle("POST /api/uploads/{id}/complete", a.limited(a.withUser(a.requireEditor(http.HandlerFunc(a.handleUploadComplete)))))
 	mux.Handle("GET /edit", a.limited(a.withUser(a.requireEditor(http.HandlerFunc(a.handleEditPage)))))
 	mux.Handle("POST /api/edit", a.limited(a.withUser(a.requireEditor(http.HandlerFunc(a.handleEdit)))))
 	mux.Handle("POST /api/transcode/retry", a.limited(a.withUser(a.requireEditor(http.HandlerFunc(a.handleRetryTranscode)))))
@@ -203,6 +211,7 @@ func (a *application) routes() http.Handler {
 	mux.Handle("GET /admin/users", a.limited(a.withUser(a.requireAdmin(http.HandlerFunc(a.handleAdminUsers)))))
 	mux.Handle("GET /admin/users/new", a.limited(a.withUser(a.requireAdmin(http.HandlerFunc(a.handleAdminUserNew)))))
 	mux.Handle("GET /admin/keys", a.limited(a.withUser(a.requireAdmin(http.HandlerFunc(a.handleAdminKeys)))))
+	mux.Handle("GET /admin/audit", a.limited(a.withUser(a.requireAdmin(http.HandlerFunc(a.handleAdminAudit)))))
 	mux.Handle("POST /api/admin/users/create", a.limited(a.withUser(a.requireAdmin(http.HandlerFunc(a.handleAdminCreateUser)))))
 	mux.Handle("POST /api/admin/users/role", a.limited(a.withUser(a.requireAdmin(http.HandlerFunc(a.handleAdminSetRole)))))
 	mux.Handle("POST /api/admin/users/active", a.limited(a.withUser(a.requireAdmin(http.HandlerFunc(a.handleAdminSetActive)))))
@@ -214,6 +223,15 @@ func (a *application) routes() http.Handler {
 	mux.Handle("POST /api/admin/lists/rename", a.limited(a.withUser(a.requireAdmin(http.HandlerFunc(a.handleAdminRenameList)))))
 	mux.Handle("POST /api/admin/lists/rotate", a.limited(a.withUser(a.requireAdmin(http.HandlerFunc(a.handleAdminRotateList)))))
 	mux.Handle("POST /api/admin/lists/delete", a.limited(a.withUser(a.requireAdmin(http.HandlerFunc(a.handleAdminDeleteList)))))
+	mux.Handle("GET /playlist", a.withUser(http.HandlerFunc(a.handlePlaylist)))
+	mux.Handle("GET /admin/playlists", a.limited(a.withUser(a.requireAdmin(http.HandlerFunc(a.handleAdminPlaylists)))))
+	mux.Handle("GET /admin/playlists/edit", a.limited(a.withUser(a.requireAdmin(http.HandlerFunc(a.handleAdminPlaylistEdit)))))
+	mux.Handle("POST /api/admin/playlists/create", a.limited(a.withUser(a.requireAdmin(http.HandlerFunc(a.handleAdminCreatePlaylist)))))
+	mux.Handle("POST /api/admin/playlists/rename", a.limited(a.withUser(a.requireAdmin(http.HandlerFunc(a.handleAdminRenamePlaylist)))))
+	mux.Handle("POST /api/admin/playlists/delete", a.limited(a.withUser(a.requireAdmin(http.HandlerFunc(a.handleAdminDeletePlaylist)))))
+	mux.Handle("POST /api/admin/playlists/items/add", a.limited(a.withUser(a.requireAdmin(http.HandlerFunc(a.handlePlaylistAddItem)))))
+	mux.Handle("POST /api/admin/playlists/items/remove", a.limited(a.withUser(a.requireAdmin(http.HandlerFunc(a.handlePlaylistRemoveItem)))))
+	mux.Handle("POST /api/admin/playlists/items/move", a.limited(a.withUser(a.requireAdmin(http.HandlerFunc(a.handlePlaylistMoveItem)))))
 	mux.Handle("GET /api/videos", a.withUser(http.HandlerFunc(a.handleAPIVideos)))
 	mux.Handle("GET /api/video", a.withUser(http.HandlerFunc(a.handleAPIVideo)))
 	mux.HandleFunc("GET /videos/", a.serveVideo)
@@ -335,6 +353,24 @@ func (a *application) handleWatch(w http.ResponseWriter, r *http.Request) {
 	m.Views = a.countView(r, m.ID, m.Views)
 	data := map[string]any{"Page": "watch", "Title": m.Title, "Video": m}
 	data["CanRetryTranscode"] = a.ffmpegBin != "" && canQueueTranscode(m)
+	if m.HLS != "" {
+		thumbs := filepath.ToSlash(filepath.Join(filepath.Dir(filepath.FromSlash(m.HLS)), "thumbnails.vtt"))
+		if info, err := os.Stat(filepath.Join(a.videoDir, m.ID, filepath.FromSlash(thumbs))); err == nil && info.Size() > 0 {
+			data["Thumbnails"] = thumbs
+		}
+	}
+	if playlistID := strings.TrimSpace(r.URL.Query().Get("playlist")); playlistID != "" {
+		if prev, next := a.playlistNeighbors(w, r, playlistID, m.ID); prev != nil || next != nil {
+			data["PrevVideo"], data["NextVideo"], data["PlaylistID"] = prev, next, playlistID
+		}
+	}
+	if u := currentUser(r); u != nil && u.CanEdit() {
+		if history, err := a.fs.ViewHistory(m.ID, 14); err != nil {
+			log.Printf("view history %s: %v", m.ID, err)
+		} else {
+			data["ViewStats"] = fillStatDays(history, 14)
+		}
+	}
 	if tracks, err := a.subtitleTracks(m.ID); err != nil {
 		log.Printf("read subtitles for %s: %v", m.ID, err)
 	} else {

@@ -130,6 +130,7 @@ func (a *application) handleEdit(w http.ResponseWriter, r *http.Request) {
 		a.apiServerError(w, r, "edit video", err)
 		return
 	}
+	a.audit(r, auditVideoEdit, m.ID, m.Title)
 	if wantsJSON(r) {
 		writeJSON(w, http.StatusOK, map[string]any{"id": m.ID, "title": m.Title, "watch_url": "/watch?id=" + m.ID, "api_url": "/api/video?id=" + m.ID})
 		return
@@ -183,6 +184,7 @@ func (a *application) handleRetryTranscode(w http.ResponseWriter, r *http.Reques
 		return
 	}
 	a.notifyWorkers()
+	a.audit(r, auditVideoRetry, id, "")
 	if wantsJSON(r) {
 		writeJSON(w, http.StatusAccepted, map[string]string{"id": id, "status": m.Status, "watch_url": "/watch?id=" + id})
 		return
@@ -249,6 +251,7 @@ func (a *application) handleDelete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	deleted = true
+	a.audit(r, auditVideoDelete, id, "")
 	if wantsJSON(r) {
 		writeJSON(w, http.StatusOK, map[string]any{"id": id, "deleted": true})
 		return

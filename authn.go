@@ -386,6 +386,7 @@ func (a *application) handleLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	log.Printf("login succeeded for %q (%s)", u.Username, u.AuthSource)
+	a.auditAs(u.Username, auditLogin, "", string(u.AuthSource))
 	http.Redirect(w, r, localRedirectTarget(r.PostForm.Get("next")), http.StatusSeeOther)
 }
 
@@ -414,10 +415,14 @@ func (a *application) handleAPILogin(w http.ResponseWriter, r *http.Request) {
 		a.apiServerError(w, r, "login session", err)
 		return
 	}
+	a.auditAs(u.Username, auditLogin, "", string(u.AuthSource))
 	writeJSON(w, http.StatusOK, map[string]string{"username": u.Username, "role": u.Role})
 }
 
 func (a *application) handleLogout(w http.ResponseWriter, r *http.Request) {
+	if u := currentUser(r); u != nil {
+		a.auditAs(u.Username, auditLogout, "", "")
+	}
 	if cookie, err := r.Cookie(sessionCookieName); err == nil && cookie.Value != "" {
 		_ = a.fs.DeleteSession(hashSessionToken(cookie.Value))
 	}

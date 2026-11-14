@@ -112,6 +112,61 @@
     video.src = base + original;
     video.load();
   }
+  const strip = document.querySelector ? document.querySelector('[data-storyboard]') : null;
+  if (strip && typeof fetch === 'function' && strip.dataset.vtt) {
+    const rail = strip.querySelector('[data-storyboard-strip]');
+    const parseTime = text => {
+      const match = /^(\d+):(\d{2}):(\d{2})\.(\d{3})$/.exec(text);
+      if (!match) return null;
+      return Number(match[1]) * 3600 + Number(match[2]) * 60 + Number(match[3]) + Number(match[4]) / 1000;
+    };
+    const formatClock = seconds => {
+      const whole = Math.floor(seconds);
+      const minutes = String(Math.floor(whole / 60)).padStart(2, '0');
+      return minutes + ':' + String(whole % 60).padStart(2, '0');
+    };
+    fetch(strip.dataset.vtt, { credentials: 'same-origin' }).then(response => {
+      if (!response.ok) throw new Error('no storyboard');
+      return response.text();
+    }).then(text => {
+      if (!rail || typeof document.createElement !== 'function') return;
+      const cues = [];
+      for (const block of text.split(/\r?\n\r?\n/)) {
+        const lines = block.trim().split(/\r?\n/);
+        if (lines.length < 2 || lines[0] === 'WEBVTT') continue;
+        const times = /^(\S+) --> (\S+)/.exec(lines[0]);
+        const fragment = /#xywh=(\d+),(\d+),(\d+),(\d+)$/.exec(lines[lines.length - 1]);
+        const start = times && parseTime(times[1]);
+        if (start === null || !fragment) continue;
+        cues.push({ start, file: lines[lines.length - 1].split("#")[0], x: Number(fragment[1]), y: Number(fragment[2]), w: Number(fragment[3]), h: Number(fragment[4]) });
+      }
+      if (!cues.length) return;
+      const baseURL = strip.dataset.vtt.slice(0, strip.dataset.vtt.lastIndexOf('/') + 1);
+      const stride = Math.max(1, Math.ceil(cues.length / 60));
+      let shown = 0;
+      for (let i = 0; i < cues.length && shown < 60; i += stride, shown++) {
+        const cue = cues[i];
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = 'storyboard-thumb';
+        button.setAttribute('aria-label', formatClock(cue.start));
+        const canvas = document.createElement('canvas');
+        canvas.width = cue.w;
+        canvas.height = cue.h;
+        button.appendChild(canvas);
+        button.addEventListener('click', () => { video.currentTime = cue.start; video.focus({ preventScroll: true }); play(); });
+        rail.appendChild(button);
+        if (typeof Image !== 'undefined') {
+          const image = new Image();
+          image.onload = () => {
+            try { canvas.getContext('2d').drawImage(image, cue.x, cue.y, cue.w, cue.h, 0, 0, cue.w, cue.h); } catch (_) {}
+          };
+          image.src = baseURL + cue.file;
+        }
+      }
+      strip.hidden = false;
+    }).catch(() => {});
+  }
   video.addEventListener('error', fallback);
   if (!hls) { fallback(); return; }
   if (video.canPlayType('application/vnd.apple.mpegurl')) { video.src = base + hls; return; }

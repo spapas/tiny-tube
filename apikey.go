@@ -87,6 +87,7 @@ func (a *application) handleAdminCreateKey(w http.ResponseWriter, r *http.Reques
 		return
 	}
 	log.Printf("admin %q created API key %q for %q", currentUser(r).Username, prefix, username)
+	a.audit(r, auditAPIKeyCreate, prefix, username+"/"+name)
 	// Render (not redirect): the plaintext key must not land in URLs or logs.
 	a.renderAdmin(w, r, map[string]any{"NewAPIKey": raw, "NewAPIKeyUser": username})
 }
@@ -111,6 +112,7 @@ func (a *application) handleAdminRevokeKey(w http.ResponseWriter, r *http.Reques
 		return
 	}
 	log.Printf("admin %q revoked API key %q", currentUser(r).Username, prefix)
+	a.audit(r, auditAPIKeyRevoke, prefix, "")
 	adminRedirectNotice(w, r, "/admin/keys", "notice.keyRevoked")
 }
 

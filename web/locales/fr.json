@@ -948,5 +948,110 @@
   },
   "size.value": {
     "other": "{{.Value}} {{.Unit}}"
+  },
+  "admin.audit": {
+    "other": "Journal d'audit"
+  },
+  "admin.auditDescription": {
+    "other": "Actions récentes des opérateurs et des utilisateurs."
+  },
+  "admin.auditTime": {
+    "other": "Heure"
+  },
+  "admin.auditTarget": {
+    "other": "Objet"
+  },
+  "admin.auditDetail": {
+    "other": "Détail"
+  },
+  "admin.noAudit": {
+    "other": "Aucune entrée pour le moment."
+  },
+  "error.quotaExceeded": {
+    "other": "Quota de stockage dépassé."
+  },
+  "admin.videoDiskUsed": {
+    "other": "Espace vidéo utilisé"
+  },
+  "admin.videoQuota": {
+    "other": "Quota de stockage"
+  },
+  "admin.backups": {
+    "other": "Sauvegardes"
+  },
+  "admin.lastBackup": {
+    "other": "Dernière sauvegarde"
+  },
+  "video.stats": {
+    "other": "Statistiques de visionnage"
+  },
+  "stats.day": {
+    "other": "Jour"
+  },
+  "stats.views": {
+    "other": "Vues"
+  },
+  "admin.playlists": {
+    "other": "Playlists"
+  },
+  "admin.playlistsDescription": {
+    "other": "Séries vidéo ordonnées."
+  },
+  "admin.playlistName": {
+    "other": "Nom de la playlist"
+  },
+  "admin.noPlaylists": {
+    "other": "Aucune playlist pour le moment."
+  },
+  "admin.createPlaylist": {
+    "other": "Créer une playlist"
+  },
+  "admin.playlistItems": {
+    "other": "Vidéos de la série"
+  },
+  "admin.playlistVideoID": {
+    "other": "ID de la vidéo"
+  },
+  "playlist.empty": {
+    "other": "Cette playlist ne contient pas encore de vidéos."
+  },
+  "playlist.series": {
+    "other": "Série"
+  },
+  "common.up": {
+    "other": "Haut"
+  },
+  "common.down": {
+    "other": "Bas"
+  },
+  "common.add": {
+    "other": "Ajouter"
+  },
+  "notice.playlistUpdated": {
+    "other": "playlist mise à jour"
+  },
+  "error.playlistNotFound": {
+    "other": "playlist introuvable"
+  },
+  "error.videoNotFound": {
+    "other": "vidéo introuvable"
+  },
+  "error.playlistFull": {
+    "other": "playlist pleine"
+  },
+  "error.playlistDuplicate": {
+    "other": "la vidéo est déjà dans la playlist"
+  },
+  "error.unknownUpload": {
+    "other": "téléversement inconnu"
+  },
+  "error.uploadIncomplete": {
+    "other": "téléversement incomplet, renvoyez les parties manquantes"
+  },
+  "upload.resuming": {
+    "other": "Reprise du téléversement"
+  },
+  "player.storyboard": {
+    "other": "Aperçu"
   }
 }

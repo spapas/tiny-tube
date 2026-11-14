@@ -5,13 +5,14 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"math"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"runtime"
+	"strconv"
 	"strings"
 	"time"
-
 	"tiny-tube/store"
 )
 
@@ -244,6 +245,9 @@ func (a *application) transcodeToHLS(ctx context.Context, m store.Meta) (string,
 		return "", fmt.Errorf("invalid conversion path")
 	}
 	outDir := filepath.Join(a.videoDir, m.ID)
+	// Faststart the original in place so direct downloads seek immediately.
+	// Failures are non-fatal: the original stays playable as uploaded.
+	a.faststartOriginal(ctx, outDir, m.Original, format)
 	tmp, err := os.MkdirTemp(outDir, ".hls-")
 	if err != nil {
 		return "", err
@@ -256,9 +260,20 @@ func (a *application) transcodeToHLS(ctx context.Context, m store.Meta) (string,
 	}()
 	args := []string{
 		"-nostdin", "-y", "-protocol_whitelist", "file", "-f", format, "-i", filepath.Join(outDir, m.Original),
-		"-c:v", "libx264", "-preset", "veryfast", "-crf", "23", "-vf", "scale=-2:720", "-pix_fmt", "yuv420p",
-		"-c:a", "aac", "-b:a", "128k", "-hls_time", "6", "-hls_playlist_type", "vod",
-		"-hls_segment_filename", filepath.Join(tmp, "seg%03d.ts"), filepath.Join(tmp, "index.m3u8"),
+	}
+	for _, r := range hlsRenditions {
+		if err := os.MkdirAll(filepath.Join(tmp, r.name), 0o755); err != nil {
+			return "", err
+		}
+		args = append(args,
+			"-c:v", "libx264", "-preset", "veryfast", "-crf", "23",
+			"-vf", fmt.Sprintf("scale=-2:'min(%d,ih)'", r.height),
+			"-pix_fmt", "yuv420p",
+			"-c:a", "aac", "-b:a", "128k",
+			"-hls_time", "6", "-hls_playlist_type", "vod",
+			"-hls_segment_filename", filepath.Join(tmp, r.name, "seg%03d.ts"),
+			filepath.Join(tmp, r.name, "index.m3u8"),
+		)
 	}
 	if err = a.runFFmpeg(ctx, a.ffmpegBin, args); err != nil {
 		return "", err
@@ -266,15 +281,16 @@ func (a *application) transcodeToHLS(ctx context.Context, m store.Meta) (string,
 	if ctx.Err() != nil {
 		return "", ctx.Err()
 	}
-	playlist, err := os.ReadFile(filepath.Join(tmp, "index.m3u8"))
-	if err != nil {
+	if err := writeHLSMaster(tmp); err != nil {
 		return "", err
-	}
-	if !strings.HasPrefix(string(playlist), "#EXTM3U") || !strings.Contains(string(playlist), "#EXT-X-ENDLIST") {
-		return "", fmt.Errorf("FFmpeg did not produce a complete VOD playlist")
 	}
 	// Posters share the bounded conversion worker; a missing frame is non-fatal.
 	a.extractPoster(ctx, filepath.Join(outDir, m.Original), filepath.Join(tmp, "poster.jpg"))
+	if ctx.Err() != nil {
+		return "", ctx.Err()
+	}
+	// Seek previews share the worker too; missing storyboards are non-fatal.
+	a.extractThumbnails(ctx, filepath.Join(outDir, m.Original), tmp)
 	if ctx.Err() != nil {
 		return "", ctx.Err()
 	}
@@ -282,7 +298,116 @@ func (a *application) transcodeToHLS(ctx context.Context, m store.Meta) (string,
 	if err = os.Rename(tmp, filepath.Join(outDir, published)); err != nil {
 		return "", err
 	}
-	return published + "/index.m3u8", nil
+	return published + "/master.m3u8", nil
+}
+
+// hlsRenditions lists the published renditions, smallest first. Sources
+// smaller than a rendition are kept at their own height (never upscaled).
+var hlsRenditions = []struct {
+	name   string
+	height int
+}{
+	{"480p", 480},
+	{"720p", 720},
+	{"1080p", 1080},
+}
+
+// writeHLSMaster validates every rendition playlist FFmpeg produced and
+// writes the variant master playlist players use for automatic quality
+// selection. Bandwidths are measured from the actual segments so adaptive
+// switching follows the real bitrates.
+func writeHLSMaster(tmp string) error {
+	var master strings.Builder
+	master.WriteString("#EXTM3U\n#EXT-X-VERSION:3\n")
+	for _, r := range hlsRenditions {
+		data, err := os.ReadFile(filepath.Join(tmp, r.name, "index.m3u8"))
+		if err != nil {
+			return err
+		}
+		if !strings.HasPrefix(string(data), "#EXTM3U") || !strings.Contains(string(data), "#EXT-X-ENDLIST") {
+			return fmt.Errorf("FFmpeg did not produce a complete VOD playlist for %s", r.name)
+		}
+		bandwidth, err := renditionBandwidth(tmp, r.name, string(data))
+		if err != nil {
+			return err
+		}
+		fmt.Fprintf(&master, "#EXT-X-STREAM-INF:BANDWIDTH=%d\n%s/index.m3u8\n", bandwidth, r.name)
+	}
+	return os.WriteFile(filepath.Join(tmp, "master.m3u8"), []byte(master.String()), 0o644)
+}
+
+func renditionBandwidth(tmp, name, playlist string) (int64, error) {
+	var seconds float64
+	var total int64
+	for _, line := range strings.Split(playlist, "\n") {
+		line = strings.TrimSpace(line)
+		if rest, ok := strings.CutPrefix(line, "#EXTINF:"); ok {
+			duration, _, _ := strings.Cut(rest, ",")
+			d, err := strconv.ParseFloat(strings.TrimSpace(duration), 64)
+			if err != nil || d <= 0 {
+				return 0, fmt.Errorf("unparseable segment duration in %s playlist", name)
+			}
+			seconds += d
+		} else if line != "" && !strings.HasPrefix(line, "#") {
+			if strings.ContainsAny(line, `/\`) {
+				return 0, fmt.Errorf("unexpected segment reference in %s playlist", name)
+			}
+			info, err := os.Stat(filepath.Join(tmp, name, line))
+			if err != nil || info.Size() <= 0 {
+				return 0, fmt.Errorf("missing segment in %s playlist", name)
+			}
+			total += info.Size()
+		}
+	}
+	if seconds <= 0 || total <= 0 {
+		return 0, fmt.Errorf("empty %s playlist", name)
+	}
+	if bandwidth := int64(float64(total*8) / seconds); bandwidth > 0 {
+		return bandwidth, nil
+	}
+	return 1, nil
+}
+
+// faststartOriginal remuxes MP4/MOV originals with the moov atom first so
+// direct downloads start and seek without fetching the whole file. It runs
+// inside the bounded conversion worker and shares its cancellation; any
+// failure keeps the uploaded original untouched.
+func (a *application) faststartOriginal(ctx context.Context, outDir, original, format string) {
+	if format != "mov" || a.ffmpegBin == "" {
+		return
+	}
+	src := filepath.Join(outDir, original)
+	tmp, err := os.CreateTemp(outDir, ".faststart-*.mp4")
+	if err != nil {
+		log.Printf("faststart staging %s: %v", original, err)
+		return
+	}
+	name := tmp.Name()
+	tmp.Close()
+	defer func() {
+		if err := os.Remove(name); err != nil && !os.IsNotExist(err) {
+			log.Printf("faststart cleanup: %v", err)
+		}
+	}()
+	args := []string{"-nostdin", "-y", "-protocol_whitelist", "file", "-f", format, "-i", src,
+		"-c", "copy", "-movflags", "faststart", name}
+	if err := a.runFFmpeg(ctx, a.ffmpegBin, args); err != nil {
+		log.Printf("faststart %s: %v", original, err)
+		return
+	}
+	if ctx.Err() != nil {
+		return
+	}
+	info, err := os.Stat(name)
+	if err != nil || info.Size() == 0 {
+		if err != nil {
+			log.Printf("faststart %s: %v", original, err)
+		}
+		return
+	}
+	if err := os.Rename(name, src); err != nil {
+		log.Printf("faststart publish %s: %v", original, err)
+	}
 }
 
 func (a *application) extractPoster(ctx context.Context, src, dst string) {
@@ -308,6 +433,89 @@ func (a *application) extractPoster(ctx context.Context, src, dst string) {
 		log.Printf("poster cleanup: %v", err)
 	}
 	log.Printf("poster unavailable for %s", src)
+}
+
+// extractThumbnails builds seek-preview storyboard sheets (10x10 tiles of
+// 160x90 frames, one frame every ten seconds) and a WebVTT index pointing
+// at each thumbnail. Like posters it shares the bounded conversion worker;
+// any failure keeps HLS and the poster intact.
+func (a *application) extractThumbnails(ctx context.Context, src, tmp string) {
+	if a.ffmpegBin == "" {
+		return
+	}
+	format, err := originalFormat(filepath.Base(src))
+	if err != nil {
+		return
+	}
+	duration, err := playlistDuration(filepath.Join(tmp, "480p", "index.m3u8"))
+	if err != nil || duration <= 0 {
+		log.Printf("storyboard duration %s: %v", src, err)
+		return
+	}
+	thumbs := int(math.Ceil(duration / 10))
+	if thumbs < 1 {
+		return
+	}
+	args := []string{"-nostdin", "-y", "-protocol_whitelist", "file", "-f", format, "-i", src,
+		"-vf", "fps=1/10,scale=160:90:force_original_aspect_ratio=decrease,pad=160:90:(ow-iw)/2:(oh-ih)/2,tile=10x10",
+		"-q:v", "4", filepath.Join(tmp, "sprite-%d.jpg")}
+	if err := a.runFFmpeg(ctx, a.ffmpegBin, args); err != nil {
+		log.Printf("storyboard %s: %v", src, err)
+		return
+	}
+	if ctx.Err() != nil {
+		return
+	}
+	sheets, err := filepath.Glob(filepath.Join(tmp, "sprite-*.jpg"))
+	if err != nil || len(sheets) == 0 {
+		log.Printf("storyboard unavailable for %s", src)
+		return
+	}
+	if max := len(sheets) * 100; thumbs > max {
+		thumbs = max
+	}
+	var vtt strings.Builder
+	vtt.WriteString("WEBVTT\n")
+	for i := 0; i < thumbs; i++ {
+		fmt.Fprintf(&vtt, "\n%s --> %s\nsprite-%d.jpg#xywh=%d,%d,160,90\n",
+			formatVTTTime(float64(i*10)), formatVTTTime(float64((i+1)*10)),
+			i/100+1, (i%100)%10*160, (i%100)/10*90)
+	}
+	if err := os.WriteFile(filepath.Join(tmp, "thumbnails.vtt"), []byte(vtt.String()), 0o644); err != nil {
+		log.Printf("storyboard index %s: %v", src, err)
+	}
+}
+
+// playlistDuration sums EXTINF durations so storyboards can size their cue
+// sheets without probing the original.
+func playlistDuration(path string) (float64, error) {
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return 0, err
+	}
+	var total float64
+	for _, line := range strings.Split(string(data), "\n") {
+		line = strings.TrimSpace(line)
+		rest, ok := strings.CutPrefix(line, "#EXTINF:")
+		if !ok {
+			continue
+		}
+		duration, _, _ := strings.Cut(rest, ",")
+		d, err := strconv.ParseFloat(strings.TrimSpace(duration), 64)
+		if err != nil || d <= 0 {
+			return 0, fmt.Errorf("unparseable segment duration")
+		}
+		total += d
+	}
+	if total <= 0 {
+		return 0, fmt.Errorf("empty playlist")
+	}
+	return total, nil
+}
+
+func formatVTTTime(seconds float64) string {
+	total := int(math.Round(seconds))
+	return fmt.Sprintf("%02d:%02d:%02d.%03d", total/3600, (total/60)%60, total%60, int(math.Round((seconds-math.Floor(seconds))*1000))%1000)
 }
 
 func originalFormat(name string) (string, error) {

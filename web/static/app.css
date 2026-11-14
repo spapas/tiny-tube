@@ -68,6 +68,12 @@ h1, h2, h3 { line-height: 1.2; overflow-wrap: anywhere; }
 .speedbar button { min-width: 44px; min-height: 40px; padding: 7px 10px; border: 1px solid var(--border); border-radius: 6px; background: var(--surface); color: var(--text); }
 .speedbar button:hover { border-color: var(--accent); }
 .speedbar button[aria-pressed="true"] { background: var(--accent); color: var(--surface); border-color: var(--accent); }
+.storyboard { margin: 0 0 20px; }
+.storyboard-label { display: block; margin-bottom: 8px; color: var(--muted); font-size: 12px; }
+.storyboard-strip { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 4px; }
+.storyboard-thumb { flex: 0 0 auto; padding: 0; border: 1px solid var(--border); border-radius: 6px; background: var(--surface); cursor: pointer; overflow: hidden; }
+.storyboard-thumb:hover { border-color: var(--accent); }
+.storyboard-thumb canvas { display: block; width: 160px; height: 90px; }
 .button:disabled { opacity: .6; cursor: wait; transform: none; }
 .text-link { display: inline-flex; gap: 7px; align-items: center; color: var(--accent); font-size: 13px; font-weight: 650; }
 .text-link:hover { text-decoration: underline; }

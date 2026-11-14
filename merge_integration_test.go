@@ -112,6 +112,9 @@ func TestConversionPreservesConcurrentEdit(t *testing.T) {
 			queueVideo(t, a, "editing")
 			started, release := make(chan struct{}, 1), make(chan struct{})
 			a.runFFmpeg = func(ctx context.Context, bin string, args []string) error {
+				if filepath.Ext(args[len(args)-1]) == ".mp4" {
+					return nil
+				}
 				if filepath.Ext(args[len(args)-1]) == ".jpg" {
 					return fakeHLS(ctx, bin, args)
 				}
@@ -153,7 +156,10 @@ func TestDeleteCancelsConversionWithoutResurrection(t *testing.T) {
 			}
 			queueVideo(t, a, "deleting")
 			started := make(chan struct{}, 1)
-			a.runFFmpeg = func(ctx context.Context, _ string, _ []string) error {
+			a.runFFmpeg = func(ctx context.Context, _ string, args []string) error {
+				if filepath.Ext(args[len(args)-1]) == ".mp4" {
+					return nil
+				}
 				started <- struct{}{}
 				<-ctx.Done()
 				return ctx.Err()

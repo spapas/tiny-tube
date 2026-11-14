@@ -1,8 +1,41 @@
 # Changelog
 
+## v2.0.0
+
+### Operations
+
+- Operator audit log at `/admin/audit` covering uploads, edits, deletions,
+  conversions, subtitles, logins, users, API keys and locked lists.
+- Configurable on-disk quota (`VIDEO_DIR_QUOTA_BYTES`) with 413 rejections
+  and usage display in Administration.
+- Scheduled hot backups (`BACKUP_DIR`, `BACKUP_INTERVAL_HOURS`, `BACKUP_KEEP`)
+  with SQLite snapshots, retention and restore documentation.
+
+### Playback
+
+- Adaptive HLS: 480p/720p/1080p renditions behind a measured-bandwidth master
+  playlist with automatic quality selection.
+- MP4/MOV originals are remuxed with `faststart` during conversion.
+- Seek-preview storyboard sheets with a WebVTT index and a clickable watch-page strip.
+
+### Library
+
+- Multi-word search: every word must match, in any order and field, on both backends.
+- Ordered video series at `/playlist` with watch-page previous/next navigation.
+- Per-day view statistics for editors on the watch page.
+
+### Upload
+
+- Resumable chunked uploads (`POST /api/uploads` init/chunk/complete) with
+  progress, retries and reload recovery; single-shot multipart stays as fallback.
+
+[Changes since v1.2.1](https://github.com/spapas/tiny-tube/compare/v1.2.1...v2.0.0)
+
 ## v1.2.1
 
 - Show the application version in the page footer.
+
+[Changes since v1.2.0](https://github.com/spapas/tiny-tube/compare/v1.2.0...v1.2.1)
 
 ## v1.2.0
 

@@ -63,7 +63,33 @@ CREATE TABLE IF NOT EXISTS api_keys (
   key_hash TEXT NOT NULL DEFAULT '',
   created_at TEXT NOT NULL DEFAULT '',
   last_used_at TEXT NOT NULL DEFAULT ''
-)`
+);
+CREATE TABLE IF NOT EXISTS audit_log (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  time TEXT NOT NULL DEFAULT '',
+  actor TEXT NOT NULL DEFAULT '',
+  action TEXT NOT NULL DEFAULT '',
+  target TEXT NOT NULL DEFAULT '',
+  detail TEXT NOT NULL DEFAULT ''
+);
+CREATE INDEX IF NOT EXISTS idx_audit_log_id ON audit_log(id);
+CREATE TABLE IF NOT EXISTS video_views (
+  video_id TEXT NOT NULL,
+  day TEXT NOT NULL DEFAULT '',
+  views INTEGER NOT NULL DEFAULT 0,
+  PRIMARY KEY (video_id, day)
+);
+CREATE TABLE IF NOT EXISTS playlists (
+  id TEXT PRIMARY KEY,
+  name TEXT NOT NULL DEFAULT '',
+  created_at TEXT NOT NULL DEFAULT ''
+);
+CREATE TABLE IF NOT EXISTS playlist_items (
+  playlist_id TEXT NOT NULL,
+  video_id TEXT NOT NULL DEFAULT '',
+  position INTEGER NOT NULL DEFAULT 0,
+  PRIMARY KEY (playlist_id, video_id)
+);`
 
 func NewSQLite(root, path string) (*SQLite, error) {
 	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
@@ -150,6 +176,16 @@ func migrateSQLite(db *sql.DB) error {
 
 func (s *SQLite) Close() error { return s.db.Close() }
 
+// VacuumInto writes a transactionally consistent copy of the database to
+// dest, for hot backups without stopping the server. The parent directory
+// must exist.
+func (s *SQLite) VacuumInto(dest string) error {
+	if _, err := s.db.Exec(`VACUUM INTO ?`, dest); err != nil {
+		return err
+	}
+	return nil
+}
+
 func (s *SQLite) Dir(id string) string { return filepath.Join(s.Root, id) }
 
 // Delete removes media before the row and reports failures from either step.
@@ -162,6 +198,8 @@ func (s *SQLite) Delete(id string) error {
 	if err := removeAllRetry(s.Dir(id)); err != nil {
 		return err
 	}
+	// Stats cleanup is best-effort: the video itself is already gone.
+	_, _ = s.db.Exec(`DELETE FROM video_views WHERE video_id=?`, id)
 	_, err := s.db.Exec(`DELETE FROM videos WHERE id=?`, id)
 	return err
 }
@@ -217,7 +255,7 @@ func (s *SQLite) List(q string) ([]Meta, error) {
 			return nil, err
 		}
 		// Go's Unicode case folding matches the FS backend, including Greek text.
-		if q == "" || strings.Contains(strings.ToLower(m.Title+" "+m.Desc+" "+m.Category), q) {
+		if matchTokens(strings.ToLower(m.Title+" "+m.Desc+" "+m.Category), queryTokens(q)) {
 			out = append(out, m)
 		}
 	}
@@ -503,6 +541,9 @@ func (s *SQLite) IncrementViews(id string) (int64, error) {
 	}
 	var views int64
 	if err := s.db.QueryRow(`SELECT views FROM videos WHERE id=?`, id).Scan(&views); err != nil {
+		return 0, err
+	}
+	if err := s.recordViewDay(id, todayUTC()); err != nil {
 		return 0, err
 	}
 	return views, nil

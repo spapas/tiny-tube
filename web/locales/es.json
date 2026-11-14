@@ -948,5 +948,110 @@
   },
   "size.value": {
     "other": "{{.Value}} {{.Unit}}"
+  },
+  "admin.audit": {
+    "other": "Registro de auditoría"
+  },
+  "admin.auditDescription": {
+    "other": "Acciones recientes de operadores y usuarios."
+  },
+  "admin.auditTime": {
+    "other": "Hora"
+  },
+  "admin.auditTarget": {
+    "other": "Objeto"
+  },
+  "admin.auditDetail": {
+    "other": "Detalle"
+  },
+  "admin.noAudit": {
+    "other": "Aún no hay entradas."
+  },
+  "error.quotaExceeded": {
+    "other": "Cuota de almacenamiento superada."
+  },
+  "admin.videoDiskUsed": {
+    "other": "Espacio de vídeos en uso"
+  },
+  "admin.videoQuota": {
+    "other": "Cuota de almacenamiento"
+  },
+  "admin.backups": {
+    "other": "Copias de seguridad"
+  },
+  "admin.lastBackup": {
+    "other": "Última copia"
+  },
+  "video.stats": {
+    "other": "Estadísticas de visualización"
+  },
+  "stats.day": {
+    "other": "Día"
+  },
+  "stats.views": {
+    "other": "Visualizaciones"
+  },
+  "admin.playlists": {
+    "other": "Listas de reproducción"
+  },
+  "admin.playlistsDescription": {
+    "other": "Series de vídeos ordenadas."
+  },
+  "admin.playlistName": {
+    "other": "Nombre de la lista"
+  },
+  "admin.noPlaylists": {
+    "other": "Aún no hay listas."
+  },
+  "admin.createPlaylist": {
+    "other": "Crear lista"
+  },
+  "admin.playlistItems": {
+    "other": "Vídeos de la serie"
+  },
+  "admin.playlistVideoID": {
+    "other": "ID del vídeo"
+  },
+  "playlist.empty": {
+    "other": "Esta lista aún no tiene vídeos."
+  },
+  "playlist.series": {
+    "other": "Serie"
+  },
+  "common.up": {
+    "other": "Subir"
+  },
+  "common.down": {
+    "other": "Bajar"
+  },
+  "common.add": {
+    "other": "Añadir"
+  },
+  "notice.playlistUpdated": {
+    "other": "lista actualizada"
+  },
+  "error.playlistNotFound": {
+    "other": "lista no encontrada"
+  },
+  "error.videoNotFound": {
+    "other": "vídeo no encontrado"
+  },
+  "error.playlistFull": {
+    "other": "lista llena"
+  },
+  "error.playlistDuplicate": {
+    "other": "el vídeo ya está en la lista"
+  },
+  "error.unknownUpload": {
+    "other": "subida desconocida"
+  },
+  "error.uploadIncomplete": {
+    "other": "subida incompleta, reenvía las partes que faltan"
+  },
+  "upload.resuming": {
+    "other": "Reanudando la subida"
+  },
+  "player.storyboard": {
+    "other": "Vista previa"
   }
 }

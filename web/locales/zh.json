@@ -946,5 +946,110 @@
   },
   "size.value": {
     "other": "{{.Value}} {{.Unit}}"
+  },
+  "admin.audit": {
+    "other": "审计日志"
+  },
+  "admin.auditDescription": {
+    "other": "最近的操作员和用户操作。"
+  },
+  "admin.auditTime": {
+    "other": "时间"
+  },
+  "admin.auditTarget": {
+    "other": "目标"
+  },
+  "admin.auditDetail": {
+    "other": "详情"
+  },
+  "admin.noAudit": {
+    "other": "暂无审计记录。"
+  },
+  "error.quotaExceeded": {
+    "other": "超出存储配额。"
+  },
+  "admin.videoDiskUsed": {
+    "other": "已用视频空间"
+  },
+  "admin.videoQuota": {
+    "other": "存储配额"
+  },
+  "admin.backups": {
+    "other": "备份"
+  },
+  "admin.lastBackup": {
+    "other": "上次备份"
+  },
+  "video.stats": {
+    "other": "观看统计"
+  },
+  "stats.day": {
+    "other": "日期"
+  },
+  "stats.views": {
+    "other": "观看次数"
+  },
+  "admin.playlists": {
+    "other": "播放列表"
+  },
+  "admin.playlistsDescription": {
+    "other": "有序视频系列。"
+  },
+  "admin.playlistName": {
+    "other": "播放列表名称"
+  },
+  "admin.noPlaylists": {
+    "other": "暂无播放列表。"
+  },
+  "admin.createPlaylist": {
+    "other": "创建播放列表"
+  },
+  "admin.playlistItems": {
+    "other": "系列视频"
+  },
+  "admin.playlistVideoID": {
+    "other": "视频 ID"
+  },
+  "playlist.empty": {
+    "other": "此播放列表暂无视频。"
+  },
+  "playlist.series": {
+    "other": "系列"
+  },
+  "common.up": {
+    "other": "上移"
+  },
+  "common.down": {
+    "other": "下移"
+  },
+  "common.add": {
+    "other": "添加"
+  },
+  "notice.playlistUpdated": {
+    "other": "播放列表已更新"
+  },
+  "error.playlistNotFound": {
+    "other": "找不到播放列表"
+  },
+  "error.videoNotFound": {
+    "other": "找不到视频"
+  },
+  "error.playlistFull": {
+    "other": "播放列表已满"
+  },
+  "error.playlistDuplicate": {
+    "other": "视频已在播放列表中"
+  },
+  "error.unknownUpload": {
+    "other": "未知上传"
+  },
+  "error.uploadIncomplete": {
+    "other": "上传不完整，请重发缺失的分块"
+  },
+  "upload.resuming": {
+    "other": "正在恢复上传"
+  },
+  "player.storyboard": {
+    "other": "预览"
   }
 }

@@ -300,11 +300,21 @@ func (set *translationSet) templateFuncs(code string) template.FuncMap {
 		"formatDate": func(created string) string {
 			date, err := time.Parse(time.RFC3339Nano, created)
 			if err != nil {
+				date, err = time.Parse("2006-01-02", created)
+			}
+			if err != nil {
 				return t("date.unknown")
 			}
 			day := printer.Sprintf("%v", number.Decimal(date.Day(), number.NoSeparator()))
 			year := printer.Sprintf("%v", number.Decimal(date.Year(), number.NoSeparator()))
 			return t("date.format", "Day", day, "Month", t(fmt.Sprintf("date.month.%d", date.Month())), "Year", year)
+		},
+		"formatTime": func(created string) string {
+			stamp, err := time.Parse(time.RFC3339Nano, created)
+			if err != nil {
+				return t("date.unknown")
+			}
+			return fmt.Sprintf("%02d:%02d", stamp.Hour(), stamp.Minute())
 		},
 		"formatBytes": func(n int64) string {
 			for _, unit := range []struct {

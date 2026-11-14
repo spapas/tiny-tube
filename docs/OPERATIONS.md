@@ -55,6 +55,24 @@ rehearsal instance at the live files.
 - In a recovery, stop the old service before switching its data paths to
   the verified restore. Keep the old data available until the switch is checked.
 
+### Automatic backups
+
+Set `BACKUP_DIR` to let the server back itself up while running. Every
+`BACKUP_INTERVAL_HOURS` hours (a minute after startup for the first run) it
+writes `BACKUP_DIR/tiny-tube-backup-<timestamp>/` with a copy of `VIDEO_DIR`,
+a transactionally consistent SQLite snapshot (`VACUUM INTO`, so no shutdown
+is needed) and a `manifest.json` recording the release, store backend and
+database location. The newest `BACKUP_KEEP` runs are retained; older ones are
+pruned. The backup holds no `.env`: keep the production `.env` (or the
+equivalent environment) alongside the backup destination, as with stopped
+backups.
+
+Conversions in progress may leave partial staging files in a hot backup;
+restoring one requeues the interrupted jobs on startup like any other
+restart. To restore, stop the service, copy the newest backup's contents back
+over `VIDEO_DIR` (and the external `DB_PATH` when configured), then start and
+run the same readiness, login, playback and list checks as a rehearsal.
+
 ## Linux systemd example
 
 Install the binary and use a dedicated service account. The unit stores

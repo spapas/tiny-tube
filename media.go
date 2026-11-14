@@ -31,6 +31,11 @@ func publicMediaPath(name string) bool {
 		_, ok := subtitleTrackFromFile(parts[2])
 		return ok
 	}
+	// Seek-preview storyboards published by conversion. Arbitrary .vtt files
+	// (including subtitle staging names outside subtitles/) stay blocked.
+	if len(parts) == 3 && parts[2] == "thumbnails.vtt" {
+		return true
+	}
 	switch strings.ToLower(filepath.Ext(name)) {
 	case ".mp4", ".mov", ".mkv", ".webm", ".m3u8", ".ts", ".jpg", ".jpeg", ".png":
 		return true

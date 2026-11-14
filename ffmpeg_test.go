@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"net/http"
@@ -17,14 +18,26 @@ import (
 )
 
 func fakeHLS(ctx context.Context, bin string, args []string) error {
-	playlist := args[len(args)-1]
-	if filepath.Ext(playlist) == ".jpg" {
-		return os.WriteFile(playlist, []byte("fake poster"), 0o644)
+	if last := args[len(args)-1]; filepath.Ext(last) == ".jpg" {
+		// Sprite sheets are covered by the real-FFmpeg test; fakes skip them.
+		if strings.HasPrefix(filepath.Base(last), "sprite-") {
+			return nil
+		}
+		return os.WriteFile(last, []byte("fake poster"), 0o644)
 	}
-	if err := os.WriteFile(filepath.Join(filepath.Dir(playlist), "seg000.ts"), []byte("test segment"), 0o644); err != nil {
-		return err
+	// Fake every rendition playlist the conversion requested.
+	for _, a := range args {
+		if filepath.Ext(a) != ".m3u8" {
+			continue
+		}
+		if err := os.WriteFile(filepath.Join(filepath.Dir(a), "seg000.ts"), []byte("test segment"), 0o644); err != nil {
+			return err
+		}
+		if err := os.WriteFile(a, []byte("#EXTM3U\n#EXTINF:1,\nseg000.ts\n#EXT-X-ENDLIST\n"), 0o644); err != nil {
+			return err
+		}
 	}
-	return os.WriteFile(playlist, []byte("#EXTM3U\n#EXTINF:1,\nseg000.ts\n#EXT-X-ENDLIST\n"), 0o644)
+	return nil
 }
 
 func queueVideo(t *testing.T, a *application, id string) {
@@ -125,6 +138,9 @@ func TestWorkersBoundConversionConcurrency(t *testing.T) {
 	}
 	started, release := make(chan struct{}, jobs), make(chan struct{}, jobs)
 	a.runFFmpeg = func(ctx context.Context, bin string, args []string) error {
+		if filepath.Ext(args[len(args)-1]) == ".mp4" {
+			return nil
+		}
 		if filepath.Ext(args[len(args)-1]) == ".jpg" {
 			return fakeHLS(ctx, bin, args)
 		}
@@ -196,6 +212,9 @@ func TestShutdownRequeuesAndRestartResumes(t *testing.T) {
 	queueVideo(t, a, "interrupted")
 	started := make(chan struct{})
 	a.runFFmpeg = func(ctx context.Context, bin string, args []string) error {
+		if filepath.Ext(args[len(args)-1]) == ".mp4" {
+			return nil
+		}
 		close(started)
 		<-ctx.Done()
 		return ctx.Err()
@@ -302,17 +321,46 @@ func TestRealFFmpegUploadAndHLS(t *testing.T) {
 	if poster.Code != 200 || poster.Body.Len() == 0 || !strings.Contains(poster.Header().Get("Content-Type"), "image/jpeg") {
 		t.Fatalf("invalid poster: %d %d bytes", poster.Code, poster.Body.Len())
 	}
-	playlist := serve(t, a, "GET", base+m.HLS)
-	if playlist.Code != 200 || !strings.Contains(playlist.Header().Get("Content-Type"), "application/vnd.apple.mpegurl") || !strings.Contains(playlist.Body.String(), "#EXT-X-ENDLIST") {
-		t.Fatalf("invalid HLS response: %d %s", playlist.Code, playlist.Body.String())
+	master := serve(t, a, "GET", base+m.HLS)
+	if master.Code != 200 || !strings.Contains(master.Header().Get("Content-Type"), "application/vnd.apple.mpegurl") || !strings.Contains(master.Body.String(), "#EXT-X-STREAM-INF") {
+		t.Fatalf("invalid HLS master: %d %s", master.Code, master.Body.String())
 	}
-	segmentName := filepath.Join(filepath.Dir(m.HLS), "seg000.ts")
+	var rendition string
+	for _, line := range strings.Split(master.Body.String(), "\n") {
+		if line = strings.TrimSpace(line); line != "" && !strings.HasPrefix(line, "#") {
+			if rendition == "" {
+				rendition = line
+			}
+		}
+	}
+	for _, want := range []string{"480p/index.m3u8", "720p/index.m3u8", "1080p/index.m3u8"} {
+		if !strings.Contains(master.Body.String(), want) {
+			t.Fatalf("master playlist missing %s: %s", want, master.Body.String())
+		}
+	}
+	if rendition == "" {
+		t.Fatal("master playlist lists no renditions")
+	}
+	renditionPL := serve(t, a, "GET", base+filepath.ToSlash(filepath.Dir(m.HLS))+"/"+rendition)
+	if renditionPL.Code != 200 || !strings.Contains(renditionPL.Body.String(), "#EXT-X-ENDLIST") {
+		t.Fatalf("invalid rendition playlist: %d %s", renditionPL.Code, renditionPL.Body.String())
+	}
+	var segmentURI string
+	for _, line := range strings.Split(renditionPL.Body.String(), "\n") {
+		if line = strings.TrimSpace(line); line != "" && !strings.HasPrefix(line, "#") {
+			segmentURI = line
+			break
+		}
+	}
+	if segmentURI == "" {
+		t.Fatal("rendition playlist lists no segments")
+	}
+	segmentName := filepath.Join(filepath.Dir(m.HLS), filepath.Dir(rendition), segmentURI)
 	segment := serve(t, a, "GET", base+filepath.ToSlash(segmentName))
 	if segment.Code != 200 || segment.Body.Len() == 0 || !strings.Contains(segment.Header().Get("Content-Type"), "video/mp2t") {
 		t.Fatalf("invalid HLS segment: %d %d bytes", segment.Code, segment.Body.Len())
 	}
-	// The fixture is H.264 4:4:4. Verify the generated stream uses the
-	// widely supported 4:2:0 pixel format even with that input.
+	// The fixture is H.264 4:4:4. Verify the generated stream uses the	// widely supported 4:2:0 pixel format even with that input.
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 	output, err := exec.CommandContext(ctx, a.ffmpegBin, "-nostdin", "-i", filepath.Join(a.videoDir, m.ID, segmentName),
@@ -320,4 +368,65 @@ func TestRealFFmpegUploadAndHLS(t *testing.T) {
 	if err != nil || !strings.Contains(string(output), "fmt:yuv420p ") {
 		t.Fatalf("HLS segment pixel format: %v\n%s", err, output)
 	}
+	// Seek previews: storyboard index and first sprite sheet are served.
+	vtt := serve(t, a, "GET", base+filepath.ToSlash(filepath.Dir(m.HLS))+"/thumbnails.vtt")
+	if vtt.Code != 200 || !strings.Contains(vtt.Header().Get("Content-Type"), "text/vtt") || !strings.Contains(vtt.Body.String(), "WEBVTT") || !strings.Contains(vtt.Body.String(), "sprite-1.jpg#xywh=") {
+		t.Fatalf("invalid storyboard: %d %s", vtt.Code, vtt.Body.String())
+	}
+	sprite := serve(t, a, "GET", base+filepath.ToSlash(filepath.Dir(m.HLS))+"/sprite-1.jpg")
+	if sprite.Code != 200 || sprite.Body.Len() == 0 || !strings.Contains(sprite.Header().Get("Content-Type"), "image/jpeg") {
+		t.Fatalf("invalid sprite sheet: %d %d bytes", sprite.Code, sprite.Body.Len())
+	}
+	watch := serve(t, a, "GET", "/watch?id="+m.ID)
+	if watch.Code != 200 || !strings.Contains(watch.Body.String(), "data-storyboard") {
+		t.Fatalf("watch page missing storyboard: %d", watch.Code)
+	}
+}
+
+func TestFaststartRemuxesMP4(t *testing.T) {
+	bin, err := exec.LookPath("ffmpeg")
+	if err != nil {
+		t.Skip("FFmpeg is not installed")
+	}
+	dir := t.TempDir()
+	original := sampleVideo(t)
+	if err := os.WriteFile(filepath.Join(dir, "original.mp4"), original, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	a := testApplication(t)
+	a.ffmpegBin = bin
+	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
+	defer cancel()
+	a.faststartOriginal(ctx, dir, "original.mp4", "mov")
+	remuxed, err := os.ReadFile(filepath.Join(dir, "original.mp4"))
+	if err != nil || len(remuxed) == 0 {
+		t.Fatalf("remuxed: %v", err)
+	}
+	if !bytes.HasPrefix(remuxed, []byte("\x00\x00\x00 ftyp")) && !bytes.Contains(remuxed[:32], []byte("ftyp")) {
+		t.Fatal("remuxed file is not MP4")
+	}
+	moov, mdat := bytes.Index(remuxed, []byte("moov")), bytes.Index(remuxed, []byte("mdat"))
+	if moov < 0 || mdat < 0 || moov > mdat {
+		t.Fatalf("moov not before mdat: moov=%d mdat=%d", moov, mdat)
+	}
+}
+
+func TestFaststartFailureKeepsOriginal(t *testing.T) {
+	dir := t.TempDir()
+	original := sampleVideo(t)
+	if err := os.WriteFile(filepath.Join(dir, "original.mp4"), original, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	a := testApplication(t)
+	a.ffmpegBin = "fake"
+	a.runFFmpeg = fakeHLS
+	a.faststartOriginal(context.Background(), dir, "original.mp4", "mov")
+	kept, err := os.ReadFile(filepath.Join(dir, "original.mp4"))
+	if err != nil || !bytes.Equal(kept, original) {
+		t.Fatalf("failed remux changed the original: %v", err)
+	}
+	// Non-MP4 containers and missing FFmpeg skip the remux entirely.
+	a.faststartOriginal(context.Background(), dir, "original.mkv", "matroska")
+	a.ffmpegBin = ""
+	a.faststartOriginal(context.Background(), dir, "original.mp4", "mov")
 }

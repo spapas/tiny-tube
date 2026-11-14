@@ -14,6 +14,10 @@
       <div><dt>{{t "admin.apiKeys"}}</dt><dd>{{len .APIKeys}}</dd></div>
       <div><dt>{{t "admin.storage"}}</dt><dd>{{if .StorageOK}}{{t "common.ok"}}{{else}}{{t "common.unavailable"}}{{end}}</dd></div>
       <div><dt>{{t "admin.videoDiskFree"}}</dt><dd>{{if .VideoFreeOK}}{{formatBytes .VideoFree}}{{else}}{{t "common.unavailable"}}{{end}}</dd></div>
+      <div><dt>{{t "admin.videoDiskUsed"}}</dt><dd>{{if .VideoUsedOK}}{{formatBytes .VideoUsed}}{{else}}{{t "common.unavailable"}}{{end}}</dd></div>
+      {{if .QuotaBytes}}<div><dt>{{t "admin.videoQuota"}}</dt><dd>{{formatBytes .QuotaBytes}}</dd></div>{{end}}
+      {{if .BackupDir}}<div><dt>{{t "admin.backups"}}</dt><dd>{{.BackupDir}}</dd></div>
+      <div><dt>{{t "admin.lastBackup"}}</dt><dd>{{if .LastBackup}}{{formatDate .LastBackup}} {{formatTime .LastBackup}}{{else}}{{t "common.never"}}{{end}}{{if .LastBackupError}} — {{.LastBackupError}}{{end}}</dd></div>{{end}}
       {{if .SeparateDB}}<div><dt>{{t "admin.databaseDiskFree"}}</dt><dd>{{if .DBFreeOK}}{{formatBytes .DBFree}}{{else}}{{t "common.unavailable"}}{{end}}</dd></div>{{end}}
       <div><dt>{{t "admin.metadata"}}</dt><dd>{{if .MetadataOK}}{{t "common.ok"}}{{else}}{{t "admin.metadataUnavailable"}}{{end}}</dd></div>
       <div><dt>FFmpeg</dt><dd>{{if .FFmpeg}}{{.FFmpeg}}{{else}}{{t "admin.ffmpegMissing"}}{{end}}</dd></div>
@@ -31,7 +35,9 @@
   <a class="filter-chip{{if eq .AdminSection "users"}} is-selected{{end}}" href="/admin/users"{{if eq .AdminSection "users"}} aria-current="true"{{end}}>{{t "admin.users"}}</a>
   <a class="filter-chip{{if eq .AdminSection "user-new"}} is-selected{{end}}" href="/admin/users/new"{{if eq .AdminSection "user-new"}} aria-current="true"{{end}}>{{t "admin.newUser"}}</a>
   <a class="filter-chip{{if eq .AdminSection "keys"}} is-selected{{end}}" href="/admin/keys"{{if eq .AdminSection "keys"}} aria-current="true"{{end}}>{{t "admin.apiKeys"}}</a>
+  <a class="filter-chip{{if eq .AdminSection "audit"}} is-selected{{end}}" href="/admin/audit"{{if eq .AdminSection "audit"}} aria-current="true"{{end}}>{{t "admin.audit"}}</a>
   <a class="filter-chip{{if eq .AdminSection "lists"}} is-selected{{end}}" href="/admin/lists"{{if eq .AdminSection "lists"}} aria-current="true"{{end}}>{{t "admin.lockedLists"}}</a>
+  <a class="filter-chip{{if eq .AdminSection "playlists"}} is-selected{{end}}" href="/admin/playlists"{{if eq .AdminSection "playlists"}} aria-current="true"{{end}}>{{t "admin.playlists"}}</a>
 </nav>
 {{end}}
 
@@ -203,6 +209,139 @@
       <div class="form-field"><label for="key-username">{{t "auth.username"}}</label><input id="key-username" name="username" type="text" required pattern="[A-Za-z0-9_.-]{1,64}"></div>
       <div class="form-field"><label for="key-name">{{t "admin.keyName"}}</label><input id="key-name" name="name" type="text" required maxlength="100"></div>
       <button class="button button-primary" type="submit">{{t "admin.createKey"}}</button>
+    </form>
+  </section>
+</main>
+{{template "footer" .}}
+</body></html>{{end}}
+
+{{define "admin-audit"}}<!doctype html>
+<html lang="{{.Lang}}" data-theme="light"><head>{{template "head" .}}</head><body>
+{{template "header" .}}
+<main id="main" class="container">
+  <div class="page-heading"><span class="eyebrow muted">{{t "admin.title"}}</span><h1>{{t "admin.audit"}}</h1><p>{{t "admin.auditDescription"}}</p></div>
+  {{template "admin-nav" .}}
+  {{if .Error}}<p class="notice notice-warning" role="alert">{{.Error}}</p>{{end}}
+  {{if .Notice}}<p class="notice notice-info" role="status">{{.Notice}}</p>{{end}}
+  <section aria-labelledby="audit-title">
+    <h2 id="audit-title" class="sr-only">{{t "admin.audit"}}</h2>
+    <div class="table-wrap"><table>
+      <thead><tr><th>{{t "admin.auditTime"}}</th><th>{{t "common.user"}}</th><th>{{t "common.action"}}</th><th>{{t "admin.auditTarget"}}</th><th>{{t "admin.auditDetail"}}</th></tr></thead>
+      <tbody>
+      {{range .AuditEntries}}
+        <tr>
+          <td>{{formatDate .Time}} {{formatTime .Time}}</td>
+          <td>{{.Actor}}</td>
+          <td><code>{{.Action}}</code></td>
+          <td>{{.Target}}</td>
+          <td>{{.Detail}}</td>
+        </tr>
+      {{else}}
+        <tr><td colspan="5">{{t "admin.noAudit"}}</td></tr>
+      {{end}}
+      </tbody>
+    </table></div>
+  </section>
+</main>
+{{template "footer" .}}
+</body></html>{{end}}
+
+{{define "admin-playlists"}}<!doctype html>
+<html lang="{{.Lang}}" data-theme="light"><head>{{template "head" .}}</head><body>
+{{template "header" .}}
+<main id="main" class="container">
+  <div class="page-heading"><span class="eyebrow muted">{{t "admin.title"}}</span><h1>{{t "admin.playlists"}}</h1><p>{{t "admin.playlistsDescription"}}</p></div>
+  {{template "admin-nav" .}}
+  {{if .Error}}<p class="notice notice-warning" role="alert">{{.Error}}</p>{{end}}
+  {{if .Notice}}<p class="notice notice-info" role="status">{{.Notice}}</p>{{end}}
+  <section aria-labelledby="playlists-title">
+    <h2 id="playlists-title" class="sr-only">{{t "admin.playlists"}}</h2>
+    <div class="table-wrap"><table>
+      <thead><tr><th>{{t "common.list"}}</th><th>{{t "common.videos"}}</th><th>{{t "common.rename"}}</th><th>{{t "common.actions"}}</th></tr></thead>
+      <tbody>
+      {{range .Playlists}}
+        <tr>
+          <td><a href="/admin/playlists/edit?id={{.ID}}">{{.Name}}</a><br><span class="field-hint"><code>{{.ID}}</code></span></td>
+          <td>{{len .Items}}</td>
+          <td>
+            <form method="POST" action="/api/admin/playlists/rename">
+              <input type="hidden" name="id" value="{{.ID}}">
+              <label class="sr-only" for="name-{{.ID}}">{{t "admin.playlistName"}}</label>
+              <input id="name-{{.ID}}" name="name" type="text" required maxlength="100" value="{{.Name}}">
+              <button class="button button-quiet" type="submit">{{t "common.rename"}}</button>
+            </form>
+          </td>
+          <td>
+            <form method="POST" action="/api/admin/playlists/delete" data-delete-video>
+              <input type="hidden" name="id" value="{{.ID}}">
+              <button class="button button-danger" type="submit">{{t "common.delete"}}</button>
+            </form>
+          </td>
+        </tr>
+      {{else}}
+        <tr><td colspan="4">{{t "admin.noPlaylists"}}</td></tr>
+      {{end}}
+      </tbody>
+    </table></div>
+    <form method="POST" action="/api/admin/playlists/create">
+      <div class="form-field"><label for="playlist-name">{{t "admin.playlistName"}}</label><input id="playlist-name" name="name" type="text" required maxlength="100"></div>
+      <button class="button button-primary" type="submit">{{t "admin.createPlaylist"}}</button>
+    </form>
+  </section>
+</main>
+{{template "footer" .}}
+</body></html>{{end}}
+
+{{define "admin-playlist-edit"}}<!doctype html>
+<html lang="{{.Lang}}" data-theme="light"><head>{{template "head" .}}</head><body>
+{{template "header" .}}
+<main id="main" class="container">
+  <div class="page-heading"><span class="eyebrow muted">{{t "admin.title"}}</span><h1>{{.Playlist.Name}}</h1><p><code>{{.Playlist.ID}}</code></p></div>
+  {{template "admin-nav" .}}
+  {{if .Error}}<p class="notice notice-warning" role="alert">{{.Error}}</p>{{end}}
+  {{if .Notice}}<p class="notice notice-info" role="status">{{.Notice}}</p>{{end}}
+  <section aria-labelledby="playlist-items-title">
+    <h2 id="playlist-items-title">{{t "admin.playlistItems"}}</h2>
+    <div class="table-wrap"><table>
+      <thead><tr><th>{{t "common.videos"}}</th><th>{{t "common.actions"}}</th></tr></thead>
+      <tbody>
+      {{range .PlaylistItems}}
+        <tr>
+          <td>{{if .Missing}}<code>{{.Meta.ID}}</code> ({{t "common.unavailable"}}){{else}}<a href="/watch?id={{.Meta.ID}}">{{.Meta.Title}}</a>{{end}}</td>
+          <td>
+            <form method="POST" action="/api/admin/playlists/items/move">
+              <input type="hidden" name="id" value="{{$.Playlist.ID}}">
+              <input type="hidden" name="video_id" value="{{.Meta.ID}}">
+              <input type="hidden" name="direction" value="up">
+              <button class="button button-quiet" type="submit" aria-label="{{t "common.up"}}">{{t "common.up"}}</button>
+            </form>
+            <form method="POST" action="/api/admin/playlists/items/move">
+              <input type="hidden" name="id" value="{{$.Playlist.ID}}">
+              <input type="hidden" name="video_id" value="{{.Meta.ID}}">
+              <input type="hidden" name="direction" value="down">
+              <button class="button button-quiet" type="submit" aria-label="{{t "common.down"}}">{{t "common.down"}}</button>
+            </form>
+            <form method="POST" action="/api/admin/playlists/items/remove" data-delete-video>
+              <input type="hidden" name="id" value="{{$.Playlist.ID}}">
+              <input type="hidden" name="video_id" value="{{.Meta.ID}}">
+              <button class="button button-danger" type="submit">{{t "common.delete"}}</button>
+            </form>
+          </td>
+        </tr>
+      {{else}}
+        <tr><td colspan="2">{{t "playlist.empty"}}</td></tr>
+      {{end}}
+      </tbody>
+    </table></div>
+    <form method="POST" action="/api/admin/playlists/items/add">
+      <input type="hidden" name="id" value="{{.Playlist.ID}}">
+      <div class="form-field"><label for="video-id">{{t "admin.playlistVideoID"}}</label><input id="video-id" name="video_id" type="text" required maxlength="64"></div>
+      <button class="button button-primary" type="submit">{{t "common.add"}}</button>
+    </form>
+    <form method="POST" action="/api/admin/playlists/rename">
+      <input type="hidden" name="id" value="{{.Playlist.ID}}">
+      <div class="form-field"><label for="playlist-rename">{{t "admin.playlistName"}}</label><input id="playlist-rename" name="name" type="text" required maxlength="100" value="{{.Playlist.Name}}"></div>
+      <button class="button button-secondary" type="submit">{{t "common.rename"}}</button>
     </form>
   </section>
 </main>

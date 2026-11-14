@@ -1,0 +1,31 @@
+{{define "playlist"}}<!doctype html>
+<html lang="{{.Lang}}" data-theme="light"><head>{{template "head" .}}</head><body>
+{{template "header" .}}
+<main id="main" class="container library-main">
+  <section class="library-hero" aria-labelledby="library-title">
+    <div class="hero-copy">
+      <span class="eyebrow muted">{{t "admin.playlists"}}</span>
+      <h1 id="library-title">{{if .ListName}}{{.ListName}}{{else}}{{t "admin.playlists"}}{{end}}</h1>
+      <p class="hero-description">{{t "admin.playlistsDescription"}}</p>
+    </div>
+    {{if .CurrentUser}}{{if .CurrentUser.CanEdit}}<a class="button button-primary library-upload" href="/upload">{{template "upload-icon"}} {{t "upload.title"}}</a>{{end}}{{end}}
+  </section>
+
+  <section class="library-content" aria-labelledby="videos-title">
+    <div class="section-heading"><h2 id="videos-title">{{t "common.videos"}} <span class="count-bubble">{{len .Items}}</span></h2></div>
+    <div class="video-grid">
+      {{range .Items}}
+      <article class="video-card">
+        <a class="video-card-link" href="/watch?id={{.ID}}&amp;playlist={{$.PlaylistID}}">
+          <div class="video-cover" aria-hidden="true">{{if .Poster}}<img class="video-poster" loading="lazy" src="/videos/{{.ID}}/{{.Poster}}" alt="">{{end}}<span class="cover-type">{{template "film"}} {{t "video.coverLabel"}}</span><span class="cover-play">{{template "play"}}</span></div>
+          <div class="card-body"><div class="card-topline"><span class="card-category">{{if .Category}}{{.Category}}{{else}}{{t "video.uncategorized"}}{{end}}</span>{{if $.CurrentUser}}{{if $.CurrentUser.CanEdit}}<span class="status-badge status-{{statusClass .Status}}"><span></span>{{statusLabel .Status}}</span>{{end}}{{end}}</div><h3>{{.Title}}</h3><p class="card-description">{{if .Desc}}{{.Desc}}{{else}}{{t "video.noDescription"}}{{end}}</p><div class="card-bottom"><span>{{template "clock"}} {{formatDate .Created}}</span><span>{{viewCount .Views}}</span><span class="card-open">{{t "video.watch"}} {{template "arrow"}}</span></div></div>
+        </a>
+      </article>
+      {{else}}
+      <div class="empty-state"><span class="empty-icon">{{template "film"}}</span><h3>{{t "playlist.empty"}}</h3><p><a class="button button-primary" href="/">{{t "library.allVideos"}} {{template "arrow"}}</a></p></div>
+      {{end}}
+    </div>
+  </section>
+</main>
+{{template "footer" .}}
+</body></html>{{end}}

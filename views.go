@@ -6,6 +6,8 @@ import (
 	"net"
 	"net/http"
 	"time"
+
+	"tiny-tube/store"
 )
 
 // View counting: an authorized /watch render adds one view, debounced per
@@ -64,4 +66,26 @@ func (a *application) countView(r *http.Request, id string, current int64) int64
 		return current
 	}
 	return total
+}
+
+// dayStat pairs one UTC day with its view count for the watch-page table.
+type dayStat struct {
+	Day   string
+	Views int64
+}
+
+// fillStatDays builds an oldest-first series of the last days days,
+// filling missing days with zero so the table always covers the window.
+func fillStatDays(history []store.DayViews, days int) []dayStat {
+	byDay := map[string]int64{}
+	for _, h := range history {
+		byDay[h.Day] = h.Views
+	}
+	today := time.Now().UTC()
+	out := make([]dayStat, 0, days)
+	for i := days - 1; i >= 0; i-- {
+		day := today.AddDate(0, 0, -i).Format("2006-01-02")
+		out = append(out, dayStat{Day: day, Views: byDay[day]})
+	}
+	return out
 }
