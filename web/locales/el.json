@@ -1,4 +1,25 @@
 {
+  "admin.videoDiskFree": {
+    "other": "Διαθέσιμος χώρος για βίντεο"
+  },
+  "admin.databaseDiskFree": {
+    "other": "Διαθέσιμος χώρος για τη βάση δεδομένων"
+  },
+  "player.retryTranscode": {
+    "other": "Επανάληψη μετατροπής"
+  },
+  "player.startTranscode": {
+    "other": "Δημιουργία HLS"
+  },
+  "error.transcodeUnavailable": {
+    "other": "Το FFmpeg δεν είναι διαθέσιμο."
+  },
+  "error.transcodeState": {
+    "other": "Το βίντεο δεν μπορεί να μπει στην ουρά μετατροπής στην τρέχουσα κατάστασή του."
+  },
+  "error.transcodeOriginal": {
+    "other": "Το αρχικό αρχείο βίντεο λείπει ή δεν υποστηρίζεται."
+  },
   "language.name": {
     "other": "Ελληνικά"
   },

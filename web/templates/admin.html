@@ -13,8 +13,11 @@
       <div><dt>{{t "admin.users"}}</dt><dd>{{len .Users}}</dd></div>
       <div><dt>{{t "admin.apiKeys"}}</dt><dd>{{len .APIKeys}}</dd></div>
       <div><dt>{{t "admin.storage"}}</dt><dd>{{if .StorageOK}}{{t "common.ok"}}{{else}}{{t "common.unavailable"}}{{end}}</dd></div>
+      <div><dt>{{t "admin.videoDiskFree"}}</dt><dd>{{if .VideoFreeOK}}{{formatBytes .VideoFree}}{{else}}{{t "common.unavailable"}}{{end}}</dd></div>
+      {{if .SeparateDB}}<div><dt>{{t "admin.databaseDiskFree"}}</dt><dd>{{if .DBFreeOK}}{{formatBytes .DBFree}}{{else}}{{t "common.unavailable"}}{{end}}</dd></div>{{end}}
       <div><dt>{{t "admin.metadata"}}</dt><dd>{{if .MetadataOK}}{{t "common.ok"}}{{else}}{{t "admin.metadataUnavailable"}}{{end}}</dd></div>
       <div><dt>FFmpeg</dt><dd>{{if .FFmpeg}}{{.FFmpeg}}{{else}}{{t "admin.ffmpegMissing"}}{{end}}</dd></div>
+      {{range $status := .ConversionStatuses}}<div><dt>{{statusLabel $status}}</dt><dd>{{formatCount (index $.ByStatus $status)}}</dd></div>{{end}}
     </dl>
     <p class="field-hint">{{t "admin.serviceChecks"}} <a class="text-link" href="/readyz">/readyz</a> · <a class="text-link" href="/healthz">/healthz</a></p>
   </section>

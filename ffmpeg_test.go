@@ -3,9 +3,9 @@ package main
 import (
 	"context"
 	"errors"
-	"io"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -54,6 +54,65 @@ func TestFFmpegOverrideAndAbsence(t *testing.T) {
 	}
 	if _, err := resolveFFmpeg(filepath.Join(t.TempDir(), "missing-ffmpeg.exe")); err == nil {
 		t.Fatal("invalid override silently ignored")
+	}
+}
+
+func TestRetryTranscodeReusesOriginalAndPreservesMetadata(t *testing.T) {
+	for _, backend := range []string{"fs", "sqlite"} {
+		t.Run(backend, func(t *testing.T) {
+			a := testApplicationWithStore(t, backend)
+			listID, _ := createLockedList(t, a, "Training")
+			failedID := uploadWithAccessList(t, a, "Keep title", "Training", listID)
+			originalID := uploadWithAccessList(t, a, "Original only", "", "")
+			m, err := a.fs.Get(failedID)
+			if err != nil {
+				t.Fatal(err)
+			}
+			m.Status, m.Error = "failed", "previous failure"
+			if err := a.putMeta(m); err != nil {
+				t.Fatal(err)
+			}
+			editor := testSession(t, a, "tester")
+			testUser(t, a, "reader", "viewer")
+			viewer := testSession(t, a, "reader")
+			post := func(id string, cookie *http.Cookie, origin string, want int) {
+				t.Helper()
+				r := httptest.NewRequest("POST", "/api/transcode/retry", strings.NewReader(url.Values{"id": {id}}.Encode()))
+				r.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+				r.Header.Set("Accept", "application/json")
+				r.Header.Set("Origin", origin)
+				if cookie != nil {
+					r.AddCookie(cookie)
+				}
+				w := httptest.NewRecorder()
+				a.routes().ServeHTTP(w, r)
+				if w.Code != want {
+					t.Fatalf("retry: %d %s, want %d", w.Code, w.Body.String(), want)
+				}
+			}
+			post(failedID, nil, "", 401)
+			post(failedID, viewer, "", 403)
+			post(failedID, editor, "https://other.example", 403)
+			post(failedID, editor, "", 503)
+			a.ffmpegBin, a.runFFmpeg = "fake", fakeHLS
+			watch := serve(t, a, "GET", "/watch?id="+failedID, editor)
+			if !strings.Contains(watch.Body.String(), `action="/api/transcode/retry"`) {
+				t.Fatal("retry action missing from the editor's watch page")
+			}
+			post(failedID, editor, "", 202)
+			post(failedID, editor, "", 409)
+			post(originalID, editor, "", 202)
+			startTestWorkers(t, a)
+			ready := waitStatus(t, a, failedID, "ready")
+			if ready.Title != m.Title || ready.Category != m.Category || ready.AccessList != listID || ready.Error != "" || ready.HLS == "" || ready.Poster == "" {
+				t.Fatalf("retry discarded metadata or did not publish HLS: %+v", ready)
+			}
+			waitStatus(t, a, originalID, "ready")
+			post(failedID, editor, "", 409)
+			if w := serve(t, a, "GET", "/videos/"+failedID+"/"+ready.HLS); w.Code != 404 {
+				t.Fatalf("retry changed media visibility: %d", w.Code)
+			}
+		})
 	}
 }
 
@@ -150,6 +209,11 @@ func TestShutdownRequeuesAndRestartResumes(t *testing.T) {
 	cancel()
 	a.workers.Wait()
 	waitStatus(t, a, "interrupted", "queued")
+	ctx, stop := context.WithCancel(context.Background())
+	stop()
+	if _, found, err := a.claimJob(ctx); found || err != nil {
+		t.Fatalf("canceled worker claimed requeued conversion: found=%v err=%v", found, err)
+	}
 	cfg := a.cfg
 	var err error
 	cfg.FFmpegBin, err = os.Executable() // resolved override; runner is replaced below
@@ -215,20 +279,12 @@ func TestRealFFmpegUploadAndHLS(t *testing.T) {
 	}
 	t.Cleanup(func() { a.close() })
 	startTestWorkers(t, a)
-	server := httptest.NewServer(a.routes())
-	defer server.Close()
-	client := server.Client()
-	client.CheckRedirect = func(r *http.Request, via []*http.Request) error { return http.ErrUseLastResponse }
+	h := a.routes()
 	request := uploadRequest(t, a, "real transcode", "sample.mp4", sampleVideo(t))
-	request.URL, _ = request.URL.Parse(server.URL + "/api/upload")
-	request.RequestURI = ""
-	response, err := client.Do(request)
-	if err != nil {
-		t.Fatal(err)
-	}
-	response.Body.Close()
-	if response.StatusCode != 303 {
-		t.Fatalf("upload: %d", response.StatusCode)
+	response := httptest.NewRecorder()
+	h.ServeHTTP(response, request)
+	if response.Code != 303 {
+		t.Fatalf("upload: %d", response.Code)
 	}
 	items, err := a.fs.List("")
 	if err != nil || len(items) != 1 {
@@ -241,32 +297,27 @@ func TestRealFFmpegUploadAndHLS(t *testing.T) {
 	if m.Poster == "" {
 		t.Fatal("conversion did not publish a poster")
 	}
-	posterResponse, err := client.Get(server.URL + "/videos/" + m.ID + "/" + m.Poster)
-	if err != nil {
-		t.Fatal(err)
+	base := "/videos/" + m.ID + "/"
+	poster := serve(t, a, "GET", base+m.Poster)
+	if poster.Code != 200 || poster.Body.Len() == 0 || !strings.Contains(poster.Header().Get("Content-Type"), "image/jpeg") {
+		t.Fatalf("invalid poster: %d %d bytes", poster.Code, poster.Body.Len())
 	}
-	poster, err := io.ReadAll(posterResponse.Body)
-	posterResponse.Body.Close()
-	if err != nil || posterResponse.StatusCode != 200 || len(poster) == 0 || !strings.Contains(posterResponse.Header.Get("Content-Type"), "image/jpeg") {
-		t.Fatalf("invalid poster: %d %d bytes %v", posterResponse.StatusCode, len(poster), err)
+	playlist := serve(t, a, "GET", base+m.HLS)
+	if playlist.Code != 200 || !strings.Contains(playlist.Header().Get("Content-Type"), "application/vnd.apple.mpegurl") || !strings.Contains(playlist.Body.String(), "#EXT-X-ENDLIST") {
+		t.Fatalf("invalid HLS response: %d %s", playlist.Code, playlist.Body.String())
 	}
-	res, err := client.Get(server.URL + "/videos/" + m.ID + "/" + m.HLS)
-	if err != nil {
-		t.Fatal(err)
+	segmentName := filepath.Join(filepath.Dir(m.HLS), "seg000.ts")
+	segment := serve(t, a, "GET", base+filepath.ToSlash(segmentName))
+	if segment.Code != 200 || segment.Body.Len() == 0 || !strings.Contains(segment.Header().Get("Content-Type"), "video/mp2t") {
+		t.Fatalf("invalid HLS segment: %d %d bytes", segment.Code, segment.Body.Len())
 	}
-	playlist, _ := io.ReadAll(res.Body)
-	res.Body.Close()
-	if res.StatusCode != 200 || !strings.Contains(res.Header.Get("Content-Type"), "application/vnd.apple.mpegurl") || !strings.Contains(string(playlist), "#EXT-X-ENDLIST") {
-		t.Fatalf("invalid HLS response: %d %s", res.StatusCode, playlist)
-	}
-	segmentURL := server.URL + "/videos/" + m.ID + "/" + filepath.ToSlash(filepath.Join(filepath.Dir(m.HLS), "seg000.ts"))
-	res, err = client.Get(segmentURL)
-	if err != nil {
-		t.Fatal(err)
-	}
-	segment, _ := io.ReadAll(res.Body)
-	res.Body.Close()
-	if res.StatusCode != 200 || len(segment) == 0 || !strings.Contains(res.Header.Get("Content-Type"), "video/mp2t") {
-		t.Fatalf("invalid HLS segment: %d %d bytes", res.StatusCode, len(segment))
+	// The fixture is H.264 4:4:4. Verify the generated stream uses the
+	// widely supported 4:2:0 pixel format even with that input.
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	output, err := exec.CommandContext(ctx, a.ffmpegBin, "-nostdin", "-i", filepath.Join(a.videoDir, m.ID, segmentName),
+		"-vf", "showinfo", "-frames:v", "1", "-f", "null", "-").CombinedOutput()
+	if err != nil || !strings.Contains(string(output), "fmt:yuv420p ") {
+		t.Fatalf("HLS segment pixel format: %v\n%s", err, output)
 	}
 }

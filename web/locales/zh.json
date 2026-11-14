@@ -1,4 +1,25 @@
 {
+  "admin.videoDiskFree": {
+    "other": "视频可用磁盘空间"
+  },
+  "admin.databaseDiskFree": {
+    "other": "数据库可用磁盘空间"
+  },
+  "player.retryTranscode": {
+    "other": "重试转换"
+  },
+  "player.startTranscode": {
+    "other": "生成 HLS"
+  },
+  "error.transcodeUnavailable": {
+    "other": "FFmpeg 不可用。"
+  },
+  "error.transcodeState": {
+    "other": "视频当前的状态不允许将其加入转换队列。"
+  },
+  "error.transcodeOriginal": {
+    "other": "原始视频文件不存在或格式不受支持。"
+  },
   "language.name": {
     "other": "中文（简体）"
   },

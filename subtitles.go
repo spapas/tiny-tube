@@ -237,5 +237,5 @@ func (a *application) updateSubtitleFile(id, name string, data []byte) error {
 	if err := errors.Join(syncErr, file.Close()); err != nil {
 		return err
 	}
-	return dir.Rename(tmp, name)
+	return publishSubtitle(video, dir, tmp, name)
 }

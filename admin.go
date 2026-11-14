@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"path/filepath"
 	"strings"
 
 	"tiny-tube/store"
@@ -47,6 +48,13 @@ func (a *application) handleAdmin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	// adminData already read metadata above; success means it is readable.
+	data["ConversionStatuses"] = []string{"queued", "processing", "failed"}
+	videoFree, videoErr := availableDiskBytes(a.videoDir)
+	data["VideoFree"], data["VideoFreeOK"] = videoFree, videoErr == nil
+	if a.cfg.Store != "fs" && filepath.Dir(a.cfg.DBPath) != a.videoDir {
+		dbFree, dbErr := availableDiskBytes(filepath.Dir(a.cfg.DBPath))
+		data["SeparateDB"], data["DBFree"], data["DBFreeOK"] = true, dbFree, dbErr == nil
+	}
 	a.renderPage(w, r, adminTmpl, data)
 }
 

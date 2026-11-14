@@ -113,7 +113,7 @@ update the documentation when an issue is resolved.
 - Proxy media through Go in the Nginx sample so private file/link checks are not
   bypassed. `os.Root` prevents symlink/junction escapes; compare file identities
   to reject database hard links regardless of the URL's extension.
-- Build with patched Go (1.26.10 or 1.27.3+); `go.mod` selects 1.27.3. Preserve
+- Build with patched Go (1.26.11 or 1.27.4+); `go.mod` selects 1.27.4. Preserve
   startup rejection of unpatched builds. Use the real FFmpeg executable; known
   Scoop launchers are resolved to their target for reliable cancellation.
 - Run one server process per video directory. Metadata and job claiming are

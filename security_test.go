@@ -197,7 +197,7 @@ func TestSecurityHeadersApplyToPagesAssetsJSONAndErrors(t *testing.T) {
 	for _, path := range []string{"/", "/upload", "/assets/app.js", "/assets/theme.js", "/api/videos", "/not-found"} {
 		w := httptest.NewRecorder()
 		h.ServeHTTP(w, httptest.NewRequest("GET", path, nil))
-		if w.Header().Get("X-Content-Type-Options") != "nosniff" || w.Header().Get("X-Frame-Options") != "DENY" || w.Header().Get("Referrer-Policy") != "same-origin" {
+		if w.Header().Get("X-Content-Type-Options") != "nosniff" || w.Header().Get("X-Frame-Options") != "DENY" || w.Header().Get("Referrer-Policy") != "strict-origin" {
 			t.Fatal("missing response protections", path, w.Header())
 		}
 		csp := w.Header().Get("Content-Security-Policy")
@@ -252,7 +252,10 @@ func TestPublicMediaRejectsPrivateFilesAndUnsafePaths(t *testing.T) {
 }
 
 func TestMediaCannotFollowLinkOutsideStorage(t *testing.T) {
-	a := testApplication(t)
+	a := testApplicationWithStore(t, "sqlite")
+	if err := a.putMeta(store.Meta{ID: "linked", Title: "Linked", Original: "private.mp4", Status: "ready"}); err != nil {
+		t.Fatal(err)
+	}
 	outside := t.TempDir()
 	if err := os.WriteFile(filepath.Join(outside, "private.mp4"), []byte("must not be public"), 0o600); err != nil {
 		t.Fatal(err)
@@ -352,12 +355,12 @@ func TestSlowUploadIsTerminatedAndCleaned(t *testing.T) {
 }
 
 func TestStartupRejectsUnpatchedGoBuilds(t *testing.T) {
-	for _, version := range []string{"go1.26.0", "go1.26.8", "go1.26.9", "go1.27.1", "go1.27.2", "devel", "unknown"} {
+	for _, version := range []string{"go1.26.0", "go1.26.10", "go1.27.1", "go1.27.3", "devel", "unknown"} {
 		if err := requirePatchedGo(version); err == nil {
 			t.Error("accepted unpatched or unverified build", version)
 		}
 	}
-	for _, version := range []string{"go1.26.10", "go1.27.3", "go1.28.0"} {
+	for _, version := range []string{"go1.26.11", "go1.27.4", "go1.28.0"} {
 		if err := requirePatchedGo(version); err != nil {
 			t.Error("rejected patched build", version, err)
 		}

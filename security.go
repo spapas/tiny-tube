@@ -15,11 +15,11 @@ import (
 const hlsScriptURL = "/assets/hls.min.js?v=1.6.19"
 
 func requirePatchedGo(buildVersion string) error {
-	if version.IsValid(buildVersion) && (version.Compare(buildVersion, "go1.27.3") >= 0 ||
-		(version.Lang(buildVersion) == "go1.26" && version.Compare(buildVersion, "go1.26.10") >= 0)) {
+	if version.IsValid(buildVersion) && (version.Compare(buildVersion, "go1.27.4") >= 0 ||
+		(version.Lang(buildVersion) == "go1.26" && version.Compare(buildVersion, "go1.26.11") >= 0)) {
 		return nil
 	}
-	return fmt.Errorf("rebuild with Go 1.26.10 or Go 1.27.3+ security patches; current build: %s", buildVersion)
+	return fmt.Errorf("rebuild with Go 1.26.11 or Go 1.27.4+ security patches; current build: %s", buildVersion)
 }
 
 func secureHTTP(next http.Handler) http.Handler {
@@ -35,7 +35,8 @@ func secureHTTP(next http.Handler) http.Handler {
 		w.Header().Set("Cache-Control", "private, no-store")
 		w.Header().Add("Vary", "Cookie, Authorization")
 		w.Header().Set("X-Frame-Options", "DENY")
-		w.Header().Set("Referrer-Policy", "same-origin")
+		// Omit paths and query strings while retaining Origin on form POSTs.
+		w.Header().Set("Referrer-Policy", "strict-origin")
 		w.Header().Set("Content-Security-Policy", "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self'; media-src 'self' blob:; connect-src 'self'; worker-src 'self' blob:; object-src 'none'; base-uri 'none'; frame-ancestors 'none'; form-action 'self'")
 		protected.ServeHTTP(w, r)
 	})

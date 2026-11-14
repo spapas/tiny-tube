@@ -82,6 +82,34 @@ func TestLanguageSwitchPreservesLocationAndRejectsInvalidRequests(t *testing.T) 
 	}
 }
 
+func TestConfiguredDefaultLanguage(t *testing.T) {
+	t.Setenv("DEFAULT_LANGUAGE", "en")
+	cfg, err := loadConfig()
+	if err != nil || cfg.DefaultLanguage != "en" {
+		t.Fatalf("load language: %q %v", cfg.DefaultLanguage, err)
+	}
+	a := testApplication(t)
+	a.cfg.DefaultLanguage = cfg.DefaultLanguage
+	r := httptest.NewRequest("GET", "/", nil)
+	r.Header.Set("Accept-Language", "de")
+	w := httptest.NewRecorder()
+	a.routes().ServeHTTP(w, r)
+	if w.Header().Get("Content-Language") != "en" || !strings.Contains(w.Body.String(), `lang="en"`) {
+		t.Fatal("first visit did not use the configured locale")
+	}
+	r = httptest.NewRequest("GET", "/", nil)
+	r.AddCookie(&http.Cookie{Name: languageCookieName, Value: "el"})
+	w = httptest.NewRecorder()
+	a.routes().ServeHTTP(w, r)
+	if w.Header().Get("Content-Language") != "el" {
+		t.Fatal("saved preference did not override the configured locale")
+	}
+	t.Setenv("DEFAULT_LANGUAGE", "unknown")
+	if _, err := loadConfig(); err == nil {
+		t.Fatal("unknown deployment locale was accepted")
+	}
+}
+
 func TestLocalizedPagesAndUserContent(t *testing.T) {
 	a := testApplication(t)
 	a.cfg.MaxUploadBytes = 1536
@@ -257,12 +285,12 @@ func TestAddingLocaleOnlyNeedsCatalog(t *testing.T) {
 	}
 	r := httptest.NewRequest("GET", "/", nil)
 	r.Header.Set("Accept-Language", "fr;q=1,pt-PT;q=0.9,en;q=0.5")
-	if set.requestLanguage(r) != "el" {
+	if set.requestLanguage(r, "el") != "el" {
 		t.Fatal("default language not selected")
 	}
 	r.AddCookie(&http.Cookie{Name: languageCookieName, Value: "pt"})
 	r.Header.Set("Accept-Language", "el")
-	if set.requestLanguage(r) != "pt" {
+	if set.requestLanguage(r, "el") != "pt" {
 		t.Fatal("new locale cookie not accepted")
 	}
 	if set.text("pt", "nav.library") != "Bibliothek" || set.text("pt", "share.copy") != "Copy" || set.text("zz", "share.copy") != "Copy" {

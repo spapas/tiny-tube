@@ -1,4 +1,25 @@
 {
+  "admin.videoDiskFree": {
+    "other": "Available space for videos"
+  },
+  "admin.databaseDiskFree": {
+    "other": "Available space for the database"
+  },
+  "player.retryTranscode": {
+    "other": "Retry conversion"
+  },
+  "player.startTranscode": {
+    "other": "Generate HLS"
+  },
+  "error.transcodeUnavailable": {
+    "other": "FFmpeg is unavailable."
+  },
+  "error.transcodeState": {
+    "other": "This video cannot be queued for conversion in its current state."
+  },
+  "error.transcodeOriginal": {
+    "other": "The original video file is missing or unsupported."
+  },
   "language.name": {
     "other": "English"
   },

@@ -127,7 +127,17 @@ func (a *application) handleUpload(w http.ResponseWriter, r *http.Request) {
 	if a.ffmpegBin != "" {
 		m.Status = "queued"
 	}
-	if err = a.putMeta(m); err != nil {
+	// Keep list validation and metadata publication atomic with list deletion.
+	a.claimMu.Lock()
+	if accessList != "" {
+		if _, ok := a.resolveAccessList(w, r); !ok {
+			a.claimMu.Unlock()
+			return
+		}
+	}
+	err = a.putMeta(m)
+	a.claimMu.Unlock()
+	if err != nil {
 		a.apiServerError(w, r, "save metadata", err)
 		return
 	}

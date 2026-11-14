@@ -2,13 +2,16 @@ package main
 
 import (
 	"bytes"
+	"errors"
 	"mime/multipart"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"os"
 	"regexp"
 	"strings"
 	"testing"
+	"time"
 
 	"tiny-tube/store"
 )
@@ -364,5 +367,119 @@ func TestLockedListUploadRejectsUnknownList(t *testing.T) {
 	a.routes().ServeHTTP(rec, r)
 	if rec.Code != http.StatusBadRequest {
 		t.Fatalf("unknown list accepted: %d", rec.Code)
+	}
+}
+
+type blockedListDelete struct {
+	store.Store
+	entered  chan struct{}
+	resume   chan struct{}
+	resolved chan struct{}
+}
+
+func (s blockedListDelete) GetAccessList(id string) (store.AccessList, error) {
+	list, err := s.Store.GetAccessList(id)
+	if err == nil {
+		select {
+		case s.resolved <- struct{}{}:
+		default:
+		}
+	}
+	return list, err
+}
+
+func (s blockedListDelete) DeleteAccessList(id string) error {
+	close(s.entered)
+	<-s.resume
+	return s.Store.DeleteAccessList(id)
+}
+
+func TestLockedListDeletionSerializesWithAssignments(t *testing.T) {
+	for _, backend := range []string{"fs", "sqlite"} {
+		t.Run(backend, func(t *testing.T) {
+			a := testApplicationWithStore(t, backend)
+			listID, _ := createLockedList(t, a, "Training")
+			id := uploadWithAccessList(t, a, "Existing video", "", "")
+			// A public video is present, so a successful deletion must not let
+			// a simultaneous edit or upload assign the deleted list to a video.
+			body := &bytes.Buffer{}
+			m := multipart.NewWriter(body)
+			if err := m.WriteField("title", "Concurrent upload"); err != nil {
+				t.Fatal(err)
+			}
+			if err := m.WriteField("access_list", listID); err != nil {
+				t.Fatal(err)
+			}
+			part, err := m.CreateFormFile("file", "sample.mp4")
+			if err != nil {
+				t.Fatal(err)
+			}
+			if _, err = part.Write(sampleVideo(t)); err != nil {
+				t.Fatal(err)
+			}
+			if err = m.Close(); err != nil {
+				t.Fatal(err)
+			}
+			cookie := testSession(t, a, "tester")
+			post := func(path string, values url.Values) *http.Request {
+				r := httptest.NewRequest("POST", path, strings.NewReader(values.Encode()))
+				r.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+				r.AddCookie(cookie)
+				return r
+			}
+			upload := httptest.NewRequest("POST", "/api/upload", body)
+			upload.Header.Set("Content-Type", m.FormDataContentType())
+			upload.AddCookie(cookie)
+			blocked := blockedListDelete{
+				Store: a.fs, entered: make(chan struct{}), resume: make(chan struct{}),
+				resolved: make(chan struct{}, 1),
+			}
+			a.fs = blocked
+			defer func() { a.fs = blocked.Store }()
+			h := a.routes()
+			run := func(r *http.Request) <-chan *httptest.ResponseRecorder {
+				done := make(chan *httptest.ResponseRecorder, 1)
+				go func() {
+					w := httptest.NewRecorder()
+					h.ServeHTTP(w, r)
+					done <- w
+				}()
+				return done
+			}
+			deletion := run(post("/api/admin/lists/delete", url.Values{"id": {listID}}))
+			select {
+			case <-blocked.entered:
+			case <-time.After(5 * time.Second):
+				close(blocked.resume)
+				t.Fatal("deletion never reached storage")
+			}
+			lockHeld := !a.claimMu.TryLock()
+			if !lockHeld {
+				a.claimMu.Unlock()
+			}
+			edit := run(post("/api/edit", url.Values{"id": {id}, "title": {"Edited"}, "access_list": {listID}}))
+			uploaded := run(upload)
+			select {
+			case <-blocked.resolved:
+			case <-time.After(5 * time.Second):
+				close(blocked.resume)
+				<-deletion
+				<-edit
+				<-uploaded
+				t.Fatal("upload did not see the list before deletion")
+			}
+			close(blocked.resume)
+			deleted, edited, uploadResult := <-deletion, <-edit, <-uploaded
+			if !lockHeld || deleted.Code != 303 || edited.Code != 400 || uploadResult.Code != 400 {
+				t.Fatalf("lock held=%t, delete=%d, edit=%d, upload=%d", lockHeld, deleted.Code, edited.Code, uploadResult.Code)
+			}
+			if _, err := a.fs.GetAccessList(listID); !errors.Is(err, os.ErrNotExist) {
+				t.Fatalf("list should have been deleted: %v", err)
+			}
+			videos, err := a.fs.List("")
+			if err != nil || len(videos) != 1 || videos[0].AccessList != "" {
+				t.Fatalf("unexpected video state: %+v %v", videos, err)
+			}
+		})
 	}
 }

@@ -147,6 +147,9 @@ func (a *application) startWorkers(ctx context.Context) {
 func (a *application) claimJob(ctx context.Context) (store.Meta, bool, error) {
 	a.claimMu.Lock()
 	defer a.claimMu.Unlock()
+	if ctx.Err() != nil {
+		return store.Meta{}, false, nil
+	}
 	items, err := store.PendingVideos(a.fs, false)
 	if err != nil {
 		return store.Meta{}, false, err
@@ -156,6 +159,9 @@ func (a *application) claimJob(ctx context.Context) (store.Meta, bool, error) {
 		m := items[i]
 		if m.Status != "queued" || a.deleting[m.ID] {
 			continue
+		}
+		if ctx.Err() != nil {
+			return store.Meta{}, false, nil
 		}
 		m.Status, m.Error = "processing", ""
 		if err := a.putMeta(m); err != nil {
@@ -230,6 +236,9 @@ func (a *application) removePublishedHLS(id, hls string) {
 }
 
 func (a *application) transcodeToHLS(ctx context.Context, m store.Meta) (string, error) {
+	if err := ctx.Err(); err != nil {
+		return "", err
+	}
 	format, err := originalFormat(m.Original)
 	if !store.ValidID(m.ID) || err != nil {
 		return "", fmt.Errorf("invalid conversion path")
@@ -247,7 +256,7 @@ func (a *application) transcodeToHLS(ctx context.Context, m store.Meta) (string,
 	}()
 	args := []string{
 		"-nostdin", "-y", "-protocol_whitelist", "file", "-f", format, "-i", filepath.Join(outDir, m.Original),
-		"-c:v", "libx264", "-preset", "veryfast", "-crf", "23", "-vf", "scale=-2:720",
+		"-c:v", "libx264", "-preset", "veryfast", "-crf", "23", "-vf", "scale=-2:720", "-pix_fmt", "yuv420p",
 		"-c:a", "aac", "-b:a", "128k", "-hls_time", "6", "-hls_playlist_type", "vod",
 		"-hls_segment_filename", filepath.Join(tmp, "seg%03d.ts"), filepath.Join(tmp, "index.m3u8"),
 	}
@@ -286,7 +295,7 @@ func (a *application) extractPoster(ctx context.Context, src, dst string) {
 		if seek {
 			args = append(args, "-ss", "1")
 		}
-		args = append(args, "-i", src, "-frames:v", "1", "-vf", "scale=640:-2", "-q:v", "3", dst)
+		args = append(args, "-i", src, "-frames:v", "1", "-vf", "scale=640:-2", "-q:v", "3", "-update", "1", dst)
 		err := a.runFFmpeg(ctx, a.ffmpegBin, args)
 		if ctx.Err() != nil {
 			return

@@ -1,0 +1,24 @@
+[Unit]
+Description=Tiny Tube video library
+After=network.target
+
+[Service]
+User=tiny-tube
+Group=tiny-tube
+WorkingDirectory=/etc/tiny-tube
+ExecStart=/usr/local/bin/tiny-tube
+StateDirectory=tiny-tube
+StateDirectoryMode=0750
+Environment=VIDEO_DIR=/var/lib/tiny-tube/videos
+Restart=on-failure
+RestartSec=5s
+TimeoutStopSec=60s
+KillMode=mixed
+UMask=0027
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectHome=yes
+ProtectSystem=strict
+
+[Install]
+WantedBy=multi-user.target
