@@ -43,6 +43,18 @@ func TestLibraryCategoryAndSearchFilters(t *testing.T) {
 	}
 }
 
+func TestFooterShowsAppVersion(t *testing.T) {
+	a := testApplication(t)
+	w := httptest.NewRecorder()
+	a.routes().ServeHTTP(w, httptest.NewRequest("GET", "/", nil))
+	if w.Code != 200 {
+		t.Fatal(w.Body.String())
+	}
+	if want := "v" + appVersion; !strings.Contains(w.Body.String(), want) {
+		t.Fatalf("library footer does not show the application version %q", want)
+	}
+}
+
 func TestEmbeddedUIAssetsAreServed(t *testing.T) {
 	a := testApplication(t)
 	for _, tc := range []struct{ path, contentType string }{

@@ -43,7 +43,7 @@
 {{end}}
 
 {{define "footer"}}
-<footer class="site-footer container"><span class="footer-brand">Tiny Tube</span><span>{{t "footer.description"}}</span></footer>
+<footer class="site-footer container"><span class="footer-brand">Tiny Tube</span><span>{{t "footer.description"}}</span><span class="footer-version">v{{appVersion}}</span></footer>
 {{end}}
 
 {{define "pagination"}}{{if .PageCount}}{{if gt .PageCount 1}}<nav class="pagination" aria-label="{{t "pagination.label"}}">{{if .PreviousPage}}<a class="button button-secondary" href="{{.PreviousPage}}">{{t "pagination.previous"}}</a>{{end}}<span>{{t "pagination.page" "Page" .PageNumber "Pages" .PageCount}}</span>{{if .NextPage}}<a class="button button-secondary" href="{{.NextPage}}">{{t "pagination.next"}}</a>{{end}}</nav>{{end}}{{end}}{{end}}

@@ -15,6 +15,7 @@ var webFiles embed.FS
 
 var pageTemplates = template.Must(template.New("pages").Funcs(template.FuncMap{
 	"hlsScriptURL":     func() string { return hlsScriptURL },
+	"appVersion":       func() string { return appVersion },
 	"statusClass":      statusClass,
 	"descriptionLines": descriptionLines,
 	"filterURL": func(q, category string) string {

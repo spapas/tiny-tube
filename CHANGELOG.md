@@ -1,5 +1,9 @@
 # Changelog
 
+## v1.2.1
+
+- Show the application version in the page footer.
+
 ## v1.2.0
 
 - Fix subtitle uploads and replacements on Windows when rooted rename returns an invalid handle.

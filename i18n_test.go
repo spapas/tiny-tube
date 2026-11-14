@@ -300,6 +300,7 @@ func TestAddingLocaleOnlyNeedsCatalog(t *testing.T) {
 		t.Fatal("new language plurals failed")
 	}
 	funcs := set.templateFuncs("pt")
+	funcs["appVersion"] = func() string { return appVersion }
 	if funcs["formatBytes"].(func(int64) string)(1536) != "1,5 KiB" || funcs["formatDate"].(func(string) string)("2026-10-25T12:00:00Z") != "25 Okt 2026" {
 		t.Fatal("locale formatting failed")
 	}
