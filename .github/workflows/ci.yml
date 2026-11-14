@@ -127,6 +127,9 @@ jobs:
           if sudo grep -E 'query-sentinel|referrer-sentinel' "$RUNNER_TEMP/tube.access.log"; then
             exit 1
           fi
+      - name: Check locked video playback in Chromium
+        if: runner.os == 'Linux'
+        run: node .github/scripts/temporary-chromium-check.cjs
       - name: Save coverage report
         if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
