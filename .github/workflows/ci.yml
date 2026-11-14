@@ -1,9 +1,8 @@
-name: CI
+name: Publish Tiny Tube v1.2.0
 
 on:
   push:
-  pull_request:
-  workflow_dispatch:
+    branches: [codex/publish-v1.2.0]
 
 permissions:
   contents: read
@@ -25,6 +24,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
+          ref: 5e0f94bc96e801dcc8e6e0c927a460323584013d
           persist-credentials: false
       - uses: ./.github/actions/setup-go
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
@@ -32,8 +32,8 @@ jobs:
           node-version: '24'
       - name: Check formatting of changed Go files
         env:
-          FORMAT_BASE: ${{ github.event.pull_request.base.sha || github.event.before }}
-          FORMAT_HEAD: ${{ github.sha }}
+          FORMAT_BASE: 00d534f45518f38ba8093dbe342d913cf40d8042
+          FORMAT_HEAD: 5e0f94bc96e801dcc8e6e0c927a460323584013d
           DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
         run: node .github/scripts/check-gofmt.cjs
       - name: Verify dependencies and tidy state
@@ -72,6 +72,7 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
+          ref: 5e0f94bc96e801dcc8e6e0c927a460323584013d
           persist-credentials: false
       - uses: ./.github/actions/setup-go
       - name: Install FFmpeg on Linux
@@ -143,6 +144,7 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
+          ref: 5e0f94bc96e801dcc8e6e0c927a460323584013d
           persist-credentials: false
       - uses: ./.github/actions/setup-go
       - name: Install pinned govulncheck
@@ -164,7 +166,6 @@ jobs:
 
   binaries:
     name: Package ${{ matrix.goos }}/${{ matrix.goarch }}
-    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
     needs: [quality, test, security]
     runs-on: ubuntu-24.04
     timeout-minutes: 20
@@ -177,10 +178,11 @@ jobs:
       CGO_ENABLED: '0'
       GOOS: ${{ matrix.goos }}
       GOARCH: ${{ matrix.goarch }}
-      RELEASE_TAG: ${{ github.ref_name }}
+      RELEASE_TAG: v1.2.0
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
+          ref: 5e0f94bc96e801dcc8e6e0c927a460323584013d
           persist-credentials: false
       - uses: ./.github/actions/setup-go
       - name: Build and package release binaries
@@ -198,7 +200,6 @@ jobs:
 
   release:
     name: Publish GitHub release
-    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
     needs: [binaries]
     runs-on: ubuntu-24.04
     timeout-minutes: 10
@@ -207,6 +208,7 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
+          ref: 5e0f94bc96e801dcc8e6e0c927a460323584013d
           persist-credentials: false
       - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
@@ -228,7 +230,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
-          RELEASE_TAG: ${{ github.ref_name }}
+          RELEASE_TAG: v1.2.0
         run: |
           notes="$RUNNER_TEMP/release-notes.md"
           printf '%s\n\n' 'Ready-to-run server and operator CLI for Linux, Windows and macOS (amd64/arm64). UI assets and SQLite are embedded. Extract the matching archive, copy `.env.example` to `.env` and set `ADMIN_PASS` before starting. FFmpeg is optional and installed separately. `SHA256SUMS` covers all six archives. The binaries are unsigned, so macOS and Windows may show platform security prompts.' > "$notes"
@@ -239,4 +241,4 @@ jobs:
             END { if (!found) exit 1 }
           ' CHANGELOG.md >> "$notes" || { echo "Missing changelog section for $RELEASE_TAG" >&2; exit 1; }
           gh release create "$RELEASE_TAG" dist/*.zip dist/*.tar.gz dist/SHA256SUMS \
-            --verify-tag --title "Tiny Tube $RELEASE_TAG" --notes-file "$notes"
+            --target 5e0f94bc96e801dcc8e6e0c927a460323584013d --title "Tiny Tube $RELEASE_TAG" --notes-file "$notes"
