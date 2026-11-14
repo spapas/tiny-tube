@@ -64,7 +64,7 @@ async function run() {
     await check('/api/subtitles/upload', 200, {method:'POST',headers,body:sub});
     await poll(async () => (await (await check('/api/video?id='+id,200,{headers})).json()).hls, 20000, 'HLS');
     console.log('Temporary server provided locked HLS and WebVTT.');
-    const child = spawn(chrome,['--headless=new','--disable-gpu','--disable-dev-shm-usage','--mute-audio','--disable-background-networking',
+    const child = spawn(chrome,['--headless=new','--disable-gpu','--disable-dev-shm-usage','--disable-features=CanPlayHls,BuiltInHlsPlayer','--mute-audio','--disable-background-networking',
       '--no-first-run','--no-default-browser-check','--autoplay-policy=no-user-gesture-required',
       '--remote-debugging-address=127.0.0.1','--remote-debugging-port='+debugPort,
       '--user-data-dir='+path.join(root,'chrome'),'about:blank'], {windowsHide:true,stdio:['ignore','ignore','pipe']});
@@ -93,7 +93,7 @@ async function run() {
       if(outcome.exceptionDetails)throw Error(outcome.exceptionDetails.exception?.description || outcome.exceptionDetails.text);
       return outcome.result.value;
     }
-    await cdp('Network.enable'); await cdp('Runtime.enable');
+    await cdp('Page.enable'); await cdp('Network.enable'); await cdp('Runtime.enable');
     // Select the hls.js branch even on Chromium versions with native HLS.
     await cdp('Page.addScriptToEvaluateOnNewDocument', {source: `{
       window.smokeHLSErrors = [];
@@ -121,7 +121,7 @@ async function run() {
       track.track.mode = 'showing';
       if (track.readyState === 0 || track.readyState === 1) await new Promise((ok,bad) => { track.onload=ok; track.onerror=bad; });
       return { src:v.currentSrc, time:v.currentTime, duration:v.duration, caption:track.track.cues[0]?.text,
-        supported:window.Hls.isSupported(), errors:window.smokeHLSErrors, fallback:document.getElementById('playback-error').textContent };
+        supported:window.Hls.isSupported(), native: v.canPlayType('application/vnd.apple.mpegurl'), errors:window.smokeHLSErrors, fallback:document.getElementById('playback-error').textContent };
     })()`);
     assert.ok(media.supported && media.src.startsWith('blob:') && media.time >= 0.9 && media.duration >= 4, JSON.stringify({...media,src:media.src.startsWith('blob:')?'blob':new URL(media.src).pathname.split('/').pop(), network:requests.filter(r=>/\.(m3u8|ts|mp4)$/.test(r.url)).map(r=>[new URL(r.url).pathname.split('/').pop(),r.status])}));
     assert.equal(media.caption, 'Chromium caption');
