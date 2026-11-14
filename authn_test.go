@@ -287,12 +287,15 @@ func TestAdminDashboardShowsHealth(t *testing.T) {
 	a := testApplication(t)
 	h := a.routes()
 	cookie := loginRequest(t, h, "tester", "test-password")
+	queueVideo(t, a, "queued-video")
 
 	r := httptest.NewRequest("GET", "/admin", nil)
 	r.AddCookie(cookie)
 	w := httptest.NewRecorder()
 	h.ServeHTTP(w, r)
-	if w.Code != 200 || !strings.Contains(w.Body.String(), "/readyz") {
+	if w.Code != 200 || !strings.Contains(w.Body.String(), "/readyz") ||
+		!strings.Contains(w.Body.String(), translate("el", "admin.videoDiskFree")) ||
+		!strings.Contains(w.Body.String(), translate("el", "status.queued")+"</dt><dd>1</dd>") {
 		t.Fatalf("admin overview: %d", w.Code)
 	}
 

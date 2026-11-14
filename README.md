@@ -135,12 +135,11 @@ browser supports the video's format and codecs.
 
 The default address only accepts local connections. For network access, configure
 the address and HTTPS; see [Configuration](#configuration) and the [Nginx example](#optional-nginx-deployment).
-Plan backups of the videos and database; Tiny Tube does not create them
-automatically. See [Security](docs/SECURITY.md) and [remaining limitations](docs/REVIEW.md).
+See the [backup and restore guide](docs/OPERATIONS.md#backup-and-restore)
+and [security notes](docs/SECURITY.md) before storing important recordings.
 
-For a long-running Linux deployment, configure a service with the intended
-working directory, absolute `VIDEO_DIR`, and credentials. If conversion is
-needed, ensure the service can find FFmpeg. A systemd unit is not included.
+For a long-running Linux deployment, see the [systemd example and upgrade
+procedure](docs/OPERATIONS.md#linux-systemd-example).
 
 For operator role fixes without the web UI, the release's `tiny-tube-cli`
 provides `users list` and `users set-role --username U --role admin|editor|viewer`.
@@ -191,6 +190,7 @@ expansion or inline-comment support. `.env` is ignored by Git.
 | Variable | Default | Behavior |
 | --- | --- | --- |
 | `VIDEO_DIR` | `videos` | Video storage; relative paths use the process working directory. |
+| `DEFAULT_LANGUAGE` | `el` | Interface locale for first-time visitors. Use any embedded locale, for example `en`. A saved browser choice takes precedence. |
 | `ADDR` | unset | Full `host:port` bind address, overriding `HOST` and `PORT`. Default effective address is `127.0.0.1:8081`. |
 | `HOST` | `127.0.0.1` | Bind host when `ADDR` is unset. Set `0.0.0.0` explicitly for IPv4 network access. |
 | `PORT` | `8081` | HTTP port when `ADDR` is unset; `PORT=8080` remains supported. |
@@ -254,7 +254,7 @@ deadline. Response writes are limited to `max(30 minutes, UPLOAD_TIMEOUT_SECONDS
 The interface supports English and Greek, Italian, Spanish, French, German and Simplified Chinese, including administration,
 upload validation and player messages. Use the language selector in the header;
 the choice is saved in a browser cookie for one year and works without JavaScript.
-Until a choice is saved, the interface defaults to Greek. Switching preserves the
+Until a choice is saved, the interface uses `DEFAULT_LANGUAGE` (Greek by default). Switching preserves the
 current page, search/filter/pagination parameters and locked-list key.
 Switching reloads the page, so save edits or finish an upload first.
 Dates, file sizes and view/video counts follow the selected language. Titles,
@@ -337,7 +337,11 @@ naturally, so Lesson 2 comes before Lesson 10. The library and API accept
 5. Conversion failures become `failed`, with a visible message and the original
    retained. Pending/interrupted jobs resume on startup if FFmpeg is available;
    otherwise they become `failed`. On graceful shutdown, active conversions are
-   cancelled and requeued. Failed jobs are not automatically retried.
+   cancelled and requeued. With FFmpeg available, editors can retry a failed
+   conversion from the watch page or generate HLS for an original-only video.
+   Both actions reuse the existing upload. In `/admin`, the overview shows
+   the conversion counts and available space for videos and any separately
+   configured SQLite directory.
 
 ## HTTP API
 
@@ -372,7 +376,7 @@ requires the matching role.
 
 | Method | Route | Auth | Description |
 | --- | --- | --- | --- |
-| `POST` | `/language` | none | Form fields `language=<registered locale>` (initially `en` or `el`) and optional site-local `next`; saves the browser language and redirects back. Same-origin protection applies. |
+| `POST` | `/language` | none | Form fields `language=<registered locale>` and optional site-local `next`; saves the browser language and redirects back. Same-origin protection applies. |
 | `POST` | `/api/login` | none | JSON `{"username", "password"}`; sets the session cookie, returns `{"username", "role"}`. |
 | `POST` | `/logout` | session | Revokes the session cookie. |
 | `POST` | `/api/upload` | editor | Multipart fields `title` (required), `desc`, `category`, `file`, `access_list` (empty for public, otherwise a locked-list id). JSON clients get `201` with `id`, `title`, `status`, `original`, `access_list`, `watch_url`, `video_url`, `api_url`. Browsers get `303` to `/watch?id=`. |
@@ -380,6 +384,7 @@ requires the matching role.
 | `GET` | `/api/videos?q=&category=&page=1&page_size=50` | none | JSON fields `total`, `filtered`, `count`, `page`, `page_size`, `pages`, `q`, `category`, `sort`, and `items`, with the same filtering as the library page. Locked videos are excluded unless `?key=…`, an unlock cookie, or an editor/administrator credential is presented. `total` counts all visible videos; `filtered` counts matches; `count` counts this page's items. Use `sort=views` for view count or `sort=title` for title; the default is recency. |
 | `GET` | `/api/video?id=<id>` | none | JSON metadata for one video, including `status` (`queued`/`processing`/`ready`/`failed`), `access_list` and `views`. `404` when missing or locked without access. |
 | `POST` | `/api/edit` | editor | Form fields `id`, `title`, `desc`, `category`, `access_list`. JSON clients get `200` with `id`, `title`, `watch_url`, `api_url`. |
+| `POST` | `/api/transcode/retry` | editor | Form field `id`. Queues a failed or original-only video. JSON clients get `202` with `id`, `status`, and `watch_url`. Returns `409` for an ineligible video or missing original, or `503` when FFmpeg is unavailable. |
 | `POST` | `/api/subtitles/upload` | editor | Multipart fields `id`, `language`, `file`. Adds or replaces the track for that language. The file limit is 1 MiB and the request also respects `MAX_UPLOAD_BYTES`. JSON clients get `200` with `id` and the canonical `language`. |
 | `POST` | `/api/subtitles/delete` | editor | Form fields `id`, `language`. JSON clients get `200` with `id` and `language`, or `404` if the video or track is missing. |
 | `POST` | `/api/delete` | admin | Form field `id`. JSON clients get `200` with `{"id", "deleted": true}`. |
@@ -442,7 +447,7 @@ videos/
       ...
 ```
 
-HLS currently has a single rendition scaled to 720 pixels high, H.264 video,
+HLS currently has a single rendition scaled to 720 pixels high, H.264 4:2:0 video,
 AAC audio, and a target segment duration of six seconds. It is not adaptive
 multi-quality streaming. Originals are kept after conversion.
 
@@ -468,12 +473,16 @@ routes, including `/videos/`, through Go so its private-file and link checks app
 Range/206 and HLS/poster content types are preserved. It is a starting point,
 not a complete deployment configuration:
 
-- Replace the sample hostname and storage path, and configure TLS certificates;
+- Include the sample in the Nginx `http` context. Replace the hostname and
+  configure TLS certificates;
   the configured files must exist before Nginx can start.
 - The sample has a 2 GiB whole-request cap and 300-second inactivity timeouts.
   Keep the proxy cap consistent if changing `MAX_UPLOAD_BYTES`. Upload request
   buffering is disabled to avoid an additional full copy at the proxy.
 - Restrict direct access to the Go port when TLS/auth routing relies on the proxy.
+- The sample access log omits query strings and Referer. Use an equivalent
+  format at any upstream proxy. Restrict access to diagnostic logs and rotate
+  list keys if an older deployment logged full URLs.
 - Go already checks session roles. Additional Nginx upload authentication is
   optional and must not break the session cookie if enabled.
 - Keep SQLite files and their journals private. The example blocks database
@@ -487,8 +496,8 @@ on the deployment machine, then check a real authenticated upload and playback.
 
 ### Run and build from source
 
-In a source checkout, install patched Go 1.26.10 or 1.27.3+; `go.mod` selects
-Go 1.27.3. Copy `.env.example` to `.env` and set the first administrator password
+In a source checkout, install patched Go 1.26.11 or 1.27.4+. `go.mod` selects
+Go 1.27.4. Copy `.env.example` to `.env` and set the first administrator password
 as described in [Installation](#2-configure-the-first-administrator). Then run
 `go run .` from the repository directory, or build an executable:
 
@@ -531,6 +540,8 @@ and can also be started manually from the Actions tab:
 - `gofmt` for changed Go files (matching the scoped-formatting policy), `go vet`,
   module checksum verification and `go mod tidy -diff`.
 - The Node UI behavior suite and syntax checks for embedded JavaScript.
+- Linux validates the sample systemd unit and checks the Nginx sample over
+  local TLS, including that query strings and Referer stay out of the access log.
 - Pinned `govulncheck` scans for Linux, Windows and macOS using the live vulnerability
   database. Database/tool failures fail the job; they are not treated as a pass.
 
@@ -567,11 +578,9 @@ capacity. For manual verification, check search, authenticated upload, conversio
 and browser playback. Use a temporary `VIDEO_DIR` for checks that modify storage.
 
 Contributor guidance is in [AGENTS.md](AGENTS.md). Runtime uploads are ignored by
-Git; only the fixture under `testdata/` remains tracked. Back up video files and
-the SQLite database, including a custom external `DB_PATH`. Stop the server before
-copying a SQLite database, or use SQLite's backup facility; copying only the live
-`.db` file may omit uncheckpointed WAL changes. There is no built-in quota,
-recovery or backup mechanism.
+Git; only the fixture under `testdata/` remains tracked. Use the
+[backup and restore guide](docs/OPERATIONS.md#backup-and-restore) for a consistent
+copy of the media and metadata, including any custom external `DB_PATH`.
 
 HTML templates, styles, and scripts live under `web/` and are embedded in the Go
 executable. No frontend package installation or separate asset deployment is

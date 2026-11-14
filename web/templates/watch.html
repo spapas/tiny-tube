@@ -17,6 +17,9 @@
       <p id="playback-error" class="notice notice-warning" role="status" hidden></p>
       {{if or (eq .Status "queued") (eq .Status "processing")}}<div class="notice notice-info">{{template "info"}}<div><strong>{{if eq .Status "queued"}}{{t "player.queued"}}{{else}}{{t "player.processing"}}{{end}}</strong><p>{{t "player.pendingHint"}}</p></div><a class="text-link" href="/watch?id={{.ID}}">{{t "common.refresh"}}</a></div>{{end}}
       {{if eq .Status "failed"}}<div class="notice notice-warning">{{template "info"}}<div><strong>{{t "player.failed"}}</strong><p>{{t "player.failedHint"}}</p></div></div>{{end}}
+      {{if $.CanRetryTranscode}}{{if $.CurrentUser}}{{if $.CurrentUser.CanEdit}}
+      <form method="POST" action="/api/transcode/retry"><input type="hidden" name="id" value="{{.ID}}"><button class="button button-secondary" type="submit">{{if eq .Status "failed"}}{{t "player.retryTranscode"}}{{else}}{{t "player.startTranscode"}}{{end}}</button></form>
+      {{end}}{{end}}{{end}}
       <div class="watch-title-row"><div><span class="eyebrow muted">{{if .Category}}{{.Category}}{{else}}{{t "watch.eyebrow"}}{{end}}</span><h1 id="video-title">{{.Title}}</h1><div class="watch-meta"><span>{{template "clock"}} {{formatDate .Created}}</span><span>{{viewCount .Views}}</span>{{if $.CurrentUser}}{{if $.CurrentUser.CanEdit}}<span class="status-badge status-{{statusClass .Status}}"><span></span>{{statusLabel .Status}}</span>{{end}}{{end}}</div></div></div>
       <div class="watch-description"><h2>{{t "watch.description"}}</h2><p>{{if .Desc}}{{range $index, $line := descriptionLines .Desc}}{{if $index}}{{"\n"}}{{end}}{{if $line.Fragment}}<a class="chapter-link" href="{{$line.Fragment}}" data-chapter>{{$line.Text}}</a>{{else}}{{$line.Text}}{{end}}{{end}}{{else}}{{t "video.noFullDescription"}}{{end}}</p></div>
       <div class="watch-actions">

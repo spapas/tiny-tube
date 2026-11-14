@@ -1,5 +1,18 @@
 # Changelog
 
+## Unreleased
+
+- Fix subtitle uploads and replacements on Windows when rooted rename returns an invalid handle.
+
+- Serialize locked-list removal with video assignment and omit share keys from sample Nginx access logs.
+- Build with Go 1.27.4 and require the November Go security patches at startup.
+- Retry failed conversions from the watch page or generate HLS for existing original-only videos.
+- Encode new HLS streams as H.264 4:2:0 for browser compatibility.
+- Keep workers from reclaiming conversions already requeued during shutdown.
+- Show free disk space and conversion counts in Administration.
+- Configure the initial interface language with `DEFAULT_LANGUAGE`.
+- Add a Linux systemd example and backup, restore, upgrade and smoke-check instructions.
+
 ## v1.1.0
 
 ### Playback

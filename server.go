@@ -190,6 +190,7 @@ func (a *application) routes() http.Handler {
 	mux.Handle("POST /api/upload", a.limited(a.withUser(a.requireEditor(http.HandlerFunc(a.handleUpload)))))
 	mux.Handle("GET /edit", a.limited(a.withUser(a.requireEditor(http.HandlerFunc(a.handleEditPage)))))
 	mux.Handle("POST /api/edit", a.limited(a.withUser(a.requireEditor(http.HandlerFunc(a.handleEdit)))))
+	mux.Handle("POST /api/transcode/retry", a.limited(a.withUser(a.requireEditor(http.HandlerFunc(a.handleRetryTranscode)))))
 	mux.Handle("POST /api/subtitles/upload", a.limited(a.withUser(a.requireEditor(http.HandlerFunc(a.handleSubtitleUpload)))))
 	mux.Handle("POST /api/subtitles/delete", a.limited(a.withUser(a.requireEditor(http.HandlerFunc(a.handleSubtitleDelete)))))
 	mux.Handle("POST /api/delete", a.limited(a.withUser(a.requireAdmin(http.HandlerFunc(a.handleDelete)))))
@@ -217,7 +218,7 @@ func (a *application) routes() http.Handler {
 	mux.Handle("GET /api/video", a.withUser(http.HandlerFunc(a.handleAPIVideo)))
 	mux.HandleFunc("GET /videos/", a.serveVideo)
 	mux.Handle("GET /assets/", http.StripPrefix("/assets/", http.FileServer(http.FS(staticFiles()))))
-	return secureHTTP(localizedHTTP(mux))
+	return localizedHTTP(secureHTTP(mux), a.cfg.DefaultLanguage)
 }
 
 func render(w http.ResponseWriter, tmpl *template.Template, data any) {
@@ -333,6 +334,7 @@ func (a *application) handleWatch(w http.ResponseWriter, r *http.Request) {
 	}
 	m.Views = a.countView(r, m.ID, m.Views)
 	data := map[string]any{"Page": "watch", "Title": m.Title, "Video": m}
+	data["CanRetryTranscode"] = a.ffmpegBin != "" && canQueueTranscode(m)
 	if tracks, err := a.subtitleTracks(m.ID); err != nil {
 		log.Printf("read subtitles for %s: %v", m.ID, err)
 	} else {
