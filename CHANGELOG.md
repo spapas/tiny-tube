@@ -1,9 +1,8 @@
 # Changelog
 
-## Unreleased
+## v1.2.0
 
 - Fix subtitle uploads and replacements on Windows when rooted rename returns an invalid handle.
-
 - Serialize locked-list removal with video assignment and omit share keys from sample Nginx access logs.
 - Build with Go 1.27.4 and require the November Go security patches at startup.
 - Retry failed conversions from the watch page or generate HLS for existing original-only videos.
@@ -12,6 +11,8 @@
 - Show free disk space and conversion counts in Administration.
 - Configure the initial interface language with `DEFAULT_LANGUAGE`.
 - Add a Linux systemd example and backup, restore, upgrade and smoke-check instructions.
+
+[Changes since v1.1.0](https://github.com/spapas/tiny-tube/compare/v1.1.0...v1.2.0)
 
 ## v1.1.0
 

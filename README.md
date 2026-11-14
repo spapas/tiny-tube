@@ -69,18 +69,18 @@ database server are not required: SQLite and the web interface are included.
 You need a writable video directory with space for originals and generated media.
 
 To verify the download, compare its hash with the matching filename in the
-release's `SHA256SUMS`. For example, for the v1.1.0 amd64 archives:
+release's `SHA256SUMS`. For example, for the v1.2.0 amd64 archives:
 
 ```powershell
 # Windows PowerShell
-Get-FileHash .\tiny-tube-v1.1.0-windows-amd64.zip -Algorithm SHA256
+Get-FileHash .\tiny-tube-v1.2.0-windows-amd64.zip -Algorithm SHA256
 ```
 
 ```sh
 # Linux
-sha256sum tiny-tube-v1.1.0-linux-amd64.tar.gz
+sha256sum tiny-tube-v1.2.0-linux-amd64.tar.gz
 # macOS (use darwin-arm64 for Apple Silicon)
-shasum -a 256 tiny-tube-v1.1.0-darwin-amd64.tar.gz
+shasum -a 256 tiny-tube-v1.2.0-darwin-amd64.tar.gz
 ```
 
 Use the filename for the version and platform you downloaded.
