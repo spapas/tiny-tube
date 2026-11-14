@@ -63,8 +63,8 @@ async function run() {
     sub.set('file', new Blob(['WEBVTT\n\n00:00:00.000 --> 00:00:04.000\nChromium caption\n']), 'test.vtt');
     await check('/api/subtitles/upload', 200, {method:'POST',headers,body:sub});
     await poll(async () => (await (await check('/api/video?id='+id,200,{headers})).json()).hls, 20000, 'HLS');
-    console.log('Temporary Windows server provided locked HLS and WebVTT.');
-    const child = spawn(chrome,['--headless=new','--disable-gpu','--disable-dev-shm-usage','--disable-background-networking',
+    console.log('Temporary server provided locked HLS and WebVTT.');
+    const child = spawn(chrome,['--headless=new','--disable-gpu','--disable-dev-shm-usage','--mute-audio','--disable-background-networking',
       '--no-first-run','--no-default-browser-check','--autoplay-policy=no-user-gesture-required',
       '--remote-debugging-address=127.0.0.1','--remote-debugging-port='+debugPort,
       '--user-data-dir='+path.join(root,'chrome'),'about:blank'], {windowsHide:true,stdio:['ignore','ignore','pipe']});
@@ -94,12 +94,23 @@ async function run() {
       return outcome.result.value;
     }
     await cdp('Network.enable'); await cdp('Runtime.enable');
+    // Select the hls.js branch even on Chromium versions with native HLS.
+    await cdp('Page.addScriptToEvaluateOnNewDocument', {source: `{
+      const original = HTMLMediaElement.prototype.canPlayType;
+      HTMLMediaElement.prototype.canPlayType = function(type) {
+        return type === 'application/vnd.apple.mpegurl' ? '' : original.call(this, type);
+      };
+    }`});
     await cdp('Page.navigate',{url:base+watch});
     await poll(() => evalPage('document.readyState==="complete" && location.pathname==="/watch" && !document.getElementById("v")'), 6000, 'locked page denied');
     await cdp('Page.navigate',{url:base+'/view_list?key='+key});
     await poll(() => evalPage('document.readyState==="complete" && location.pathname==="/view_list"'), 6000, 'locked list opened');
     await cdp('Page.navigate',{url:base+watch+'#t=1'});
-    await poll(() => evalPage('document.querySelector("video")?.readyState >= 3'), 12000, 'Chromium HLS buffering');
+    await poll(async () => {
+      const state = await evalPage('(() => { const v = document.querySelector("video"); return v && { ready:v.readyState, time:v.currentTime, seeking:v.seeking, source:v.currentSrc.split(":")[0], error:v.error?.code }; })()');
+      if (state?.ready >= 3 && state.time >= 0.9 && !state.seeking) return true;
+      throw Error(JSON.stringify(state));
+    }, 15000, 'Chromium HLS seek and buffering');
     const media = await evalPage(String.raw`(async () => {
       const v = document.querySelector('video');
       v.pause();
@@ -109,11 +120,13 @@ async function run() {
       return { src:v.currentSrc, time:v.currentTime, duration:v.duration, caption:track.track.cues[0]?.text,
         supported:window.Hls.isSupported() };
     })()`);
-    assert.ok(media.supported && media.src.startsWith('blob:') && media.time >= 0.9 && media.duration >= 4);
+    assert.ok(media.supported && media.src.startsWith('blob:') && media.time >= 0.9 && media.duration >= 4, JSON.stringify({...media,src:media.src.split(':')[0]}));
     assert.equal(media.caption, 'Chromium caption');
-    assert.ok(requests.some(({url,status}) => url.endsWith('.m3u8') && status===200));
-    assert.ok(requests.some(({url,status}) => url.endsWith('.ts') && status===200));
+    assert.ok(requests.some(({url,status}) => url.endsWith('.m3u8') && (status===200 || status===206)));
+    assert.ok(requests.some(({url,status}) => url.endsWith('.ts') && (status===200 || status===206)));
     assert.deepEqual(failures,[]);
+    await evalPage('document.querySelector("video").play().then(() => true)');
+    await poll(() => evalPage('document.querySelector("video").currentTime > '+(media.time+0.1)), 6000, 'Chromium playback advancement');
     console.log('Chromium passed: locked watch page, list unlock, hls.js manifest and segment, timestamp seek and rendered WebVTT cue.');
   } catch(err) {
     if (browserLogs) console.error(browserLogs.split(/\r?\n/).slice(-9).join('\n'));
