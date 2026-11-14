@@ -11,6 +11,7 @@ import (
 type config struct {
 	VideoDir, Host, Port, FFmpegBin                                        string
 	Addr, Store, DBPath                                                    string
+	DefaultLanguage                                                        string
 	AuthMode, AdminUser, AdminPass                                         string
 	LDAPAddr, LDAPBaseDN, LDAPBindDN, LDAPBindPassword                     string
 	LDAPUserFilter, LDAPUserDN, LDAPAttrEmail, LDAPAttrFirst, LDAPAttrLast string
@@ -38,7 +39,8 @@ func loadConfig() (config, error) {
 		VideoDir: getenv("VIDEO_DIR", "videos"), Host: getenv("HOST", "127.0.0.1"),
 		Port: getenv("PORT", "8081"), FFmpegBin: os.Getenv("FFMPEG_BIN"),
 		Addr: os.Getenv("ADDR"), Store: getenv("STORE", "sqlite"), DBPath: os.Getenv("DB_PATH"),
-		AuthMode: getenv("AUTH_MODE", "local"), AdminUser: getenv("ADMIN_USER", "admin"),
+		DefaultLanguage: getenv("DEFAULT_LANGUAGE", "el"),
+		AuthMode:        getenv("AUTH_MODE", "local"), AdminUser: getenv("ADMIN_USER", "admin"),
 		AdminPass: os.Getenv("ADMIN_PASS"), CookieSecure: getenvBool("COOKIE_SECURE", false),
 		LDAPAddr:   getenv("LDAP_ADDR", "ldap://localhost:389"),
 		LDAPBaseDN: getenv("LDAP_BASE_DN", "dc=example,dc=com"),
@@ -74,6 +76,9 @@ func loadConfig() (config, error) {
 	}
 	if c.Store != "sqlite" && c.Store != "fs" {
 		return c, fmt.Errorf("STORE must be sqlite or fs")
+	}
+	if _, ok := appTranslations.catalogs[c.DefaultLanguage]; !ok {
+		return c, fmt.Errorf("DEFAULT_LANGUAGE must name an embedded locale")
 	}
 	c.MaxUploadBytes, err = strconv.ParseInt(getenv("MAX_UPLOAD_BYTES", "2147483648"), 10, 64)
 	if err != nil || c.MaxUploadBytes <= 0 {

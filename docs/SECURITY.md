@@ -1,10 +1,22 @@
 # Post-merge security recheck — 2026-10-14
 
+The 2026-11-13 follow-up serializes locked-list assignments with list deletion.
+The Nginx sample omits query strings and Referer from its access log, and Go
+sends `Referrer-Policy: strict-origin`. Rotate locked-list keys if a previous
+deployment recorded their full URLs. Protect proxy diagnostic logs separately.
+
+The November follow-up also sets Go 1.27.4 and rejects builds older than
+Go 1.26.11 or 1.27.4. This covers the [November 10 security
+patches](https://go.dev/doc/devel/release#go1.27.4), including the
+`net/http` issue reported by `govulncheck` on Go 1.27.3 (GO-2026-6859).
+The pinned Windows scan with Go 1.27.4 found zero vulnerabilities in called
+code. It reported one advisory in a required module on an uncalled code path.
+
 ## Current follow-up — 2026-10-24
 
 CI now includes live vulnerability scans. Its first run exposed an incorrect
 hosted toolchain selection; setup now explicitly reads and verifies `toolchain`.
-The module selects Go 1.27.3 and startup requires Go 1.26.10 or 1.27.3+, covering
+The module selected Go 1.27.3 and startup required Go 1.26.10 or 1.27.3+, covering
 the [October 19 x509 security fixes](https://go.dev/doc/devel/release#go1.27.3).
 Historical local scan/toolchain statements below retain their original context.
 
@@ -67,7 +79,7 @@ only an uncalled package.
 | Plain file serving followed links outside the storage tree | `os.Root` constrains opens to the media tree. Tests verify an external Windows junction is rejected while its target remains unchanged; the test uses a symlink on Unix. Paths with hidden components, backslashes, NTFS stream syntax, and directory listings are rejected. |
 | A direct Nginx alias bypassed Go's private-file checks | The sample proxies media through Go, preserving Range and MIME behavior. Host (including port) is preserved for origin checks, and incoming forwarding headers are replaced at the proxy. Nginx itself was not available for `nginx -t`. |
 | Unlimited login guesses and client bookkeeping | Login and protected routes enforce a per-socket-IP fixed-window limit before checking credentials or sessions. Valid sessions and forged forwarding headers cannot bypass a cooldown. Client memory is capped at 4096 entries with a bounded shared overflow bucket. Public reads are unaffected. |
-| Missing browser execution/embedding/MIME protections | CSP permits local embedded scripts including the vendored player, with no unsafe-inline/eval exemptions. `nosniff`, frame denial, same-origin referrers and same-origin form actions apply to pages, assets, APIs and errors. Theme startup moved into an embedded external script. |
+| Missing browser execution/embedding/MIME protections | CSP permits local embedded scripts including the vendored player, with no unsafe-inline/eval exemptions. `nosniff`, frame denial, `strict-origin` referrers and same-origin form actions apply to pages, assets, APIs and errors. Theme startup moved into an embedded external script. |
 | Stalled request bodies and conversions could run indefinitely | Header/body/write deadlines are configured. Authenticated uploads get a separate total deadline; the slow-socket test gets 408 with no files left behind. Conversion deadline failures retain originals, clean staging and are not requeued endlessly. |
 | Media input could select unrelated FFmpeg demuxers/protocols | Server-generated original names are validated, the MOV/Matroska demuxer is explicit and only the file protocol is allowed. Invalid names never invoke FFmpeg. Normal MP4/HLS/poster conversion still passes with real FFmpeg. |
 | The local Go 1.27.1 build missed newly released security patches | `go.mod` selects Go 1.27.2. Startup rejects unpatched/unverified builds; patched 1.26.9 is also accepted. The system Go installation was left intact. See [Go's release history](https://go.dev/doc/devel/release#go1.27.2). |

@@ -97,6 +97,36 @@ jobs:
         env:
           CGO_ENABLED: '0'
         run: go build ./...
+      - name: Check Linux deployment examples
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get install --yes --no-install-recommends nginx
+          go build -o "$RUNNER_TEMP/tiny-tube" .
+          sed "s|/usr/local/bin/tiny-tube|$RUNNER_TEMP/tiny-tube|" tiny-tube.service > "$RUNNER_TEMP/tiny-tube.service"
+          systemd-analyze verify "$RUNNER_TEMP/tiny-tube.service"
+          openssl req -x509 -newkey rsa:2048 -nodes -days 1 -subj /CN=localhost -addext 'subjectAltName=DNS:localhost' \
+            -keyout "$RUNNER_TEMP/tube.key" -out "$RUNNER_TEMP/tube.crt"
+          sed -e 's/listen 443 ssl;/listen 127.0.0.1:8443 ssl;/' \
+              -e "s|/etc/pki/tls/certs/tube.example.org.crt|$RUNNER_TEMP/tube.crt|" \
+              -e "s|/etc/pki/tls/private/tube.example.org.key|$RUNNER_TEMP/tube.key|" \
+              -e "s|/var/log/nginx/tiny-tube.access.log|$RUNNER_TEMP/tube.access.log|" \
+              nginx.sample.conf > "$RUNNER_TEMP/tube.conf"
+          printf 'error_log stderr;\npid %s/nginx.pid;\nevents {}\nhttp { include %s/tube.conf; }\n' \
+            "$RUNNER_TEMP" "$RUNNER_TEMP" > "$RUNNER_TEMP/nginx.conf"
+          sudo nginx -t -c "$RUNNER_TEMP/nginx.conf"
+          VIDEO_DIR="$RUNNER_TEMP/deployment-videos" ADDR=127.0.0.1:8081 \
+            ADMIN_PASS="$(openssl rand -hex 24)" "$RUNNER_TEMP/tiny-tube" &
+          tube_pid=$!
+          trap 'kill "$tube_pid" 2>/dev/null || true; sudo nginx -s quit -c "$RUNNER_TEMP/nginx.conf" 2>/dev/null || true' EXIT
+          curl --fail --silent --show-error --retry 15 --retry-connrefused --retry-delay 1 http://127.0.0.1:8081/readyz
+          sudo nginx -c "$RUNNER_TEMP/nginx.conf"
+          curl --fail --silent --show-error --cacert "$RUNNER_TEMP/tube.crt" \
+            --referer 'https://localhost:8443/watch?key=referrer-sentinel' \
+            'https://localhost:8443/healthz?key=query-sentinel'
+          sudo grep -F 'GET /healthz HTTP/' "$RUNNER_TEMP/tube.access.log"
+          if sudo grep -E 'query-sentinel|referrer-sentinel' "$RUNNER_TEMP/tube.access.log"; then
+            exit 1
+          fi
       - name: Save coverage report
         if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2

@@ -137,6 +137,59 @@ func (a *application) handleEdit(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/watch?id="+m.ID, http.StatusSeeOther)
 }
 
+func canQueueTranscode(m store.Meta) bool {
+	return m.HLS == "" && (m.Status == "failed" || m.Status == "ready")
+}
+
+func (a *application) handleRetryTranscode(w http.ResponseWriter, r *http.Request) {
+	if !parseManagementForm(w, r) {
+		return
+	}
+	id := r.PostForm.Get("id")
+	a.claimMu.Lock()
+	defer a.claimMu.Unlock()
+	if a.deleting[id] {
+		writeAPIError(w, r, http.StatusConflict, "error.deletionInProgress")
+		return
+	}
+	m, ok := a.readVideo(w, r, id)
+	if !ok {
+		return
+	}
+	if a.ffmpegBin == "" {
+		writeAPIError(w, r, http.StatusServiceUnavailable, "error.transcodeUnavailable")
+		return
+	}
+	if !canQueueTranscode(m) {
+		writeAPIError(w, r, http.StatusConflict, "error.transcodeState")
+		return
+	}
+	if _, err := originalFormat(m.Original); err != nil {
+		writeAPIError(w, r, http.StatusConflict, "error.transcodeOriginal")
+		return
+	}
+	info, err := a.mediaRoot.Stat(id + "/" + m.Original)
+	if errors.Is(err, os.ErrNotExist) || (err == nil && !info.Mode().IsRegular()) {
+		writeAPIError(w, r, http.StatusConflict, "error.transcodeOriginal")
+		return
+	}
+	if err != nil {
+		a.apiServerError(w, r, "check original for conversion", err)
+		return
+	}
+	m.Status, m.Error = "queued", ""
+	if err := a.putMeta(m); err != nil {
+		a.apiServerError(w, r, "queue video conversion", err)
+		return
+	}
+	a.notifyWorkers()
+	if wantsJSON(r) {
+		writeJSON(w, http.StatusAccepted, map[string]string{"id": id, "status": m.Status, "watch_url": "/watch?id=" + id})
+		return
+	}
+	http.Redirect(w, r, "/watch?id="+id, http.StatusSeeOther)
+}
+
 func (a *application) handleDelete(w http.ResponseWriter, r *http.Request) {
 	if !parseManagementForm(w, r) {
 		return

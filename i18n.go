@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"html/template"
@@ -22,6 +23,8 @@ import (
 
 const languageCookieName = "tiny_tube_language"
 const defaultLanguage = "en"
+
+type languageContextKey struct{}
 
 // Catalogs are standard go-i18n JSON files. English owns the message IDs and
 // source text; adding a locale file automatically registers it everywhere.
@@ -197,11 +200,14 @@ func translate(code, id string, args ...any) string {
 	return appTranslations.text(code, id, args...)
 }
 
-func (set *translationSet) requestLanguage(r *http.Request) string {
+func (set *translationSet) requestLanguage(r *http.Request, preferred string) string {
 	if cookie, err := r.Cookie(languageCookieName); err == nil {
 		if _, ok := set.catalogs[cookie.Value]; ok {
 			return cookie.Value
 		}
+	}
+	if _, ok := set.catalogs[preferred]; ok {
+		return preferred
 	}
 	if _, ok := set.catalogs["el"]; ok {
 		return "el"
@@ -209,7 +215,12 @@ func (set *translationSet) requestLanguage(r *http.Request) string {
 	return defaultLanguage
 }
 
-func requestLanguage(r *http.Request) string { return appTranslations.requestLanguage(r) }
+func requestLanguage(r *http.Request) string {
+	if lang, ok := r.Context().Value(languageContextKey{}).(string); ok {
+		return lang
+	}
+	return appTranslations.requestLanguage(r, "")
+}
 
 func buildBrowserTranslations() map[string][]byte {
 	script, err := webFiles.ReadFile("web/static/i18n.js")
@@ -249,10 +260,12 @@ func serveTranslations(w http.ResponseWriter, r *http.Request) {
 	_, _ = w.Write(script)
 }
 
-func localizedHTTP(next http.Handler) http.Handler {
+func localizedHTTP(next http.Handler, preferred string) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		lang := appTranslations.requestLanguage(r, preferred)
+		r = r.WithContext(context.WithValue(r.Context(), languageContextKey{}, lang))
 		if !strings.HasPrefix(r.URL.Path, "/assets/") && !strings.HasPrefix(r.URL.Path, "/videos/") && r.URL.Path != "/healthz" && r.URL.Path != "/readyz" {
-			w.Header().Set("Content-Language", requestLanguage(r))
+			w.Header().Set("Content-Language", lang)
 			w.Header().Add("Vary", "Cookie")
 		}
 		next.ServeHTTP(w, r)
@@ -316,8 +329,9 @@ func (set *translationSet) templateFuncs(code string) template.FuncMap {
 			}
 			return t("status." + status)
 		},
-		"videoCount": func(n int) string { return t("count.videos", "Count", n) },
-		"viewCount":  func(n int64) string { return t("count.views", "Count", n) },
+		"formatCount": func(n int) string { return printer.Sprintf("%d", n) },
+		"videoCount":  func(n int) string { return t("count.videos", "Count", n) },
+		"viewCount":   func(n int64) string { return t("count.views", "Count", n) },
 	}
 }
 

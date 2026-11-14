@@ -365,6 +365,8 @@ func (a *application) handleAdminRenameList(w http.ResponseWriter, r *http.Reque
 	if !a.parseListForm(w, r) {
 		return
 	}
+	a.claimMu.Lock()
+	defer a.claimMu.Unlock()
 	id := strings.TrimSpace(r.PostForm.Get("id"))
 	name := strings.TrimSpace(r.PostForm.Get("name"))
 	if !store.ValidAccessListID(id) || !store.ValidAccessListName(name) {
@@ -395,6 +397,8 @@ func (a *application) handleAdminRotateList(w http.ResponseWriter, r *http.Reque
 	if !a.parseListForm(w, r) {
 		return
 	}
+	a.claimMu.Lock()
+	defer a.claimMu.Unlock()
 	id := strings.TrimSpace(r.PostForm.Get("id"))
 	if !store.ValidAccessListID(id) {
 		adminRedirectError(w, r, "/admin/lists", "error.invalidList")
@@ -429,6 +433,9 @@ func (a *application) handleAdminDeleteList(w http.ResponseWriter, r *http.Reque
 	if !a.parseListForm(w, r) {
 		return
 	}
+	// Upload and edit take the same lock when assigning a list.
+	a.claimMu.Lock()
+	defer a.claimMu.Unlock()
 	id := strings.TrimSpace(r.PostForm.Get("id"))
 	if !store.ValidAccessListID(id) {
 		adminRedirectError(w, r, "/admin/lists", "error.invalidList")
@@ -439,15 +446,11 @@ func (a *application) handleAdminDeleteList(w http.ResponseWriter, r *http.Reque
 		a.apiServerError(w, r, "list videos", err)
 		return
 	}
-	held := 0
 	for _, m := range videos {
 		if m.AccessList == id {
-			held++
+			adminRedirectError(w, r, "/admin/lists", "error.listHasVideos")
+			return
 		}
-	}
-	if held > 0 {
-		adminRedirectError(w, r, "/admin/lists", "error.listHasVideos")
-		return
 	}
 	if err := a.fs.DeleteAccessList(id); err != nil {
 		if errors.Is(err, os.ErrNotExist) || errors.Is(err, os.ErrInvalid) {

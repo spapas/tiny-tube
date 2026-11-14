@@ -1,4 +1,25 @@
 {
+  "admin.videoDiskFree": {
+    "other": "Freier Speicherplatz für Videos"
+  },
+  "admin.databaseDiskFree": {
+    "other": "Freier Speicherplatz für die Datenbank"
+  },
+  "player.retryTranscode": {
+    "other": "Konvertierung erneut starten"
+  },
+  "player.startTranscode": {
+    "other": "HLS erstellen"
+  },
+  "error.transcodeUnavailable": {
+    "other": "FFmpeg ist nicht verfügbar."
+  },
+  "error.transcodeState": {
+    "other": "Das Video kann im aktuellen Zustand nicht zur Konvertierung eingereiht werden."
+  },
+  "error.transcodeOriginal": {
+    "other": "Die Originaldatei fehlt oder wird nicht unterstützt."
+  },
   "language.name": {
     "other": "Deutsch"
   },

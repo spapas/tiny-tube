@@ -1,5 +1,36 @@
 # Project review and fixes — 2026-10-14
 
+## Windows subtitle publication — 2026-11-14
+
+If the rooted rename returns an invalid handle, Windows publishes the staged
+subtitle with a same-directory rename after opening and verifying both the
+video and subtitle directories. The fallback refuses directory reparse points
+and holds both directories open without delete sharing during publication.
+Subtitle reads and deletion still use `os.Root`.
+
+The Windows HTTP check covered upload, subtitle replacement and deletion,
+locked-list access, HLS and byte ranges on the original. The external-directory
+test now seeds SQLite metadata so its request reaches the media filesystem.
+The local sandbox denied creation of its Windows junction, so that test
+still needs the Windows CI runner.
+
+## Operations and locked-list follow-up — 2026-11-13
+
+- List removal and upload/edit assignments share the metadata mutation lock.
+  Uploads revalidate the selected list immediately before publication.
+- The Nginx sample access log uses normalized paths without query strings or
+  Referer. Responses use `Referrer-Policy: strict-origin`.
+- Editors can retry a failed conversion or queue HLS for an original-only
+  upload. The admin overview displays conversion counts and free disk space.
+- New conversions normalize HLS video to H.264 4:2:0 for browser compatibility.
+  Workers stop claiming queued work during shutdown.
+- [Operations](OPERATIONS.md) documents stopped backups, restore rehearsals,
+  release smoke checks and the Linux service example. First visits use
+  `DEFAULT_LANGUAGE`, with Greek as the deployment default.
+- A stopped-backup rehearsal covers legacy FS, default SQLite and an external
+  SQLite path. It checks login, restored subtitles, locked-list access and
+  byte ranges on restored originals.
+
 ## English source catalogs and extensible i18n — 2026-10-26
 
 The first localization implementation below was replaced with standard go-i18n
@@ -211,7 +242,7 @@ claim. The README documents the current behavior and compatibility changes.
 - hls.js 1.6.19 is vendored (`web/static/hls.min.js`, Apache-2.0) and served
   from `/assets`; offline deployments work without external browser access.
   The vendored bytes were verified identical on jsDelivr and unpkg.
-- Failed jobs are not automatically retried. Pending jobs resume at startup.
+- Editors can retry failed jobs manually. Pending jobs resume at startup.
   Abrupt process termination can leave staging/output directories or uploads
   without metadata; there is no general orphan cleanup. Authenticated deletion
   removes known videos, not arbitrary orphan directories.
@@ -221,7 +252,8 @@ claim. The README documents the current behavior and compatibility changes.
   behind per-list long keys (`/view_list?key=…`, invisible without the key
   across pages, API and media files); editors/administrators bypass keys for
   management. There are no per-user private videos, storage quotas or automated
-  backups. Protected-route requests are rate limited;
+  backups. Follow the [backup and restore guide](OPERATIONS.md#backup-and-restore).
+  Protected-route requests are rate limited;
   public traffic and overall storage capacity still require deployment controls.
 - The Nginx example requires actual certificate files and deployment-specific paths.
   Nginx validation, Linux runtime execution, and load testing have not been performed

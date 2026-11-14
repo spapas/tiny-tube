@@ -1,4 +1,25 @@
 {
+  "admin.videoDiskFree": {
+    "other": "Espace disponible pour les vidéos"
+  },
+  "admin.databaseDiskFree": {
+    "other": "Espace disponible pour la base de données"
+  },
+  "player.retryTranscode": {
+    "other": "Relancer la conversion"
+  },
+  "player.startTranscode": {
+    "other": "Générer le flux HLS"
+  },
+  "error.transcodeUnavailable": {
+    "other": "FFmpeg est indisponible."
+  },
+  "error.transcodeState": {
+    "other": "L’état actuel de la vidéo ne permet pas de la mettre en file d’attente pour la conversion."
+  },
+  "error.transcodeOriginal": {
+    "other": "Le fichier vidéo original est introuvable ou son format n’est pas pris en charge."
+  },
   "language.name": {
     "other": "Français"
   },
