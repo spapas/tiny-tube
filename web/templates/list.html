@@ -23,15 +23,17 @@
       </form>
       <span class="result-count">{{if .FilteredTotal}}{{videoCount .FilteredTotal}}{{else}}{{videoCount (len .Items)}}{{end}}</span>
     </div>
-    <nav class="category-filters" aria-label="{{t "search.categoryFilters"}}">
+    <div class="filters-group">
+    <nav class="category-filters filters-row" aria-label="{{t "search.categoryFilters"}}">
       <a class="filter-chip{{if not .Category}} is-selected{{end}}" href="{{sortURL .Q "" .Sort}}" {{if not .Category}}aria-current="true"{{end}}>{{t "search.all"}} <span>{{.Total}}</span></a>
       {{range .Categories}}<a class="filter-chip{{if .Selected}} is-selected{{end}}" href="{{sortURL $.Q .Name $.Sort}}" {{if .Selected}}aria-current="true"{{end}}>{{.Name}} <span>{{.Count}}</span></a>{{end}}
     </nav>
-    <nav class="category-filters" aria-label="{{t "search.sortOrder"}}">
-      <a class="filter-chip{{if eq .Sort "recent"}} is-selected{{end}}" href="{{sortURL .Q .Category ""}}" {{if eq .Sort "recent"}}aria-current="true"{{end}}>{{t "search.sortRecent"}}</a>
-      <a class="filter-chip{{if eq .Sort "views"}} is-selected{{end}}" href="{{sortURL .Q .Category "views"}}" {{if eq .Sort "views"}}aria-current="true"{{end}}>{{t "search.sortPopular"}}</a>
-      <a class="filter-chip{{if eq .Sort "title"}} is-selected{{end}}" href="{{sortURL .Q .Category "title"}}" {{if eq .Sort "title"}}aria-current="true"{{end}}>{{t "search.sortTitle"}}</a>
+    <nav class="category-filters filters-row" aria-label="{{t "search.sortOrder"}}">
+      <a class="filter-chip sort-chip{{if eq .Sort "recent"}} is-selected{{end}}" href="{{sortURL .Q .Category ""}}" {{if eq .Sort "recent"}}aria-current="true"{{end}}>{{t "search.sortRecent"}}</a>
+      <a class="filter-chip sort-chip{{if eq .Sort "views"}} is-selected{{end}}" href="{{sortURL .Q .Category "views"}}" {{if eq .Sort "views"}}aria-current="true"{{end}}>{{t "search.sortPopular"}}</a>
+      <a class="filter-chip sort-chip{{if eq .Sort "title"}} is-selected{{end}}" href="{{sortURL .Q .Category "title"}}" {{if eq .Sort "title"}}aria-current="true"{{end}}>{{t "search.sortTitle"}}</a>
     </nav>
+    </div>
     {{if or .Q .Category}}<div class="active-search"><span>{{if and .Q .Category}}{{t "search.resultsForQueryAndCategory" "Query" .Q "Category" .Category}}{{else if .Q}}{{t "search.resultsForQuery" "Query" .Q}}{{else}}{{t "search.resultsForCategory" "Category" .Category}}{{end}}</span><a href="/">{{t "search.clear"}} {{template "close"}}</a></div>{{end}}
     <div class="video-grid">
       {{range .Items}}

@@ -4,9 +4,9 @@
 <meta name="color-scheme" content="light dark">
 <title>{{if or (eq .Page "watch") .ListName}}{{.Title}}{{else}}{{t .Title}}{{end}} · Tiny Tube</title>
 <script src="/assets/theme.js?v=1"></script>
-<link rel="stylesheet" href="/assets/app.css?v=12">
+<link rel="stylesheet" href="/assets/app.css?v=13">
 <script src="/assets/i18n/{{.Lang}}.js?v=2" defer></script>
-<script src="/assets/app.js?v=10" defer></script>
+<script src="/assets/app.js?v=11" defer></script>
 {{end}}
 
 {{define "header"}}
@@ -22,6 +22,7 @@
       <a class="nav-link{{if eq .Page "admin"}} is-active{{end}}" href="/admin" {{if eq .Page "admin"}}aria-current="page"{{end}}>{{template "info"}} {{t "admin.title"}}</a>
       {{end}}{{end}}
     </nav>
+    <div class="header-controls">
     <div class="user-area">
     {{if .CurrentUser}}
       <span class="user-name">{{if .CurrentUser.DisplayName}}{{.CurrentUser.DisplayName}}{{else}}{{.CurrentUser.Username}}{{end}}</span>
@@ -38,6 +39,7 @@
       </form>
     </details>
     <button class="theme-toggle" type="button" data-theme-toggle aria-label="{{t "theme.enableDark"}}" aria-pressed="false"><span class="theme-sun">{{template "sun"}}</span><span class="theme-moon">{{template "moon"}}</span><span class="theme-label" data-theme-label>{{t "theme.light"}}</span></button>
+    </div>
   </div>
 </header>
 {{end}}
@@ -46,7 +48,7 @@
 <footer class="site-footer container"><span class="footer-brand">Tiny Tube</span><span>{{t "footer.description"}}</span><span class="footer-version">v{{appVersion}}</span></footer>
 {{end}}
 
-{{define "pagination"}}{{if .PageCount}}{{if gt .PageCount 1}}<nav class="pagination" aria-label="{{t "pagination.label"}}">{{if .PreviousPage}}<a class="button button-secondary" href="{{.PreviousPage}}">{{t "pagination.previous"}}</a>{{end}}<span>{{t "pagination.page" "Page" .PageNumber "Pages" .PageCount}}</span>{{if .NextPage}}<a class="button button-secondary" href="{{.NextPage}}">{{t "pagination.next"}}</a>{{end}}</nav>{{end}}{{end}}{{end}}
+{{define "pagination"}}{{if .PageCount}}{{if gt .PageCount 1}}<nav class="pagination" aria-label="{{t "pagination.label"}}">{{if .PreviousPage}}<a class="button button-secondary" href="{{.PreviousPage}}" rel="prev">{{t "pagination.previous"}}</a>{{end}}<span>{{t "pagination.page" "Page" .PageNumber "Pages" .PageCount}}</span>{{if .NextPage}}<a class="button button-secondary" href="{{.NextPage}}" rel="next">{{t "pagination.next"}}</a>{{end}}</nav>{{end}}{{end}}{{end}}
 
 {{define "play"}}<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5.5a1 1 0 0 1 1.5-.86l10 6a1.6 1.6 0 0 1 0 2.72l-10 6A1 1 0 0 1 8 18.5z"/></svg>{{end}}
 {{define "grid"}}<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="2"/><rect x="14" y="3" width="7" height="7" rx="2"/><rect x="3" y="14" width="7" height="7" rx="2"/><rect x="14" y="14" width="7" height="7" rx="2"/></svg>{{end}}

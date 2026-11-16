@@ -30,7 +30,8 @@
 </body></html>{{end}}
 
 {{define "admin-nav"}}
-<nav class="category-filters" aria-label="{{t "admin.navigation"}}">
+<div class="admin-nav-scroll">
+<nav class="category-filters filters-row" aria-label="{{t "admin.navigation"}}">
   <a class="filter-chip{{if eq .AdminSection "overview"}} is-selected{{end}}" href="/admin"{{if eq .AdminSection "overview"}} aria-current="true"{{end}}>{{t "admin.overview"}}</a>
   <a class="filter-chip{{if eq .AdminSection "users"}} is-selected{{end}}" href="/admin/users"{{if eq .AdminSection "users"}} aria-current="true"{{end}}>{{t "admin.users"}}</a>
   <a class="filter-chip{{if eq .AdminSection "user-new"}} is-selected{{end}}" href="/admin/users/new"{{if eq .AdminSection "user-new"}} aria-current="true"{{end}}>{{t "admin.newUser"}}</a>
@@ -40,6 +41,7 @@
   <a class="filter-chip{{if eq .AdminSection "playlists"}} is-selected{{end}}" href="/admin/playlists"{{if eq .AdminSection "playlists"}} aria-current="true"{{end}}>{{t "admin.playlists"}}</a>
   <a class="filter-chip{{if eq .AdminSection "conversions"}} is-selected{{end}}" href="/admin/conversions"{{if eq .AdminSection "conversions"}} aria-current="true"{{end}}>{{t "admin.conversions"}}</a>
 </nav>
+</div>
 {{end}}
 
 {{define "admin-users"}}<!doctype html>

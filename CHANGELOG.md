@@ -1,5 +1,14 @@
 # Changelog
 
+## v2.1.0
+
+- Sticky header with grouped controls, larger touch targets and `rel=prev/next` pagination.
+- Library cards use 16:9 covers with hover lift, two-line titles, scrollable filter and sort rows, and a visible result count on mobile.
+- Watch page with scrollable speedbar, sticky sidebar, truncated series navigation and storyboard tooltips; share menu closes on outside click or Escape, `/` focuses search.
+- Forms, admin tables and login layout refinements with sticky table headers and improved focus states.
+
+[Changes since v2.0.1](https://github.com/spapas/tiny-tube/compare/v2.0.1...v2.1.0)
+
 ## v2.0.1
 
 - Administration conversions page with queued, active and failed videos, per-video error messages and inline retry links.

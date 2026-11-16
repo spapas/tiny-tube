@@ -13,6 +13,28 @@
       }
     });
   }
+  const shareMenu = document.querySelector('.share-menu');
+  if (shareMenu && typeof document.addEventListener === 'function') {
+    document.addEventListener('click', event => {
+      if (!shareMenu.contains(event.target)) shareMenu.open = false;
+    });
+    shareMenu.addEventListener('keydown', event => {
+      if (event.key === 'Escape' && shareMenu.open) {
+        shareMenu.open = false;
+        shareMenu.querySelector('summary').focus();
+      }
+    });
+  }
+  const searchInput = document.querySelector('.search-form input[type="search"]');
+  if (searchInput && typeof document.addEventListener === 'function') {
+    document.addEventListener('keydown', event => {
+      if (event.key !== '/' || event.ctrlKey || event.metaKey || event.altKey) return;
+      const active = document.activeElement;
+      if (active && (active.tagName === 'INPUT' || active.tagName === 'TEXTAREA' || active.isContentEditable)) return;
+      event.preventDefault();
+      searchInput.focus();
+    });
+  }
   document.querySelectorAll('.video-poster').forEach(image => {
     image.addEventListener('error', () => { image.hidden = true; });
     if (image.complete && !image.naturalWidth) image.hidden = true;

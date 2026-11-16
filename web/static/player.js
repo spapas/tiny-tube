@@ -150,6 +150,7 @@
         button.type = 'button';
         button.className = 'storyboard-thumb';
         button.setAttribute('aria-label', formatClock(cue.start));
+        button.title = formatClock(cue.start);
         const canvas = document.createElement('canvas');
         canvas.width = cue.w;
         canvas.height = cue.h;
