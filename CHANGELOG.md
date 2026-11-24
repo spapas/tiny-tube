@@ -1,5 +1,12 @@
 # Changelog
 
+## v2.1.1
+
+- Dependency updates: `go-i18n` 2.7.0, `modernc.org/sqlite` 1.63.0, `x/crypto` 0.59.0, `x/text` 0.44.0.
+- CI action pins refreshed, including `actions/setup-go` v7.1.0. No application code changes.
+
+[Changes since v2.1.0](https://github.com/spapas/tiny-tube/compare/v2.1.0...v2.1.1)
+
 ## v2.1.0
 
 - Sticky header with grouped controls, larger touch targets and `rel=prev/next` pagination.
