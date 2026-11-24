@@ -180,6 +180,7 @@ func (a *application) withUser(next http.Handler) http.Handler {
 func (a *application) limited(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if allowed, retry := a.authRequests.allow(r.RemoteAddr); !allowed {
+			a.metrics.authThrottled.inc()
 			w.Header().Set("Cache-Control", "no-store")
 			w.Header().Set("Retry-After", strconv.Itoa(retry))
 			writeAPIError(w, r, http.StatusTooManyRequests, "error.authRateLimit")

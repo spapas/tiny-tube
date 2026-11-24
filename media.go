@@ -153,6 +153,7 @@ func (a *application) putMeta(m store.Meta) error {
 	a.accessMu.Lock()
 	defer a.accessMu.Unlock()
 	if err := a.fs.Put(m); err != nil {
+		a.metrics.storeErrors.inc("put")
 		return err
 	}
 	a.accessCache[m.ID] = m.AccessList
@@ -163,6 +164,7 @@ func (a *application) deleteMeta(id string) error {
 	a.accessMu.Lock()
 	defer a.accessMu.Unlock()
 	if err := a.fs.Delete(id); err != nil {
+		a.metrics.storeErrors.inc("delete")
 		return err
 	}
 	delete(a.accessCache, id)

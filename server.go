@@ -44,6 +44,7 @@ type application struct {
 	backupMu            sync.Mutex
 	lastBackup          string
 	lastBackupErr       string
+	metrics             *metrics
 }
 
 type conversionJob struct {
@@ -76,7 +77,7 @@ func newApplication(cfg config) (*application, error) {
 	if err != nil {
 		return nil, err
 	}
-	a := &application{cfg: cfg, videoDir: root, ffmpegBin: bin, wake: make(chan struct{}, cfg.TranscodeWorkers), activeJobs: make(map[string]*conversionJob), deleting: make(map[string]bool), viewSeen: make(map[string]time.Time), accessCache: make(map[string]string)}
+	a := &application{cfg: cfg, videoDir: root, ffmpegBin: bin, wake: make(chan struct{}, cfg.TranscodeWorkers), activeJobs: make(map[string]*conversionJob), deleting: make(map[string]bool), viewSeen: make(map[string]time.Time), accessCache: make(map[string]string), metrics: newMetrics()}
 	a.authRequests = newAuthLimiter(cfg.AuthRequestsPerMinute)
 	if _, err := rand.Read(a.listSignKey[:]); err != nil {
 		return nil, err
@@ -237,7 +238,7 @@ func (a *application) routes() http.Handler {
 	mux.Handle("GET /api/video", a.withUser(http.HandlerFunc(a.handleAPIVideo)))
 	mux.HandleFunc("GET /videos/", a.serveVideo)
 	mux.Handle("GET /assets/", http.StripPrefix("/assets/", http.FileServer(http.FS(staticFiles()))))
-	return localizedHTTP(secureHTTP(mux), a.cfg.DefaultLanguage)
+	return localizedHTTP(a.withMetrics(secureHTTP(mux)), a.cfg.DefaultLanguage)
 }
 
 func render(w http.ResponseWriter, tmpl *template.Template, data any) {

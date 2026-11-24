@@ -80,6 +80,7 @@ func (a *application) runBackup(ctx context.Context) error {
 	stamp := time.Now().UTC().Format("20060102-150405")
 	dest := filepath.Join(a.cfg.BackupDir, backupDirPrefix+stamp)
 	fail := func(err error) error {
+		a.metrics.backupFailures.inc()
 		a.setBackupStatus("", err.Error())
 		_ = os.RemoveAll(dest)
 		return err
@@ -107,6 +108,7 @@ func (a *application) runBackup(ctx context.Context) error {
 		return fail(err)
 	}
 	a.setBackupStatus(time.Now().UTC().Format(time.RFC3339Nano), "")
+	a.metrics.backupLastSuccess.set(float64(time.Now().Unix()))
 	log.Printf("automatic backup completed: %s", dest)
 	return nil
 }

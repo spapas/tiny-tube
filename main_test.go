@@ -359,19 +359,23 @@ func TestHTTPPlaybackAuthAndErrors(t *testing.T) {
 }
 
 func TestConfigRejectsUnsafeOrInvalidSettings(t *testing.T) {
-	for _, key := range []string{"ADMIN_USER", "ADMIN_PASS", "AUTH_MODE", "PORT", "HOST", "ADDR", "STORE", "DB_PATH", "MAX_UPLOAD_BYTES", "TRANSCODE_WORKERS", "FFMPEG_BIN", "AUTH_REQUESTS_PER_MINUTE", "UPLOAD_TIMEOUT_SECONDS", "TRANSCODE_TIMEOUT_SECONDS"} {
+	for _, key := range []string{"ADMIN_USER", "ADMIN_PASS", "AUTH_MODE", "PORT", "HOST", "ADDR", "STORE", "DB_PATH", "MAX_UPLOAD_BYTES", "TRANSCODE_WORKERS", "FFMPEG_BIN", "AUTH_REQUESTS_PER_MINUTE", "UPLOAD_TIMEOUT_SECONDS", "TRANSCODE_TIMEOUT_SECONDS", "METRICS_ADDR"} {
 		t.Setenv(key, "")
 	}
 	cfg, err := loadConfig()
 	if err != nil || cfg.Host != "127.0.0.1" || cfg.MaxUploadBytes != 2<<30 || cfg.TranscodeWorkers != 1 || cfg.AuthMode != "local" || cfg.AdminUser != "admin" {
 		t.Fatalf("defaults: %+v %v", cfg, err)
 	}
-	for _, tc := range []struct{ key, value string }{{"PORT", "0"}, {"MAX_UPLOAD_BYTES", "-1"}, {"TRANSCODE_WORKERS", "0"}, {"AUTH_MODE", "sso"}, {"AUTH_REQUESTS_PER_MINUTE", "0"}, {"UPLOAD_TIMEOUT_SECONDS", "-1"}, {"TRANSCODE_TIMEOUT_SECONDS", "86401"}} {
+	for _, tc := range []struct{ key, value string }{{"PORT", "0"}, {"MAX_UPLOAD_BYTES", "-1"}, {"TRANSCODE_WORKERS", "0"}, {"AUTH_MODE", "sso"}, {"AUTH_REQUESTS_PER_MINUTE", "0"}, {"UPLOAD_TIMEOUT_SECONDS", "-1"}, {"TRANSCODE_TIMEOUT_SECONDS", "86401"}, {"METRICS_ADDR", "9090"}, {"METRICS_ADDR", "localhost"}} {
 		t.Setenv(tc.key, tc.value)
 		if _, err := loadConfig(); err == nil {
 			t.Errorf("accepted %s=%s", tc.key, tc.value)
 		}
 		t.Setenv(tc.key, "")
+	}
+	t.Setenv("METRICS_ADDR", "127.0.0.1:9090")
+	if cfg, err := loadConfig(); err != nil || cfg.MetricsAddr != "127.0.0.1:9090" {
+		t.Fatalf("valid METRICS_ADDR: %+v %v", cfg, err)
 	}
 }
 

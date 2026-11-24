@@ -5,6 +5,7 @@ import (
 	"errors"
 	"log"
 	"mime"
+	"net"
 	"net/http"
 	"os"
 	"os/signal"
@@ -46,12 +47,30 @@ func main() {
 	a.startWorkers(ctx)
 	a.startBackupScheduler(ctx)
 	server := a.httpServer()
+	metrics := a.metricsServer()
+	if metrics != nil {
+		// Bind before serving so a bad METRICS_ADDR fails startup.
+		ln, err := net.Listen("tcp", a.cfg.MetricsAddr)
+		if err != nil {
+			log.Fatalf("METRICS_ADDR: %v", err)
+		}
+		a.startMetricsRefresh(ctx)
+		go func() {
+			log.Printf("metrics on http://%s%s", ln.Addr(), metricsPath)
+			if err := metrics.Serve(ln); err != nil && !errors.Is(err, http.ErrServerClosed) {
+				log.Printf("metrics server: %v", err)
+			}
+		}()
+	}
 	shutdownDone := make(chan struct{})
 	go func() {
 		defer close(shutdownDone)
 		<-ctx.Done()
 		shutdownCtx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 		defer cancel()
+		if metrics != nil {
+			_ = metrics.Shutdown(shutdownCtx)
+		}
 		if err := server.Shutdown(shutdownCtx); err != nil {
 			log.Printf("HTTP shutdown: %v", err)
 			server.Close()

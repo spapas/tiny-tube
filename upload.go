@@ -115,9 +115,12 @@ func (a *application) handleUpload(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			return err
 		}
-		_, copyErr := io.Copy(dst, f)
+		n, copyErr := io.Copy(dst, f)
 		syncErr := dst.Sync()
 		closeErr := dst.Close()
+		if copyErr == nil {
+			a.metrics.uploadBytes.add(float64(n))
+		}
 		return errors.Join(copyErr, syncErr, closeErr)
 	})
 }

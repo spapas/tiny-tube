@@ -187,6 +187,7 @@ func (a *application) transcode(ctx context.Context, m store.Meta) {
 		}
 	}()
 	if a.deleting[m.ID] {
+		a.metrics.transcodes.inc("discarded")
 		if hls != "" {
 			a.removePublishedHLS(m.ID, hls)
 		}
@@ -196,6 +197,7 @@ func (a *application) transcode(ctx context.Context, m store.Meta) {
 	current, getErr := a.fs.Get(m.ID)
 	if getErr != nil {
 		log.Printf("read conversion status %s: %v", m.ID, getErr)
+		a.metrics.transcodes.inc("failed")
 		if hls != "" {
 			a.removePublishedHLS(m.ID, hls)
 		}
@@ -218,6 +220,7 @@ func (a *application) transcode(ctx context.Context, m store.Meta) {
 			m.Poster = poster
 		}
 	}
+	a.metrics.transcodes.inc(transcodeOutcome(m.Status))
 	if putErr := a.putMeta(m); putErr != nil {
 		log.Printf("save conversion status %s: %v", m.ID, putErr)
 		if hls != "" {
@@ -226,6 +229,16 @@ func (a *application) transcode(ctx context.Context, m store.Meta) {
 	} else if m.Status != "ready" && hls != "" {
 		a.removePublishedHLS(m.ID, hls)
 	}
+}
+
+// transcodeOutcome maps a persisted status to a metric label. "queued" here
+// means the job was canceled and resumes after restart.
+func transcodeOutcome(status string) string {
+	switch status {
+	case "ready", "failed":
+		return status
+	}
+	return "canceled"
 }
 
 func (a *application) removePublishedHLS(id, hls string) {

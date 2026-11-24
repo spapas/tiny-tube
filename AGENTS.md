@@ -32,6 +32,7 @@ update the documentation when an issue is resolved.
   `ldap.go`: LDAP identity verification with local JIT provisioning.
   `admin.go`: administrator dashboard and user/role management.
 - `security.go`: CSRF/CSP, bounded auth throttling, server deadlines and Go patch checks.
+- `metrics.go`: dependency-free Prometheus text exposition, request middleware and the optional `METRICS_ADDR` listener. Labels are ServeMux patterns, never URLs.
 - `media.go`: traversal-resistant media serving and private DB file identity checks.
 - `ffmpeg.go`: FFmpeg discovery, persisted queue, bounded workers, HLS/poster publication.
 - `store/store.go`: metadata model, ID validation, JSON persistence, and search.

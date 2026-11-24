@@ -229,6 +229,7 @@ func (a *application) handleUploadChunk(w http.ResponseWriter, r *http.Request) 
 		a.apiServerError(w, r, "stage chunk", err)
 		return
 	}
+	a.metrics.uploadBytes.add(float64(len(data)))
 	writeJSON(w, http.StatusOK, map[string]any{"received": received + int64(len(data))})
 }
 

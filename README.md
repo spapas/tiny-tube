@@ -225,6 +225,7 @@ expansion or inline-comment support. `.env` is ignored by Git.
 | `BACKUP_DIR` | unset | Optional automatic hot backups to `<dir>/tiny-tube-backup-<timestamp>/` (media copy plus a consistent SQLite snapshot); unset disables them. |
 | `BACKUP_INTERVAL_HOURS` | `24` | Hours between automatic backups, 1–168. The first backup runs a minute after startup. |
 | `BACKUP_KEEP` | `7` | Newest automatic backups retained, 1–100; older runs are pruned after each backup. |
+| `METRICS_ADDR` | unset | Optional `host:port` serving Prometheus text metrics (`GET /metrics`) on a separate listener; unset disables it. |
 | `TRANSCODE_WORKERS` | `1` | Maximum concurrent FFmpeg processes, between 1 and 16. Pending jobs remain on disk. |
 | `AUTH_REQUESTS_PER_MINUTE` | `60` | Protected-route requests per source IP per minute, checked before authentication; 1–3600. Excess requests return 429 with `Retry-After`. |
 | `UPLOAD_TIMEOUT_SECONDS` | `1800` | Total authenticated multipart read deadline; 1–86400 seconds. Stalled uploads return 408 and are cleaned up. |
@@ -261,6 +262,16 @@ Headers have a 10-second timeout and a 64 KiB limit. Ordinary request reads are
 limited to 30 seconds; authenticated uploads use their separate configured
 deadline. Response writes are limited to `max(30 minutes, UPLOAD_TIMEOUT_SECONDS
 + 60 seconds)`, so unusually slow original downloads may need a larger setting.
+
+`METRICS_ADDR` adds a Prometheus text endpoint on its own listener, with no extra
+dependency. It exports request counts, latency, response bytes, conversion
+outcomes and active jobs, upload bytes, counted views, throttled logins, backup
+health, video counts by status, storage usage, free disk space, store failures
+and basic runtime gauges. The
+exposition has no authentication and is absent from the public routes and the
+Nginx sample: bind it to loopback and scrape from there. Labels use route
+patterns, never URLs, so locked-list keys and video IDs cannot leak into your
+time series.
 
 ## Upload and playback
 

@@ -73,6 +73,54 @@ restart. To restore, stop the service, copy the newest backup's contents back
 over `VIDEO_DIR` (and the external `DB_PATH` when configured), then start and
 run the same readiness, login, playback and list checks as a rehearsal.
 
+## Prometheus metrics
+
+Set `METRICS_ADDR` to serve `GET /metrics` on its own listener:
+
+```sh
+METRICS_ADDR=127.0.0.1:9090
+```
+
+The endpoint has no authentication. Bind loopback or firewall the port, and
+scrape from the host or through an SSH tunnel; it is deliberately not part of
+the public mux, so neither the main port nor the Nginx sample exposes it.
+
+```yaml
+scrape_configs:
+  - job_name: tiny-tube
+    static_configs:
+      - targets: ["127.0.0.1:9090"]
+```
+
+| Series | Meaning |
+| --- | --- |
+| `tiny_tube_http_requests_total{route,method,code}` | Requests served, including rejected and unmatched ones. |
+| `tiny_tube_http_request_duration_seconds{route}` | Request latency histogram. |
+| `tiny_tube_http_response_bytes_total{route}` | Response body bytes written. |
+| `tiny_tube_auth_throttled_total` | Protected requests rejected by the per-IP limiter. |
+| `tiny_tube_transcode_jobs_total{result}` | Finished conversions: `ready`, `failed`, `canceled`, `discarded`. |
+| `tiny_tube_transcode_jobs_active` | Conversions running right now. |
+| `tiny_tube_upload_bytes_total` | Accepted upload payload bytes. |
+| `tiny_tube_views_total` | Views counted after the per-viewer debounce. |
+| `tiny_tube_backup_failures_total` | Failed automatic backup runs. |
+| `tiny_tube_backup_last_success_timestamp_seconds` | Unix time of the last successful automatic backup. |
+| `tiny_tube_videos{status}` | Stored videos by conversion status. |
+| `tiny_tube_storage_bytes` | Bytes used under `VIDEO_DIR`. |
+| `tiny_tube_disk_free_bytes` | Free bytes on the `VIDEO_DIR` filesystem. |
+| `tiny_tube_store_errors_total{op}` | Metadata store failures: `put`, `delete`, `views`, `list`. |
+| `tiny_tube_goroutines`, `tiny_tube_heap_bytes{kind}` | Live goroutines and Go heap (`alloc`, `sys`). |
+| `tiny_tube_start_time_seconds`, `tiny_tube_build_info{version}` | Process start time and running release. |
+
+`route` is a ServeMux pattern such as `GET /watch`, never a request URL:
+locked-list capability keys (`?key=lt-…`) and per-video HLS paths cannot reach
+the time series. Request counters and conversion outcomes update immediately;
+`tiny_tube_videos`, `tiny_tube_storage_bytes` and `tiny_tube_disk_free_bytes`
+refresh every minute because they touch storage; runtime gauges are read at
+scrape time. Use `/readyz` for restart decisions and these series for trends.
+
+CPU/RSS and per-video series are not exported: the first needs OS-specific
+code, the second would grow without bound from user content.
+
 ## Linux systemd example
 
 Install the binary and use a dedicated service account. The unit stores

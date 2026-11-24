@@ -62,9 +62,11 @@ func (a *application) countView(r *http.Request, id string, current int64) int64
 	a.viewMu.Unlock()
 	total, err := a.fs.IncrementViews(id)
 	if err != nil {
+		a.metrics.storeErrors.inc("views")
 		log.Printf("count view %s: %v", id, err)
 		return current
 	}
+	a.metrics.views.inc()
 	return total
 }
 
