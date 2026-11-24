@@ -1,5 +1,17 @@
 # Changelog
 
+## v2.2.0
+
+### Operations
+
+- Optional Prometheus endpoint on a separate listener (`METRICS_ADDR`):
+  request counts, latency, response bytes, conversion outcomes and active
+  jobs, upload bytes, counted views, throttled logins, backup health, video
+  counts, storage usage, free disk space, store failures and runtime gauges.
+  No new dependencies; labels never carry URLs.
+
+[Changes since v2.1.1](https://github.com/spapas/tiny-tube/compare/v2.1.1...v2.2.0)
+
 ## v2.1.1
 
 - Dependency updates: `go-i18n` 2.7.0, `modernc.org/sqlite` 1.63.0, `x/crypto` 0.59.0, `x/text` 0.44.0.
